@@ -683,6 +683,34 @@ def _agg_distribution(q, D, data, en):
     return dict(sorted(cnt.items(), key=lambda x: (-x[1], str(x[0])))), nonempty
 
 
+def _filter_value_in_q(q, ents, data, entity_cn):
+    """枚举类问句里点名的属性值 —— "NorthAir 的设备有哪些" → "NorthAir"。
+
+    取**最长**命中，排除疑问词与实体类中文名本身。返回 None 表示问句没点名值，
+    调用方按原样枚举全部实例。
+
+    🔴 为什么要这个函数：旧版「XX 的实体有哪些」直接枚举该实体类的**全部**实例再
+       截断到 20 条，问句里点的值完全没用上。实测 AAS 台账
+       「NorthAir 的设备有哪些」→ 返回前 20 台（真值 5 台，且多数不是 NorthAir）。
+       数字读起来像正常回答，是最危险的一类错答。
+    """
+    stop = {"哪些", "什么", "所有", "全部", "列出", "一共", "设备", "未知", ""}
+    cands = set()
+    for e in ents[:300]:
+        for v in (data.get(e) or {}).values():
+            if isinstance(v, str):
+                s = v.strip()
+                if 2 <= len(s) <= 40:
+                    cands.add(s)
+    best = None
+    for s in cands:
+        if s in stop or s == entity_cn:
+            continue
+        if s in q and (best is None or len(s) > len(best)):
+            best = s
+    return best
+
+
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
     aliases = D.get("field_aliases", {})
@@ -837,6 +865,20 @@ def answer(q, data, D):
             if (any(k in q for k in ("大于", "小于", "高于", "低于", "超过", "少于",
                                      "以上", "以下"))
                     or "之间" in q or re.search(r"\d\s*到\s*\d", q)):
+                continue
+            # 跨行业泛化守卫（M15-2 补）：问句里出现「属性名 + 为/是/= + 值」时，
+            # 这是**等值过滤计数**，不是实体总数。
+            # 实测（AAS 台账，NorthAir 真值 5 台）：
+            #   「厂商名为 NorthAir 的设备有多少台」→ 本分支抢先 → 答 50（错）
+            #   「厂商名为 NorthAir 的设备有几台」  → 落到下方等值过滤 → 答 5（对）
+            # 同一语义只因量词不同就差 10 倍，说明不是算错，是**路由错**。
+            # 本分支的触发式 `多少[台个条艘本]?设备` 命中「多少台设备」，而守卫只看
+            # 状态/类型/区域枚举词，看不到「属性=值」，于是放行。
+            _eq_guard = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
+            _eq_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
+            _eq_attr_guard, _ = _find_attr(D, q)
+            if (_eq_attr_guard and _eq_guard
+                    and _eq_guard.group(1).strip() not in _eq_stop):
                 continue
             _t_en, _t_cn = _find_enum(D, q, "type")
             _s_en, _s_cn = _find_enum(D, q, "status")
@@ -1009,7 +1051,13 @@ def answer(q, data, D):
             if _a_cn and len(_a_cn) >= 2 and _a_cn in q:
                 _attr_token = _a_cn
                 break
-        if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q):
+        # M15-2：属性被「为/是/= 值」约束时，问的是**符合条件的实例**，不是属性的取值集合。
+        # 实测「厂商名为 NorthAir 的设备有哪些」被本分支当成"厂商名有哪些取值"→
+        # 答成六个厂商名的罗列。无约束的「设备的厂商名有哪些」不受影响（q 里没有 为/是/=）。
+        _eqv = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
+        _eqv_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
+        _attr_constrained = bool(_eqv and _eqv.group(1).strip() not in _eqv_stop)
+        if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q) and not _attr_constrained:
             _attr_en = (D.get("attr_cn2en") or {})[_attr_token]
             _sub = _entity_subset(q, D, data)
             # 取值统一走 _attr_val：兜 camelCase（多词列名）与对象属性（关系表外键，
@@ -1076,6 +1124,13 @@ def answer(q, data, D):
                 if cn in q:
                     uri_sub = emap[cn].lower()
                     ents = sorted({k for k in data if uri_sub in k.lower()})
+                    # M15-2：问句里点名了某个属性值就按它过滤，别枚举全部。
+                    _fv = _filter_value_in_q(q, ents, data, cn)
+                    if _fv:
+                        ents = [e for e in ents
+                                if any(isinstance(v, str)
+                                       and v.strip().lower() == _fv.lower()
+                                       for v in (data.get(e) or {}).values())]
                     if ents:
                         names_list = [(_display_name(data[e], aliases, default=e.split('#')[-1])) for e in ents]
                         names_list = [n for n in names_list if n]
