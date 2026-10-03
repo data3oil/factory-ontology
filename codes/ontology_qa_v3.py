@@ -769,10 +769,134 @@ def _device_attr_lookup(q, data, D, aliases):
     return "%s没有属性「%s」（该设备台账里没有这一列的取值）" % (dev, token)
 
 
+def _relation_lookup(q, data, D):
+    """M15-9：关系类问句（上下游 / 同一厂商）。答不出返回 None。
+
+    症状：「AC-01 下游的设备是什么」只回显"（混合检索）找到相关实体: ..."，
+    三个关系问句全废，而极值问句正常。
+
+    根因：**引擎从来没读过 `first` / `second`**。AAS 映射把关系投成了
+    独立节点（`AC_10_AssetData_connectedTo`），里面是
+    `{'first': '...#urn_ledger_AC_10', 'second': '...#urn_ledger_DR_01'}`，
+    但 `ontology_qa_v3` 全文没有一处引用这两个键——数据在图里，引擎不认识。
+    而极值分支走的是属性值比较，跟关系无关，所以极值问句一直是好的。
+    这也解释了为什么这个缺口一直没被发现：错的只有关系那一类。
+
+    两种问法分别处理：
+    - 「X 下游/上游的设备是什么」：沿 first→second 走，可多跳（数「下游」出现次数）
+    - 「和 X 同一厂商的设备」：走属性值相同（不是关系边，是 shared_value）
+    """
+    m = re.search(r"([A-Za-z]{2,4})-(\d{1,4})", q)
+    if not m:
+        return None
+    dev = "%s-%s" % (m.group(1), m.group(2))
+    dev_und = dev.replace("-", "_")
+
+    def _short(uri):
+        """`https://example.org/aas#urn_ledger_AC_10` -> `AC-10`"""
+        s = str(uri or "").rsplit("#", 1)[-1]
+        s = s.replace("urn_ledger_", "")
+        m2 = re.fullmatch(r"([A-Za-z]{2,4})_(\d{1,4})", s)
+        return "%s-%s" % (m2.group(1), m2.group(2)) if m2 else s
+
+    # ---- 上下游（可多跳）
+    if "下游" in q or "上游" in q:
+        hops = max(q.count("下游"), q.count("上游"))
+        if hops < 1:
+            return None
+        down = "下游" in q
+        # 建邻接表：关系节点名里带 first 端设备号，方向由 first/second 决定
+        adj = defaultdict(set)
+        for k, rec in data.items():
+            if not isinstance(rec, dict) or "first" not in rec and "second" not in rec:
+                continue
+            a, b = _short(rec.get("first")), _short(rec.get("second"))
+            if not a or not b or a == b:
+                continue
+            # AAS 的 first=上游设备、second=下游设备（产线链方向）
+            if down:
+                adj[a].add(b)
+            else:
+                adj[b].add(a)
+        if not adj:
+            return None
+        frontier = {dev}
+        seen = set()
+        for _ in range(hops):
+            nxt = set()
+            for d in frontier:
+                nxt |= adj.get(d, set())
+            frontier = nxt - seen
+            seen |= frontier
+            if not frontier:
+                break
+        if not frontier:
+            return "%s%s第 %d 跳没有设备（产线链到头了）" % (dev, "下游" if down else "上游", hops)
+        # 🔴 文案必须带跳数。「下游的下游」答成"下游的设备：AC-03"会让人以为
+        #    直接下游就是 AC-03，答案对但表述误导（实测踩到）。
+        _hop = "" if hops == 1 else "第 %d 跳" % hops
+        return "%s%s%s的设备：%s" % (
+            dev, "下游" if down else "上游", _hop, "、".join(sorted(frontier)))
+
+    # ---- 同一厂商（走属性值相同，不是关系边）
+    if "同一厂商" in q or "同一厂家" in q or "同厂商" in q:
+        mfr_en = None
+        for en in ("ManufacturerName", "SupplierName", "VendorId", "厂商"):
+            if any(en in str(k) for k in data):
+                mfr_en = en
+                break
+        if not mfr_en:
+            return None
+        mine = None
+        pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev_und))
+        for k, rec in data.items():
+            if mfr_en in str(k) and pat.search(str(k)):
+                mine = rec.get("value")
+                break
+        if not mine:
+            return "%s没有厂商信息（台账里它的厂商名是空的）" % dev
+        peers = set()
+        for k, rec in data.items():
+            if mfr_en in str(k) and rec.get("value") == mine:
+                # 🔴 别用 `_([A-Za-z]{2,4}_\d{1,4})_` 这种模式：键是
+                #    `urn_ledger_AC_01_AssetData_ManufacturerName`，
+                #    资产号**后面跟的是 `_AssetData`**，模式要求设备号后面紧跟 `_`，
+                #    结果一个都匹配不上 → 答"只有它自己一台"（实测 10 台说成 1 台）。
+                #    直接复用 _short：先剥 urn_ledger_ 前缀拿 IRI 尾段，不够再从
+                #    aasPath 首段取（属性节点上就有 `AC-01/AssetData/ManufacturerName`）。
+                peer = None
+                ap = str(rec.get("aasPath") or "")
+                if ap:
+                    m3 = re.match(r"([A-Za-z]{2,4}-\d{1,4})", ap)
+                    if m3:
+                        peer = m3.group(1)
+                if not peer:
+                    segs = [s for s in str(k).split("_")
+                            if re.fullmatch(r"[A-Za-z]{2,4}|\d{1,4}", s)]
+                    for i in range(len(segs) - 1):
+                        if (re.fullmatch(r"[A-Za-z]{2,4}", segs[i])
+                                and re.fullmatch(r"\d{1,4}", segs[i + 1])):
+                            peer = "%s-%s" % (segs[i], segs[i + 1])
+                            break
+                if peer and peer != dev:
+                    peers.add(peer)
+        if not peers:
+            return "%s 的厂商（%s）只有它自己一台" % (dev, mine)
+        return "和 %s 同一厂商（%s）的设备共 %d 台：%s" % (
+            dev, mine, len(peers) + 1, "、".join(sorted(peers)))
+
+    return None
+
+
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
+
+    # M15-9 关系类：与直查同层，理由同上——必须在任何兜底之前。
+    _rel = _relation_lookup(q, data, D)
+    if _rel:
+        return _rel
 
     # M15-8 直查：必须放在函数最前面。它原来被放在「类型枚举」分支内部
     # （宿主 `if "类型" in q and ...`），所以直查问句根本走不到——改了四版都不生效，
