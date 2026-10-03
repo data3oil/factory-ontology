@@ -711,10 +711,75 @@ def _filter_value_in_q(q, ents, data, entity_cn):
     return best
 
 
+def _device_attr_lookup(q, data, D, aliases):
+    """M15-8：「某设备的某属性是多少」的直查。答不出就返回 None。
+
+    症状来源：「AC-01 的投用年份是多少」被答成"符合条件共 319 条"——
+    下游的取值过滤计数把 `AC-01` 当成一个"取值"去数有多少条记录带它。
+    拦住那个兜底之后缺口才暴露：**这个引擎从来没有直查分支**，
+    只有"哪些/列出"的属性取值枚举。所以这里补的是本来就缺的那个分支。
+
+    🔴 三处与 AAS 引擎视图有关的不对称，改动时都要记住：
+    ① 设备编号在键里是下划线（`AC_01`），问句里是连字符（`AC-01`）；
+    ② **设备级记录**（`urn_ledger_AC_01_AssetData`）里没有属性值，
+       属性值在**属性节点**（`AC_01_AssetData_InstallYear`）上，所以要双向定位；
+    ③ 属性节点是「一属性一个实例」，值在 `value` 键上、列名在 `idShort` 上，
+       而 `_attr_val` 认的是列名 → 表格视图与引擎视图取法不同，两条路都得试。
+    """
+    m = re.search(r"([A-Za-z]{2,4})-(\d{1,4})", q)
+    if not m:
+        return None
+    dev = "%s-%s" % (m.group(1), m.group(2))
+    # 只处理「…是多少 / 多大 / 几」这类取值问句，不抢极值与计数
+    if not re.search(r"(是多少|多大|值为|数值)", q):
+        return None
+    token = None
+    for cn in sorted((D.get("attr_cn2en") or {}), key=len, reverse=True):
+        if cn and len(cn) >= 2 and cn in q:
+            token = cn
+            break
+    if not token:
+        return None
+    attr_en = (D.get("attr_cn2en") or {})[token]
+    pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev.replace("-", "_")))
+    cands = [k for k in data if pat.search(str(k))]
+    if not cands:
+        return None
+    up = attr_en.split("_")[0]
+    # 🔴 定位必须**严格核对属性名**，不能"取第一个有值的节点"。
+    #    否则 `AC_01` 下挂着 9 个属性节点，遍历顺序决定答哪个——
+    #    实测答成「投用年份=56.0」（那是运行功率的值）、
+    #    「厂商名=SN-AC01」（那是序列号）。属性名对不上就当没这条。
+    def _node_val(rec):
+        if not isinstance(rec, dict):
+            return None
+        # 引擎视图：一属性一实例，列名在 idShort、值在 value
+        if rec.get("idShort") == attr_en or rec.get("idShort") == up:
+            return rec.get("value")
+        if attr_en in str(rec.get("aasPath", "")) or up in str(rec.get("aasPath", "")):
+            return rec.get("value")
+        # 表格视图：属性名就是列名
+        return _attr_val(rec, attr_en, aliases, data)
+
+    for k in cands:
+        val = _node_val(data[k])
+        if val not in (None, ""):
+            return "%s的%s：%s" % (dev, token, val)
+    # 点名了设备但该设备没有这一列 → 如实说没有，**不回退到全库统计**
+    return "%s没有属性「%s」（该设备台账里没有这一列的取值）" % (dev, token)
+
+
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
+
+    # M15-8 直查：必须放在函数最前面。它原来被放在「类型枚举」分支内部
+    # （宿主 `if "类型" in q and ...`），所以直查问句根本走不到——改了四版都不生效，
+    # 根因是位置不是逻辑。**改引擎先确认缩进层级。**
+    _direct = _device_attr_lookup(q, data, D, aliases)
+    if _direct:
+        return _direct
 
     # 计数量词：按问题中的实体词选合适量词（设备→台 / 测线→条 / 船→艘 / 项目→个 / 客户→家），缺省"个"。
     # 提到函数头: 组合模板(状态+类型)/状态计数/类型计数/实体总数 多处分摊使用。
@@ -1057,6 +1122,11 @@ def answer(q, data, D):
         _eqv = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
         _eqv_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
         _attr_constrained = bool(_eqv and _eqv.group(1).strip() not in _eqv_stop)
+        # ── M15-8 直查已移到函数入口（_device_attr_lookup）──
+        # 🔴 这一段原先被放在「类型枚举」分支的 if 块内（宿主是
+        #    `if "类型" in q and ...`），所以「AC-01 的投用年份是多少」根本走不到——
+        #    改了四版都没生效就是因为位置错了，不是逻辑错。教训：**改引擎先确认缩进层级**。
+
         if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q) and not _attr_constrained:
             _attr_en = (D.get("attr_cn2en") or {})[_attr_token]
             _sub = _entity_subset(q, D, data)
@@ -1258,7 +1328,50 @@ def answer(q, data, D):
     # 否则会误伤问句含取值词的正常过滤计数。
     _bare_entity_count = bool(re.search(r"(有多少个?|多少个|共多少|有多少)[\u4e00-\u9fff]{1,8}$", q)) \
         or bool(re.search(r"^[\u4e00-\u9fff]{1,8}总数\s*$", q))
-    if not _EXTREME.search(q) and not (is_cross_domain_data_query(q, D) and _bare_entity_count):
+    # 🔴 M15-8：问句点名了具体实体时，不能落到"取值过滤计数"兜底。
+    #    症状：「AC-01 的投用年份是多少」答"符合条件共 319 条"——
+    #    `_value_filter_count` 把 `AC-01` 当成一个"取值"去数有多少设备带这个值，
+    #    于是数出全库条数。实测 v5 台账上「AC-01 的额定功率是多少」同样答 340 条。
+    #
+    #    根因与 M15-1（`-` 被当厂商名）是**同一类**：没把设备 ID 当实体，只当字符串。
+    #    `_bare_entity_count` 那条拦不住，因为问句结尾是"是多少"不是纯数量问法。
+    #
+    #    ⚠️ 匹配要用**键里的编号段还原**：`data` 的键是 URI 形式（`AC_01_AssetData`、
+    #    连字符被写成下划线），而问句里是 `AC-01`。直接拿 `_display_name` 比对是没用的
+    #    —— AAS 视图下它返回空串（实测），守卫会永远失配。第一版就栽在这里。
+    # ⚠️ 匹配必须**跨段重组**：`data` 的键是 URI 形式，而连字符被写成下划线，
+    #    切分后是 `urn_ledger_AC_01_AssetData` → ['urn','ledger','AC','01','AssetData']，
+    #    单段永远拼不回 `AC-01`。
+    #
+    #    🔴 判据必须是「**字母段 + 数字段**相邻」这个**正向**形状，
+    #       不能反过来"过滤掉纯字母段"——设备编号的字母段（AC/TK/CV）本身就是纯字母，
+    #       过滤掉它就把编号拆散了（实测 segs 变成 ['ledger','01','AssetData']，
+    #       pair 全是 ledger-01 这种垃圾，永远匹配不上）。这个反向规则试了两版都失配。
+    _named_entity = False
+    _Q = re.sub(r"\s+", "", q)
+    _PAIR = re.compile(r"^([A-Za-z]{2,4})(\d{1,4})$")
+    for _nm in data:
+        _segs = str(_nm).split("_")
+        for _i in range(len(_segs) - 1):
+            _m = _PAIR.match(_segs[_i] + _segs[_i + 1])
+            if not _m:
+                continue
+            _letters, _digits = _m.group(1), _m.group(2)
+            # 问句里三种写法都要认：AC-01 / AC_01 / AC01
+            if ("%s-%s" % (_letters, _digits) in _Q
+                    or "%s%s" % (_letters, _digits) in _Q
+                    or "%s_%s" % (_letters, _digits) in _Q):
+                _named_entity = True
+                break
+        if _named_entity:
+            break
+    if not _named_entity:
+        for _cn, _uri in (get_entity_cn2uri() or {}).items():
+            if _cn and len(_cn) >= 2 and _cn in q:
+                _named_entity = True
+                break
+    if not _named_entity and not _EXTREME.search(q) \
+            and not (is_cross_domain_data_query(q, D) and _bare_entity_count):
         _vc = _value_filter_count(q, data)
         if _vc:
             return "符合条件共 %d 条" % _vc[0]
