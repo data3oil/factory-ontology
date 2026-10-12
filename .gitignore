@@ -88,3 +88,5 @@ codes/config/evolve_snapshots/
 
 # 内部商业化调研(含内部判断, 不发布)
 docs/商品化调研/
+# Hermes agent 的本地验证配方目录（非产品内容；审查 P2-4 起不入库）
+.hermes/
