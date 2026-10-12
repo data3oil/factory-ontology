@@ -30,15 +30,27 @@ _SNAPSHOT_KEY = "snapshots"
 # 本体自演进用的模型（默认走本库统一定义；可被 env 覆盖）
 _ENV_MODEL_KEY = "FACTORY_EVOLVE_MODEL_KEY"
 
-# 媒体名/来源名（LLM 会当专名抽出来，但它们是来源不是实体）
-_MEDIA_NAMES = {
-    "it之家", "36氪", "虎嗅", "澎湃", "澎湃新闻", "新浪", "新浪科技", "财新", "界面",
-    "界面新闻", "第一财经", "每日经济新闻", "每经", "证券时报", "中国证券报", "中证",
-    "观察者", "观察者网", "环球", "环球时报", "参考消息", "央视", "央视新闻", "新华社",
-    "人民日报", "中国日报", "科技日报", "凤凰", "凤凰网", "网易", "腾讯新闻", "ithome",
-    "公众号", "微信公众号", "知乎", "b站", "bilibili", "小红书", "微博", "抖音", "快手",
-    "视频号", "百家号", "头条", "今日头条", "csdn", "掘金", "简书", "豆瓣", "贴吧",
+# 来源名（LLM 会当专名抽出来，但它们是来源不是实体）。
+# 只写通用类别词与后缀规则，不写具体媒体/平台品牌名 —— 边界自检要求仓库里不出现真实企业名。
+_SOURCE_GENERIC = {
+    "公众号", "微信公众号", "视频号", "头条", "今日头条", "百家号", "贴吧", "论坛", "官网",
+    "自媒体", "快讯", "简报", "内参", "周报", "月报", "年报", "白皮书", "转载",
 }
+
+# 来源名后缀：命中即视为来源而不是实体
+_SOURCE_SUFFIXES = (
+    "新闻", "日报", "时报", "周刊", "晚报", "早报", "证券报", "新闻网", "财经网", "观察网",
+)
+
+
+def _is_source_name(name):
+    """名称看着像新闻来源/媒体渠道就不当实体（品牌名一律不写死，靠后缀与通用词判定）。"""
+    n = str(name or "").strip().lower()
+    if not n:
+        return True
+    if n in _SOURCE_GENERIC:
+        return True
+    return n.endswith(_SOURCE_SUFFIXES)
 
 _PROMPT = (
     "从下面文本里抽取实体名（公司/机构/品牌/产品型号/设备名等专有名词）。\n"
@@ -167,7 +179,7 @@ def _llm_extract_one(text):
     got = []
     for e in ents:
         e = str(e).strip()
-        if (e and 2 <= len(e) <= 24 and e.lower() not in _MEDIA_NAMES
+        if (e and 2 <= len(e) <= 24 and not _is_source_name(e)
                 and e not in got):
             got.append(e)
     return got
