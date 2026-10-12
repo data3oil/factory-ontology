@@ -49,7 +49,7 @@ CONTRACTS = [
     ("admin_sync_noauth", "POST", "/api/admin/sync", None, None, (401,), ['detail']),
     ("admin_upload_noauth", "POST", "/api/admin/upload", None, None, (401,), ['detail']),
     ("ontology_structure", "GET", "/api/ontology/structure?kb=food", 'key', None, (200,), ['classes', 'instance_total', 'kb', 'nt_file', 'object_properties', 'ok', 'subclass_of']),
-    ("ontology_graph", "GET", "/api/ontology/graph?kb=food", 'key', None, (200,), ['counts', 'edges', 'nodes', 'ok']),
+    ("ontology_graph", "GET", "/api/ontology/graph?kb=food", 'key', None, (200,), ['classes', 'counts', 'edges', 'nodes', 'ok']),
     ("ontology_graph_svg", "GET", "/api/ontology/graph-svg", 'key', None, (200,), None),
     ("ontology_build_missing_body", "POST", "/api/ontology/build", 'key', {}, (422,), ['detail']),
     ("ontology_build_noauth", "POST", "/api/ontology/build", None, {'kb': 'x'}, (401,), ['detail']),

@@ -683,10 +683,227 @@ def _agg_distribution(q, D, data, en):
     return dict(sorted(cnt.items(), key=lambda x: (-x[1], str(x[0])))), nonempty
 
 
+def _filter_value_in_q(q, ents, data, entity_cn):
+    """枚举类问句里点名的属性值 —— "NorthAir 的设备有哪些" → "NorthAir"。
+
+    取**最长**命中，排除疑问词与实体类中文名本身。返回 None 表示问句没点名值，
+    调用方按原样枚举全部实例。
+
+    🔴 为什么要这个函数：旧版「XX 的实体有哪些」直接枚举该实体类的**全部**实例再
+       截断到 20 条，问句里点的值完全没用上。实测 AAS 台账
+       「NorthAir 的设备有哪些」→ 返回前 20 台（真值 5 台，且多数不是 NorthAir）。
+       数字读起来像正常回答，是最危险的一类错答。
+    """
+    stop = {"哪些", "什么", "所有", "全部", "列出", "一共", "设备", "未知", ""}
+    cands = set()
+    for e in ents[:300]:
+        for v in (data.get(e) or {}).values():
+            if isinstance(v, str):
+                s = v.strip()
+                if 2 <= len(s) <= 40:
+                    cands.add(s)
+    best = None
+    for s in cands:
+        if s in stop or s == entity_cn:
+            continue
+        if s in q and (best is None or len(s) > len(best)):
+            best = s
+    return best
+
+
+def _device_attr_lookup(q, data, D, aliases):
+    """M15-8：「某设备的某属性是多少」的直查。答不出就返回 None。
+
+    症状来源：「AC-01 的投用年份是多少」被答成"符合条件共 319 条"——
+    下游的取值过滤计数把 `AC-01` 当成一个"取值"去数有多少条记录带它。
+    拦住那个兜底之后缺口才暴露：**这个引擎从来没有直查分支**，
+    只有"哪些/列出"的属性取值枚举。所以这里补的是本来就缺的那个分支。
+
+    🔴 三处与 AAS 引擎视图有关的不对称，改动时都要记住：
+    ① 设备编号在键里是下划线（`AC_01`），问句里是连字符（`AC-01`）；
+    ② **设备级记录**（`urn_ledger_AC_01_AssetData`）里没有属性值，
+       属性值在**属性节点**（`AC_01_AssetData_InstallYear`）上，所以要双向定位；
+    ③ 属性节点是「一属性一个实例」，值在 `value` 键上、列名在 `idShort` 上，
+       而 `_attr_val` 认的是列名 → 表格视图与引擎视图取法不同，两条路都得试。
+    """
+    m = re.search(r"([A-Za-z]{2,4})-(\d{1,4})", q)
+    if not m:
+        return None
+    dev = "%s-%s" % (m.group(1), m.group(2))
+    # 只处理「…是多少 / 多大 / 几」这类取值问句，不抢极值与计数
+    if not re.search(r"(是多少|多大|值为|数值)", q):
+        return None
+    token = None
+    for cn in sorted((D.get("attr_cn2en") or {}), key=len, reverse=True):
+        if cn and len(cn) >= 2 and cn in q:
+            token = cn
+            break
+    if not token:
+        return None
+    attr_en = (D.get("attr_cn2en") or {})[token]
+    pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev.replace("-", "_")))
+    cands = [k for k in data if pat.search(str(k))]
+    if not cands:
+        return None
+    up = attr_en.split("_")[0]
+    # 🔴 定位必须**严格核对属性名**，不能"取第一个有值的节点"。
+    #    否则 `AC_01` 下挂着 9 个属性节点，遍历顺序决定答哪个——
+    #    实测答成「投用年份=56.0」（那是运行功率的值）、
+    #    「厂商名=SN-AC01」（那是序列号）。属性名对不上就当没这条。
+    def _node_val(rec):
+        if not isinstance(rec, dict):
+            return None
+        # 引擎视图：一属性一实例，列名在 idShort、值在 value
+        if rec.get("idShort") == attr_en or rec.get("idShort") == up:
+            return rec.get("value")
+        if attr_en in str(rec.get("aasPath", "")) or up in str(rec.get("aasPath", "")):
+            return rec.get("value")
+        # 表格视图：属性名就是列名
+        return _attr_val(rec, attr_en, aliases, data)
+
+    for k in cands:
+        val = _node_val(data[k])
+        if val not in (None, ""):
+            return "%s的%s：%s" % (dev, token, val)
+    # 点名了设备但该设备没有这一列 → 如实说没有，**不回退到全库统计**
+    return "%s没有属性「%s」（该设备台账里没有这一列的取值）" % (dev, token)
+
+
+def _relation_lookup(q, data, D):
+    """M15-9：关系类问句（上下游 / 同一厂商）。答不出返回 None。
+
+    症状：「AC-01 下游的设备是什么」只回显"（混合检索）找到相关实体: ..."，
+    三个关系问句全废，而极值问句正常。
+
+    根因：**引擎从来没读过 `first` / `second`**。AAS 映射把关系投成了
+    独立节点（`AC_10_AssetData_connectedTo`），里面是
+    `{'first': '...#urn_ledger_AC_10', 'second': '...#urn_ledger_DR_01'}`，
+    但 `ontology_qa_v3` 全文没有一处引用这两个键——数据在图里，引擎不认识。
+    而极值分支走的是属性值比较，跟关系无关，所以极值问句一直是好的。
+    这也解释了为什么这个缺口一直没被发现：错的只有关系那一类。
+
+    两种问法分别处理：
+    - 「X 下游/上游的设备是什么」：沿 first→second 走，可多跳（数「下游」出现次数）
+    - 「和 X 同一厂商的设备」：走属性值相同（不是关系边，是 shared_value）
+    """
+    m = re.search(r"([A-Za-z]{2,4})-(\d{1,4})", q)
+    if not m:
+        return None
+    dev = "%s-%s" % (m.group(1), m.group(2))
+    dev_und = dev.replace("-", "_")
+
+    def _short(uri):
+        """`https://example.org/aas#urn_ledger_AC_10` -> `AC-10`"""
+        s = str(uri or "").rsplit("#", 1)[-1]
+        s = s.replace("urn_ledger_", "")
+        m2 = re.fullmatch(r"([A-Za-z]{2,4})_(\d{1,4})", s)
+        return "%s-%s" % (m2.group(1), m2.group(2)) if m2 else s
+
+    # ---- 上下游（可多跳）
+    if "下游" in q or "上游" in q:
+        hops = max(q.count("下游"), q.count("上游"))
+        if hops < 1:
+            return None
+        down = "下游" in q
+        # 建邻接表：关系节点名里带 first 端设备号，方向由 first/second 决定
+        adj = defaultdict(set)
+        for k, rec in data.items():
+            if not isinstance(rec, dict) or "first" not in rec and "second" not in rec:
+                continue
+            a, b = _short(rec.get("first")), _short(rec.get("second"))
+            if not a or not b or a == b:
+                continue
+            # AAS 的 first=上游设备、second=下游设备（产线链方向）
+            if down:
+                adj[a].add(b)
+            else:
+                adj[b].add(a)
+        if not adj:
+            return None
+        frontier = {dev}
+        seen = set()
+        for _ in range(hops):
+            nxt = set()
+            for d in frontier:
+                nxt |= adj.get(d, set())
+            frontier = nxt - seen
+            seen |= frontier
+            if not frontier:
+                break
+        if not frontier:
+            return "%s%s第 %d 跳没有设备（产线链到头了）" % (dev, "下游" if down else "上游", hops)
+        # 🔴 文案必须带跳数。「下游的下游」答成"下游的设备：AC-03"会让人以为
+        #    直接下游就是 AC-03，答案对但表述误导（实测踩到）。
+        _hop = "" if hops == 1 else "第 %d 跳" % hops
+        return "%s%s%s的设备：%s" % (
+            dev, "下游" if down else "上游", _hop, "、".join(sorted(frontier)))
+
+    # ---- 同一厂商（走属性值相同，不是关系边）
+    if "同一厂商" in q or "同一厂家" in q or "同厂商" in q:
+        mfr_en = None
+        for en in ("ManufacturerName", "SupplierName", "VendorId", "厂商"):
+            if any(en in str(k) for k in data):
+                mfr_en = en
+                break
+        if not mfr_en:
+            return None
+        mine = None
+        pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev_und))
+        for k, rec in data.items():
+            if mfr_en in str(k) and pat.search(str(k)):
+                mine = rec.get("value")
+                break
+        if not mine:
+            return "%s没有厂商信息（台账里它的厂商名是空的）" % dev
+        peers = set()
+        for k, rec in data.items():
+            if mfr_en in str(k) and rec.get("value") == mine:
+                # 🔴 别用 `_([A-Za-z]{2,4}_\d{1,4})_` 这种模式：键是
+                #    `urn_ledger_AC_01_AssetData_ManufacturerName`，
+                #    资产号**后面跟的是 `_AssetData`**，模式要求设备号后面紧跟 `_`，
+                #    结果一个都匹配不上 → 答"只有它自己一台"（实测 10 台说成 1 台）。
+                #    直接复用 _short：先剥 urn_ledger_ 前缀拿 IRI 尾段，不够再从
+                #    aasPath 首段取（属性节点上就有 `AC-01/AssetData/ManufacturerName`）。
+                peer = None
+                ap = str(rec.get("aasPath") or "")
+                if ap:
+                    m3 = re.match(r"([A-Za-z]{2,4}-\d{1,4})", ap)
+                    if m3:
+                        peer = m3.group(1)
+                if not peer:
+                    segs = [s for s in str(k).split("_")
+                            if re.fullmatch(r"[A-Za-z]{2,4}|\d{1,4}", s)]
+                    for i in range(len(segs) - 1):
+                        if (re.fullmatch(r"[A-Za-z]{2,4}", segs[i])
+                                and re.fullmatch(r"\d{1,4}", segs[i + 1])):
+                            peer = "%s-%s" % (segs[i], segs[i + 1])
+                            break
+                if peer and peer != dev:
+                    peers.add(peer)
+        if not peers:
+            return "%s 的厂商（%s）只有它自己一台" % (dev, mine)
+        return "和 %s 同一厂商（%s）的设备共 %d 台：%s" % (
+            dev, mine, len(peers) + 1, "、".join(sorted(peers)))
+
+    return None
+
+
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
+
+    # M15-9 关系类：与直查同层，理由同上——必须在任何兜底之前。
+    _rel = _relation_lookup(q, data, D)
+    if _rel:
+        return _rel
+
+    # M15-8 直查：必须放在函数最前面。它原来被放在「类型枚举」分支内部
+    # （宿主 `if "类型" in q and ...`），所以直查问句根本走不到——改了四版都不生效，
+    # 根因是位置不是逻辑。**改引擎先确认缩进层级。**
+    _direct = _device_attr_lookup(q, data, D, aliases)
+    if _direct:
+        return _direct
 
     # 计数量词：按问题中的实体词选合适量词（设备→台 / 测线→条 / 船→艘 / 项目→个 / 客户→家），缺省"个"。
     # 提到函数头: 组合模板(状态+类型)/状态计数/类型计数/实体总数 多处分摊使用。
@@ -837,6 +1054,20 @@ def answer(q, data, D):
             if (any(k in q for k in ("大于", "小于", "高于", "低于", "超过", "少于",
                                      "以上", "以下"))
                     or "之间" in q or re.search(r"\d\s*到\s*\d", q)):
+                continue
+            # 跨行业泛化守卫（M15-2 补）：问句里出现「属性名 + 为/是/= + 值」时，
+            # 这是**等值过滤计数**，不是实体总数。
+            # 实测（AAS 台账，NorthAir 真值 5 台）：
+            #   「厂商名为 NorthAir 的设备有多少台」→ 本分支抢先 → 答 50（错）
+            #   「厂商名为 NorthAir 的设备有几台」  → 落到下方等值过滤 → 答 5（对）
+            # 同一语义只因量词不同就差 10 倍，说明不是算错，是**路由错**。
+            # 本分支的触发式 `多少[台个条艘本]?设备` 命中「多少台设备」，而守卫只看
+            # 状态/类型/区域枚举词，看不到「属性=值」，于是放行。
+            _eq_guard = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
+            _eq_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
+            _eq_attr_guard, _ = _find_attr(D, q)
+            if (_eq_attr_guard and _eq_guard
+                    and _eq_guard.group(1).strip() not in _eq_stop):
                 continue
             _t_en, _t_cn = _find_enum(D, q, "type")
             _s_en, _s_cn = _find_enum(D, q, "status")
@@ -1009,7 +1240,18 @@ def answer(q, data, D):
             if _a_cn and len(_a_cn) >= 2 and _a_cn in q:
                 _attr_token = _a_cn
                 break
-        if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q):
+        # M15-2：属性被「为/是/= 值」约束时，问的是**符合条件的实例**，不是属性的取值集合。
+        # 实测「厂商名为 NorthAir 的设备有哪些」被本分支当成"厂商名有哪些取值"→
+        # 答成六个厂商名的罗列。无约束的「设备的厂商名有哪些」不受影响（q 里没有 为/是/=）。
+        _eqv = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
+        _eqv_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
+        _attr_constrained = bool(_eqv and _eqv.group(1).strip() not in _eqv_stop)
+        # ── M15-8 直查已移到函数入口（_device_attr_lookup）──
+        # 🔴 这一段原先被放在「类型枚举」分支的 if 块内（宿主是
+        #    `if "类型" in q and ...`），所以「AC-01 的投用年份是多少」根本走不到——
+        #    改了四版都没生效就是因为位置错了，不是逻辑错。教训：**改引擎先确认缩进层级**。
+
+        if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q) and not _attr_constrained:
             _attr_en = (D.get("attr_cn2en") or {})[_attr_token]
             _sub = _entity_subset(q, D, data)
             # 取值统一走 _attr_val：兜 camelCase（多词列名）与对象属性（关系表外键，
@@ -1076,6 +1318,13 @@ def answer(q, data, D):
                 if cn in q:
                     uri_sub = emap[cn].lower()
                     ents = sorted({k for k in data if uri_sub in k.lower()})
+                    # M15-2：问句里点名了某个属性值就按它过滤，别枚举全部。
+                    _fv = _filter_value_in_q(q, ents, data, cn)
+                    if _fv:
+                        ents = [e for e in ents
+                                if any(isinstance(v, str)
+                                       and v.strip().lower() == _fv.lower()
+                                       for v in (data.get(e) or {}).values())]
                     if ents:
                         names_list = [(_display_name(data[e], aliases, default=e.split('#')[-1])) for e in ents]
                         names_list = [n for n in names_list if n]
@@ -1203,7 +1452,50 @@ def answer(q, data, D):
     # 否则会误伤问句含取值词的正常过滤计数。
     _bare_entity_count = bool(re.search(r"(有多少个?|多少个|共多少|有多少)[\u4e00-\u9fff]{1,8}$", q)) \
         or bool(re.search(r"^[\u4e00-\u9fff]{1,8}总数\s*$", q))
-    if not _EXTREME.search(q) and not (is_cross_domain_data_query(q, D) and _bare_entity_count):
+    # 🔴 M15-8：问句点名了具体实体时，不能落到"取值过滤计数"兜底。
+    #    症状：「AC-01 的投用年份是多少」答"符合条件共 319 条"——
+    #    `_value_filter_count` 把 `AC-01` 当成一个"取值"去数有多少设备带这个值，
+    #    于是数出全库条数。实测 v5 台账上「AC-01 的额定功率是多少」同样答 340 条。
+    #
+    #    根因与 M15-1（`-` 被当厂商名）是**同一类**：没把设备 ID 当实体，只当字符串。
+    #    `_bare_entity_count` 那条拦不住，因为问句结尾是"是多少"不是纯数量问法。
+    #
+    #    ⚠️ 匹配要用**键里的编号段还原**：`data` 的键是 URI 形式（`AC_01_AssetData`、
+    #    连字符被写成下划线），而问句里是 `AC-01`。直接拿 `_display_name` 比对是没用的
+    #    —— AAS 视图下它返回空串（实测），守卫会永远失配。第一版就栽在这里。
+    # ⚠️ 匹配必须**跨段重组**：`data` 的键是 URI 形式，而连字符被写成下划线，
+    #    切分后是 `urn_ledger_AC_01_AssetData` → ['urn','ledger','AC','01','AssetData']，
+    #    单段永远拼不回 `AC-01`。
+    #
+    #    🔴 判据必须是「**字母段 + 数字段**相邻」这个**正向**形状，
+    #       不能反过来"过滤掉纯字母段"——设备编号的字母段（AC/TK/CV）本身就是纯字母，
+    #       过滤掉它就把编号拆散了（实测 segs 变成 ['ledger','01','AssetData']，
+    #       pair 全是 ledger-01 这种垃圾，永远匹配不上）。这个反向规则试了两版都失配。
+    _named_entity = False
+    _Q = re.sub(r"\s+", "", q)
+    _PAIR = re.compile(r"^([A-Za-z]{2,4})(\d{1,4})$")
+    for _nm in data:
+        _segs = str(_nm).split("_")
+        for _i in range(len(_segs) - 1):
+            _m = _PAIR.match(_segs[_i] + _segs[_i + 1])
+            if not _m:
+                continue
+            _letters, _digits = _m.group(1), _m.group(2)
+            # 问句里三种写法都要认：AC-01 / AC_01 / AC01
+            if ("%s-%s" % (_letters, _digits) in _Q
+                    or "%s%s" % (_letters, _digits) in _Q
+                    or "%s_%s" % (_letters, _digits) in _Q):
+                _named_entity = True
+                break
+        if _named_entity:
+            break
+    if not _named_entity:
+        for _cn, _uri in (get_entity_cn2uri() or {}).items():
+            if _cn and len(_cn) >= 2 and _cn in q:
+                _named_entity = True
+                break
+    if not _named_entity and not _EXTREME.search(q) \
+            and not (is_cross_domain_data_query(q, D) and _bare_entity_count):
         _vc = _value_filter_count(q, data)
         if _vc:
             return "符合条件共 %d 条" % _vc[0]

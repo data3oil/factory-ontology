@@ -18,6 +18,7 @@ embedding 失败/服务不可用时回落空结果，绝不阻塞下游。
 """
 import os
 import json
+import sys
 import time
 import random
 import urllib.request
@@ -67,6 +68,37 @@ class VectorIndex:
     def __init__(self):
         self.entries = []      # [{entity, text, vector}]
         self._built = False
+        # 🔴 降级可见化（上游问题：VectorIndex 静默空索引）。
+        #    以前超时 / embedding 全失败都直接返回 `cls()`，调用方拿到一个
+        #    entries=[] 的对象，**与「真的没有可索引实体」完全同形**。
+        #    于是混合检索里 P2 悄悄变成全 0，看报告只会以为"语义检索没用"，
+        #    实际上是构建超时——两种病因一种症状，没法排查。
+        #
+        #    这里只**记录**降级原因并告警，不改任何检索行为：
+        #   - degraded: bool        是否走了降级
+        #   - degrade_reason: str    人类可读原因（timeout / embed_failed / empty_graph）
+        #   - degraded_at / n_candidates / n_embedded   现场数据
+        #   调用方（run.py / benchmark / 混合检索）可据此判定，判不了也不影响原行为。
+        self.degraded = False
+        self.degrade_reason = ""
+        self.degraded_at = 0
+        self.n_candidates = 0
+        self.n_embedded = 0
+
+    def _mark_degraded(self, reason, n_candidates=0, n_embedded=0):
+        """标记降级并 stderr 告警。告警走 stderr，不污染 stdout 的结构化输出。"""
+        self.degraded = True
+        self.degrade_reason = reason
+        self.degraded_at = time.time()
+        self.n_candidates = n_candidates
+        self.n_embedded = n_embedded
+        try:
+            print("[vector_retrieval] ⚠️ 向量索引降级: %s（候选 %d，成功 %d）"
+                  "——语义检索不可用，已回落 BM25" % (reason, n_candidates, n_embedded),
+                  file=sys.stderr)
+        except Exception:
+            pass          # 告警本身绝不能把构建搞崩
+        return self
 
     @classmethod
     def from_graph(cls, graph, lexicon=None, base=OLLAMA_BASE, model=EMBED_MODEL,
@@ -110,14 +142,32 @@ class VectorIndex:
             candidates = random.sample(candidates, max_entries)
         # 超时防护：构建超过 build_timeout 秒则放弃向量索引，降级纯 BM25
         deadline = time.monotonic() + (build_timeout or 0)
-        for name, text in candidates:
+        n_candidates = len(candidates)
+        for i, (name, text) in enumerate(candidates):
             if build_timeout and build_timeout > 0 and time.monotonic() > deadline:
-                return cls()  # 超时：放弃向量索引，返回空索引（BM25 兜底）
+                # 🔴 以前这里是裸 `return cls()`：调用方拿到空索引却无从知道
+                #    是超时还是本来就没数据。现在带上原因与现场数字返回。
+                return vx._mark_degraded(
+                    "构建超时 build_timeout=%.1fs（已嵌入 %d/%d 条）"
+                    % (build_timeout, i, n_candidates),
+                    n_candidates=n_candidates, n_embedded=i)
             vec = embed_text(text, base=base, model=model)
             if vec is None:
                 continue
             vx.entries.append({"entity": name, "text": text, "vector": vec})
         vx._built = True
+        # 候选全空与 embedding 全失败是两种病因，必须分开：
+        # 前者是图本身没有可索引实体，后者是 Ollama 侧不可用。
+        if n_candidates == 0:
+            vx._mark_degraded("图里没有可索引的实例实体（候选 0 条）",
+                              n_candidates=0, n_embedded=0)
+        elif not vx.entries:
+            vx._mark_degraded(
+                "embedding 全部失败（%d 条候选全拿不到向量，多为 Ollama 不可用）"
+                % n_candidates, n_candidates=n_candidates, n_embedded=0)
+        else:
+            vx.n_candidates = n_candidates
+            vx.n_embedded = len(vx.entries)
         return vx
 
     @classmethod
