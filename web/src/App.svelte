@@ -198,6 +198,13 @@
 
   // ─── 状态 ───
   let activeTab = $state('model');   // model | selfmodel | query | dashboard | eval | knowledge | assets
+                                    // | lexasset | evolve | orch
+  // ─── 本体编排层（独立模块，默认跑在本机 :8010）───
+  // 用当前 hostname 拼：端口写死会在反代/远程访问时指到错的机器。
+  const ORCH_HOST = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+  const ORCH_URL = `http://${ORCH_HOST}:8010/console`;
+  // 编排层没部署时不留死 iframe：探到 /health 才嵌，探不到只说状态。
+  let orchUp = $state(null);   // null=探测中 | true=已在跑 | false=未部署
   let showModel = $state(false);      // 数据建模右栏：默认欢迎界面，点"显示本体模型"才显示模型图
   // ─── 文件浏览框（学习 solo-agent-kit /api/browse，默认 data_valve 示例目录）───
   let browseDir = $state('data_valve');    // 当前目录（相对 codes/）
@@ -396,8 +403,20 @@
     return '';
   }
 
+  // 编排层可达性探测：no-cors 拿到不透明响应也算通，只有连不上才会 reject。
+  async function probeOrch() {
+    orchUp = null;
+    try {
+      await fetch(`http://${ORCH_HOST}:8010/health`, { mode: 'no-cors', cache: 'no-store' });
+      orchUp = true;
+    } catch (e) {
+      orchUp = false;
+    }
+  }
+
   function switchTab(tab) {
     activeTab = tab;
+    if (tab === 'orch') probeOrch();
   }
 
   // ─── 单企业 kb 加载（无切换）───
@@ -1058,6 +1077,9 @@
     <button class="tab" class:active={activeTab === 'evolve'} onclick={() => switchTab('evolve')}>
       <span class="tab-icon">🌱</span> 本体自演进
     </button>
+    <button class="tab" class:active={activeTab === 'orch'} onclick={() => switchTab('orch')}>
+      <span class="tab-icon">🧠</span> 本体编排
+    </button>
   </nav>
 
   <!-- ═══ 主区域 ═══ -->
@@ -1551,6 +1573,35 @@
       <div class="pane-title">本体自演进<span class="pane-sub">数据变更后自动抽取新实体候选；人确认才并入词典（可回退）</span></div>
       <div class="dashboard-body">
         <EvolvePanel kb={currentKb} />
+      </div>
+    </section>
+    {:else if activeTab === 'orch'}
+    <!-- ─── 本体编排层（外部独立服务，本仓库只做入口，不复制逻辑）─── -->
+    <section class="pane pane-full">
+      <div class="pane-title">本体编排<span class="pane-sub">独立的编排层服务，默认跑在本机 :8010；本页只做入口</span></div>
+      <div class="dashboard-body">
+        {#if orchUp === true}
+        <iframe title="本体编排层控制台" src={ORCH_URL}
+                style="width:100%;height:calc(100vh - 250px);border:1px solid #e5e7eb;border-radius:12px;background:#fff"></iframe>
+        {:else}
+        <div style="max-width:720px;padding:28px 30px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa">
+          <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:10px">
+            {orchUp === null ? '正在探测编排层…' : '编排层未部署'}
+          </div>
+          {#if orchUp === false}
+          <p style="font-size:13px;color:#6b7280;line-height:1.9;margin:0">
+            这一项依赖一个独立的编排层服务（默认 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">http://{ORCH_HOST}:8010</code>），它不在本仓库里，当前这个端口没有响应。
+          </p>
+          <p style="font-size:13px;color:#6b7280;line-height:1.9;margin:8px 0 0">
+            如果你本机已经部署了它，先把服务起起来、确认 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">:8010/health</code> 有响应，再点下面的按钮重新探测。
+          </p>
+          {/if}
+          <div style="display:flex;align-items:center;gap:14px;margin-top:18px">
+            <button class="btn-action" onclick={probeOrch}>重新探测</button>
+            <a href={ORCH_URL} target="_blank" rel="noreferrer" style="font-size:13px;color:#2563eb;text-decoration:none">在新标签打开 →</a>
+          </div>
+        </div>
+        {/if}
       </div>
     </section>
     {/if}
