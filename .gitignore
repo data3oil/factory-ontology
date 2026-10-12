@@ -94,3 +94,6 @@ docs/task-*.md
 docs/20261012_*.md
 # Hermes agent 的本地验证配方目录（非产品内容；审查 P2-4 起不入库）
 .hermes/
+
+# AAS 编排层台账词典示例（AAS 模块自定不推远端，示例随之一并留本地）
+codes/config/lexicon_aas_example.json

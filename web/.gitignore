@@ -3,3 +3,5 @@ web_state.json
 data/
 dist/
 .env
+# 编排层接入时的构建产物备份（2026-10-03），确认无误后可整目录删掉
+public_bak_orch_20261003/
