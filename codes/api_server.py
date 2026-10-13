@@ -49,14 +49,13 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("food-api")
 
-from fastapi import FastAPI, HTTPException, Query, Header, Request, Depends, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse, JSONResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Query, Header, Request, Depends, UploadFile, File
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 import tenant  # 多租户: 租户解析/注册表/请求级上下文(纯标准库)
 import graph_rag as gr
 import ontology_qa_v3 as v3
-import multi_table as mt
 import schema_ontology as so
 import fusion
 import query_understand
@@ -73,6 +72,8 @@ from ask_service import (  # noqa: E402
     _doc_rag_fallback,
     _fuse_chunk_relevant,
 )
+
+from logging_util import note_swallow  # noqa: E402  （P1-2 容错留痕统一出口）
 
 # ── 食品知识库配置 ──
 NS = "http://factory.example/ontology#"   # 与 multi_table 建本体一致
@@ -188,12 +189,37 @@ def _data_dir_conflict(kb, data_dir):
     return None
 
 
+_TAIL_INDEX: dict = {}          # tail(本地名) -> uri；随 graph 重载失效（见 _invalidate_tail_index）
+_TAIL_INDEX_READY = False
+
+
+def _invalidate_tail_index():
+    """graph 被换掉（切库 / 重建 / 确认落库）时必须清空尾部名索引。
+
+    调用点：`_reload()`（三处切库路径都经由它赋值 global graph）。
+    """
+    global _TAIL_INDEX_READY
+    _TAIL_INDEX.clear()
+    _TAIL_INDEX_READY = False
+
+
 def _find(tail_name):
-    """按尾部名找图内实体 URI（跨命名空间）。"""
-    for k in graph:
-        if gr.tail(k) == tail_name:
-            return k
-    return None
+    """按尾部名找图内实体 URI（跨命名空间）。
+
+    代码审查 P1-3：原实现每次调用都 `for k in graph` 线性遍历整图，而问答主路径一次
+    问句会多次命中它（1510 溯源、1605/1625 批次与原料）。改为**按需建一次** tail→uri
+    映射并缓存，由 `_invalidate_tail_index()` 在 graph 被替换时清空。
+    语义与原实现一致：同名取**遍历顺序里第一个**（索引用 setdefault 保持同一口径）。
+    """
+    global _TAIL_INDEX_READY
+    if not _TAIL_INDEX_READY:
+        idx = {}
+        for k in graph:
+            idx.setdefault(gr.tail(k), k)
+        _TAIL_INDEX.clear()
+        _TAIL_INDEX.update(idx)
+        _TAIL_INDEX_READY = True
+    return _TAIL_INDEX.get(tail_name)
 
 
 def _nt_path_for(kb):
@@ -252,6 +278,7 @@ def _reload(kb=None):
     """
     kb = (kb or KB_NAME).strip()
     _invalidate_kb(kb)
+    _invalidate_tail_index()      # P1-3：graph 即将被替换，尾部名索引必须失效
     return _load(kb)
 
 
@@ -276,7 +303,8 @@ def _warm_embedding():
         from vector_retrieval import embed_text, EMBED_MODEL
         embed_text("预热 embedding 模型", model=EMBED_MODEL)
         logger.info(f"embedding 模型预热完成: {EMBED_MODEL}")
-    except Exception:
+    except Exception as e:
+        note_swallow("_warm_embedding", e)
         pass  # 预热失败静默, 不阻塞服务启动
 
 app = FastAPI(title="食品企业知识库 API", version=APP_VERSION,
@@ -584,6 +612,7 @@ def _get_kb_ctx(kb=None):
         except Exception as _ex:
             logger.warning('evolve nodes merge skipped: %s' % _ex)
     except Exception as e:
+        note_swallow("_get_kb_ctx", e)
         logger.warning(f"kb '{kb}' 加载失败: {e}")
         return None
     ctx = {"graph": g, "labels": lb, "vi": v, "rev": rv,
@@ -664,9 +693,7 @@ STRICT_AUTH = _env_flag("FOOD_STRICT_AUTH")
 
 # 严格模式下需"任一带凭据主体(read/admin)"的路径(原本匿名可读的业务数据端点)
 _STRICT_READ_PATHS = {
-    "/api/ontology/structure",
-    "/api/ontology/graph",
-    "/api/ontology/graph-svg",
+    # 本体三条(structure/graph/graph-svg)已下移到 _ALWAYS_READ_PATHS(默认即受保护)。
     "/api/app-config",
     "/api/flows",
     "/api/flows/presets",
@@ -674,6 +701,14 @@ _STRICT_READ_PATHS = {
 }
 # 严格模式下需 admin 角色的路径(/admin 是管理后台 HTML 外壳)
 _STRICT_ADMIN_PATHS = {"/admin"}
+# CWE-862: 本体数据端点(类层次/对象属性/关系图)默认即受保护, 不随 FOOD_STRICT_AUTH 灰度开关摇摆——
+# 走既有的 _strict_auth_check 路径级判定(与鉴权审计链同一路径), 不再新增 per-endpoint 依赖
+# (per-endpoint Depends 会绕过审计链, 且在本文件里 require_key 定义于此常量之后会导致 NameError)。
+_ALWAYS_READ_PATHS = {
+    "/api/ontology/structure",
+    "/api/ontology/graph",
+    "/api/ontology/graph-svg",
+}
 # 上传体积上限(可配, MB): 默认 50 —— 与既有文档接入端点的审计上限(P1-5, 50MB)一致,
 # 使文档接收入口不因本改动回归, 同时给原本无界的 CSV 上传补上同一上限。
 MAX_UPLOAD_MB = float(os.environ.get("FOOD_MAX_UPLOAD_MB", "50") or 50)
@@ -708,13 +743,16 @@ async def _read_upload_capped(file, limit_bytes=None, chunk_size=_UPLOAD_CHUNK):
 
 
 def _strict_auth_check(path, principal):
-    """严格鉴权(FOOD_STRICT_AUTH=1)下的路径级放行判断。返回 (status, reason)。
+    """路径级放行判断。返回 (status, reason)。
+
+    覆盖两类: _ALWAYS_READ_PATHS(默认即受保护, 与 FOOD_STRICT_AUTH 开关无关) 与
+    _STRICT_READ_PATHS / _STRICT_ADMIN_PATHS(仅 FOOD_STRICT_AUTH=1 时生效)。
 
     status=0 → 放行; 401 → 缺/无效凭据; 403 → 有凭据但角色不足。
     """
     p = (path or "").rstrip("/") or "/"
     need_admin = p in _STRICT_ADMIN_PATHS
-    need_read = p in _STRICT_READ_PATHS
+    need_read = p in _STRICT_READ_PATHS or p in _ALWAYS_READ_PATHS
     if not (need_admin or need_read):
         return 0, ""
     if not principal or principal.get("denied_reason"):
@@ -736,7 +774,8 @@ def _parse_expires(v):
     try:
         from datetime import datetime as _dt
         return _dt.fromisoformat(v.replace("Z", "+00:00")).timestamp()
-    except Exception:
+    except Exception as e:
+        note_swallow("_parse_expires", e)
         logger.warning("无法解析 key 过期时间(忽略, 视为不过期): %r", v)
         return None
 
@@ -933,7 +972,8 @@ def _principal(key):
 def _client_ip(request):
     try:
         return (request.client.host if request and request.client else "") or ""
-    except Exception:
+    except Exception as e:
+        note_swallow("_client_ip", e)
         return ""
 
 
@@ -1110,9 +1150,11 @@ def _prune_audit_archives():
             try:
                 if os.path.getmtime(p) < cutoff:
                     os.remove(p)
-            except Exception:
+            except Exception as e:
+                note_swallow("_prune_audit_archives", e)
                 pass
-    except Exception:
+    except Exception as e:
+        note_swallow("_prune_audit_archives", e)
         pass
 
 
@@ -1124,12 +1166,14 @@ def _audit(record):
             if os.path.exists(AUDIT_FILE) and os.path.getsize(AUDIT_FILE) > _AUDIT_MAX_BYTES:
                 try:
                     os.replace(AUDIT_FILE, AUDIT_FILE + "." + datetime.now().strftime("%Y%m%d_%H%M%S"))
-                except Exception:
+                except Exception as e:
+                    note_swallow("_audit", e)
                     pass
                 _prune_audit_archives()
             with open(AUDIT_FILE, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except Exception:
+    except Exception as e:
+        note_swallow("_audit", e)
         pass
 
 
@@ -1157,7 +1201,8 @@ def _audit_access_chain(subject, action, result, role="", detail="", tenant_id=N
             return
         ac.record_access(subject=subject, action=action, result=result,
                          role=role, detail=detail, tenant=tenant_id)
-    except Exception:
+    except Exception as e:
+        note_swallow("_audit_access_chain", e)
         pass
 
 
@@ -1171,8 +1216,10 @@ async def audit_and_count(request: Request, call_next):
         _p = _principal(_extract_key(request.headers.get("x-api-key", ""),
                                      request.headers.get("authorization", "")))
         _princ = _p if (_p and not _p.get("denied_reason")) else None
-        # 严格鉴权灰度开关(第2轮): 默认关 → 完全放行(现状不变); 开 → 受保护路径要凭据。
-        if STRICT_AUTH:
+        # 严格鉴权灰度开关(第2轮): 默认关 → 大多数路径放行; 开 → 全部受保护路径要凭据。
+        # CWE-862 修法: 本体数据端点(_ALWAYS_READ_PATHS)默认即受保护, 不受该开关影响。
+        _path_norm = (request.url.path or "").rstrip("/") or "/"
+        if STRICT_AUTH or _path_norm in _ALWAYS_READ_PATHS:
             _st, _rs = _strict_auth_check(request.url.path, _p)
             if _st:
                 _audit_event("login", subject="anonymous", action="authenticate", result="deny",
@@ -1431,7 +1478,8 @@ def auth_sso_status():
     try:
         import sso as _sso_mod
         st["config_path"] = _sso_mod.config_path()
-    except Exception:
+    except Exception as e:
+        note_swallow("auth_sso_status", e)
         pass
     return st
 
@@ -1450,27 +1498,6 @@ def auth_whoami(request: Request):
     return {"ok": True, "subject": p["subject"], "role": p["role"],
             "exp": p["exp"], "auth": p["auth"],
             "expires_at": datetime.fromtimestamp(p["exp"]).isoformat() if p["exp"] else None}
-
-
-@app.get("/api/export/reverse", dependencies=[Depends(require_key)])
-def export_reverse(raw: str = Query(..., description="原料编号，如 RM008"), fmt: str = Query("csv", pattern="^(csv|txt)$")):
-    """溯源报告导出: 原料 → 受影响批次 → 产品(食品召回/合规)。"""
-    data = _reverse_trace(raw)
-    raw_name = _resolve_readable(data["raw_material"])
-    lines = [["原料", raw_name], [], ["受影响批次", "产品", "生产日期"]]
-    for ab in data["affected_batches"]:
-        prod = _resolve_readable(ab["product"]) if ab.get("product") else ""
-        lines.append([ab["batch"], prod, ab.get("produce_date", "")])
-    if fmt == "txt":
-        body = "\n".join("\t".join(map(str, r)) for r in lines)
-        return PlainTextResponse(body, media_type="text/plain",
-                                 headers={"Content-Disposition": f"attachment; filename=trace_{raw}.txt"})
-    import io, csv as _csv
-    buf = io.StringIO()
-    w = _csv.writer(buf)
-    w.writerows(lines)
-    return PlainTextResponse(buf.getvalue(), media_type="text/csv",
-                             headers={"Content-Disposition": f"attachment; filename=trace_{raw}.csv"})
 
 
 @app.post("/api/admin/upload", dependencies=[Depends(require_admin)])
@@ -1630,7 +1657,8 @@ def _audit_trace(direction, query, result):
         summary = result.get("affected_batches") or result.get("product") or ""
         ac.record_trace(source=query, relation="trace_" + direction,
                         target=str(summary)[:500], detail="")
-    except Exception:
+    except Exception as e:
+        note_swallow("_audit_trace", e)
         pass  # 审计失败不影响溯源主结果
 
 
@@ -2030,7 +2058,8 @@ def ask(req: AskReq):
     if not (getattr(req, "kb", "") or "").strip():
         try:
             req.kb = _active_kb()
-        except Exception:
+        except Exception as e:
+            note_swallow("ask", e)
             pass
     result = _ask_impl(req)
     # 统一出口净化: 任何引擎的 LLM 出口都可能把推理独白当答案(见 _strip_reasoning_leak)。
@@ -2048,14 +2077,16 @@ def ask(req: AskReq):
             result["mode"] = "miss"
         elif result is not None and _clean is not None:
             result["answer"] = _clean
-    except Exception:
+    except Exception as e:
+        note_swallow("ask", e)
         pass
     # P1 跨域拦截兜底: 任何引擎若产出"空答案", 一律判为无据(no_basis=True)——
     # no_basis=False + 空答案 是"看似有据实则空答"的假命中, 必须归为无据, 防绕过跨域拦截。
     try:
         if result and not str(result.get("answer") or "").strip():
             result["no_basis"] = True
-    except Exception:
+    except Exception as e:
+        note_swallow("ask", e)
         pass
     # 问答审计: 记录问题/知识库/命中引擎/模式, 供追溯与质量分析
     try:
@@ -2064,7 +2095,8 @@ def ask(req: AskReq):
                      no_basis=result.get("no_basis"),
                      ans_len=len(str(result.get("answer", ""))),
                      ms=int((time.time() - start) * 1000))
-    except Exception:
+    except Exception as e:
+        note_swallow("ask", e)
         pass
     # 批 2 信封接线（主控 2026-09-24）：统一出口补 hit / reason / evidence_trace / advisory，
     # 只新增字段，老字段一个不动（envelope_from_result 内部保证）。接线失败**不静默**——
@@ -2079,23 +2111,10 @@ def ask(req: AskReq):
     except Exception as _env_err:
         try:
             result["envelope_error"] = f"{type(_env_err).__name__}: {_env_err}"
-        except Exception:
+        except Exception as e:
+            note_swallow("ask", e)
             pass
     return result
-
-
-@app.get("/api/trace/forward", dependencies=[Depends(require_key)])
-def trace_forward(batch: str = Query(..., description="生产批次号，如 B001")):
-    res = _forward_trace(batch)
-    _audit_trace("forward", batch, res)
-    return {"ok": True, "direction": "forward", **res}
-
-
-@app.get("/api/trace/reverse", dependencies=[Depends(require_key)])
-def trace_reverse(raw: str = Query(..., description="原料编号，如 RM008")):
-    res = _reverse_trace(raw)
-    _audit_trace("reverse", raw, res)
-    return {"ok": True, "direction": "reverse", **res}
 
 
 @app.get("/api/scan", dependencies=[Depends(require_key)])
@@ -2108,317 +2127,11 @@ def scan(code: str = Query(..., description="溯源码，如 P003-B005 或 B001"
     return {"ok": True, "code": code, **res}
 
 
-@app.get("/api/stats", dependencies=[Depends(require_key)])
-def stats(kb: str = Query("", description="知识库名")):
-    """知识库统计（按 kb 隔离，不串台）。"""
-    if not kb:
-        kb = KBS.get("_default", "") or "food"
-    ctx = _get_kb_ctx(kb)
-    if not ctx:
-        return {"ok": False, "error": f"kb '{kb}' 未建模或加载失败"}
-    g = ctx["graph"]
-    # 用 QDATA(实例字典)统计实例：key 形如 <Entity>_<field>_<ID>
-    qd = ctx.get("QDATA") or {}
-    inst_count = {}
-    for k in qd:
-        local = str(k).split("/")[-1]
-        m = re.match(r"^([A-Za-z_]+?)_[A-Za-z0-9_]+$", local)
-        if m:
-            cls = m.group(1)
-            inst_count[cls] = inst_count.get(cls, 0) + 1
-    # ── 看板聚合(前端 DashboardPanel 契约): 设备类型/状态分布 + 产线(车间)统计 ──
-    # 各行业设备表名不同(equipment / valve_equipment / ...)，由词典 entity_cn2en['设备'] 解析；
-    # 无设备表的 kb(如纯产品库)返回空数组 → 前端显示空态而非报错。
-    D = ctx.get("D") or {}
-    aliases = D.get("field_aliases", {}) or {}
-    dev_table = str((D.get("entity_cn2en", {}) or {}).get("设备", "") or "").strip()
-
-    def _field(rec, en):
-        for a in ([en] + list(aliases.get(en, []) or [])):
-            v = rec.get(a)
-            if v not in (None, ""):
-                return str(v).strip()
-        return ""
-
-    def _num(rec, en):
-        try:
-            return float(_field(rec, en) or 0)
-        except (TypeError, ValueError):
-            return 0.0
-
-    RUNNING = {"running", "run", "normal", "working", "active", "online",
-               "运行中", "运行", "正常", "工作中", "在线", "生产中"}
-    FAULT = {"alarm", "maintenance", "offline", "fault", "fail", "failed", "error",
-             "报警", "维护", "离线", "故障", "停机", "异常", "检修"}
-    # 用"包含"而非精确相等: 数据里是"维护中/运行中"这类带后缀的词, 精确匹配会漏。
-    def _hit(val, words):
-        t = (val or "").strip().lower()
-        return any(w in t for w in words) if t else False
-    devs = []
-    if dev_table:
-        pre = dev_table.lower() + "_"
-        for k, rec in qd.items():
-            local = str(k).split("/")[-1].lower()
-            # 只取该表的一级实例(key 形如 <ent>_<table>_<id>，排除 _<n> 的关联实例)
-            if local.startswith(pre) and len(local.split("_")) == len(dev_table.split("_")) + 1:
-                if isinstance(rec, dict):
-                    devs.append(rec)
-    type_cnt, status_cnt, line_map = {}, {}, {}
-    for rec in devs:
-        t = _field(rec, "deviceType")
-        if t:
-            type_cnt[t] = type_cnt.get(t, 0) + 1
-        s = _field(rec, "status")
-        if s:
-            status_cnt[s] = status_cnt.get(s, 0) + 1
-        ln = _field(rec, "workshop") or _field(rec, "location") or _field(rec, "zone") or "未分组"
-        e = line_map.setdefault(ln, {"device_count": 0, "running": 0, "alarm": 0, "total_power_kw": 0.0})
-        e["device_count"] += 1
-        if _hit(s, RUNNING):
-            e["running"] += 1
-        if _hit(s, FAULT):
-            e["alarm"] += 1
-        e["total_power_kw"] += _num(rec, "powerKw")
-    line_stats = [{"line": ln, "name": ln, "area": ln, "supervisor": "",
-                   "device_count": v["device_count"], "running": v["running"],
-                   "alarm": v["alarm"], "total_power_kw": round(v["total_power_kw"], 2)}
-                  for ln, v in sorted(line_map.items(), key=lambda x: -x[1]["device_count"])]
-    fault_cnt = sum(v["alarm"] for v in line_map.values())
-    total_dev = len(devs)
-    return {
-        "ok": True,
-        "entities": inst_count, "entity_count": sum(inst_count.values()),
-        "nodes": len(g), "edges": sum(len(v) for v in g.values()),
-        "stats": {
-            "total_devices": total_dev,
-            "device_type_dist": [{"type": t, "count": c}
-                                 for t, c in sorted(type_cnt.items(), key=lambda x: -x[1])],
-            "status_dist": [{"status": s, "count": c}
-                            for s, c in sorted(status_cnt.items(), key=lambda x: -x[1])],
-            "line_stats": line_stats,
-            "fault_rate": round(fault_cnt / total_dev, 4) if total_dev else 0.0,
-        },
-    }
-
-
 # ── 标准合规 API（GB/T 48000.3：合规度 + 标准导出物）──────────────
 _EXPORT_ALLOW = {"ontology.ttl", "shapes.ttl", "ontology.jsonld"}
 
 
-@app.get("/api/standard/compliance", dependencies=[Depends(require_key)])
-def standard_compliance():
-    """本体标准合规度（GB/T 48000.3 描述项齐备率 + 命名空间 + SHACL + 类层次 + 导出物）。
-
-    A2(2026-09-25): 按**当前激活 KB 的本体**计算；找不到该库本体时明确报错，
-    绝不静默回落到全局 config/ontology_schema.json。
-    """
-    kb = _active_kb()
-    schema_path, err = _kb_ontology_schema(kb)
-    if err:
-        return {"ok": False, "kb": kb, "error": f"按当前激活库计算合规度失败: {err}"}
-    try:
-        import ontology_check as oc
-        root = os.path.dirname(os.path.abspath(__file__))
-        r = oc._check_standard(root, schema_path=schema_path)
-        st = r.get("state") or {}
-        return {
-            "ok": True,
-            "kb": kb,
-            "ontology": os.path.relpath(schema_path, root).replace("\\", "/"),
-            "standard_rate": st.get("standard_rate"),
-            "ent_core_rate": st.get("ent_core_rate"),
-            "ent_rate": st.get("ent_rate"),
-            "attr_rate": st.get("attr_rate"),
-            "ns_ok": st.get("ns_ok"),
-            "subclass_count": st.get("subclass_count"),
-            "has_export": st.get("has_export"),
-            "issues": [{"severity": s, "message": m} for s, m in r.get("issues", [])],
-            "standards": ["GB/T 48000.3-2026", "GB/T 42131-2022", "GB/T 41472.2-2022",
-                          "ISO/IEC 21838", "IEEE 知识图谱评估标准"],
-        }
-    except Exception as e:
-        return {"ok": False, "kb": kb, "error": f"合规度计算失败: {e}"}
-
-
-@app.post("/api/standard/export", dependencies=[Depends(require_key)])
-def standard_export():
-    """生成标准导出物（ontology.ttl / shapes.ttl / ontology.jsonld），返回文件名与大小。
-
-    A3(2026-09-25): 按**当前激活 KB 的本体**导出；找不到该库本体时明确报错，
-    绝不静默回落到全局 config/ontology_schema.json。
-    """
-    kb = _active_kb()
-    schema_path, err = _kb_ontology_schema(kb)
-    if err:
-        return {"ok": False, "kb": kb, "error": f"按当前激活库导出失败: {err}"}
-    try:
-        import ontology_export as ox
-        root = os.path.dirname(os.path.abspath(__file__))
-        outs = ox.export(schema_path, os.path.join(root, "export"))
-        return {"ok": True, "kb": kb,
-                "schema": os.path.relpath(schema_path, root).replace("\\", "/"),
-                "files": [{"name": k, "size": os.path.getsize(v)}
-                          for k, v in sorted(outs.items())]}
-    except Exception as e:
-        return {"ok": False, "kb": kb, "error": f"导出失败: {e}"}
-
-
-@app.get("/api/standard/export/{fname}", dependencies=[Depends(require_key)])
-def standard_export_download(fname: str):
-    """下载标准导出物（白名单文件名，防路径穿越）。"""
-    from fastapi.responses import FileResponse
-    if fname not in _EXPORT_ALLOW:
-        return {"ok": False, "error": "不允许的文件名"}
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "export", fname)
-    if not os.path.exists(p):
-        return {"ok": False, "error": "导出物不存在，请先生成"}
-    return FileResponse(p, filename=fname,
-                        media_type="text/turtle" if fname.endswith(".ttl") else "application/ld+json")
-
-
-@app.get("/api/standard/quality", dependencies=[Depends(require_key)])
-def standard_quality(kb: str = Query("")):
-    """本体建模质量门：标签/定义/外键关系/结构 体检 + 阈值判定。
-
-    kb 配了 schema 就用配置的；没配则从该 kb 数据自动推断(FDE 现场主场景：
-    CSV 丢进来就能体检, 不用先手写 schema)。
-    """
-    kb = (kb or "").strip() or _active_kb()   # A2 同口径: 缺省跟随当前激活 kb
-    _kb_guard(kb)  # 多租户: 越权 KB → 403(拒绝)
-    try:
-        import ontology_quality as oq
-        kbc = KBS.get(kb) or {}
-        root = os.path.dirname(os.path.abspath(__file__))
-        data_dir = kbc.get("data_dir", "data")
-        data_dir = data_dir if os.path.isabs(data_dir) else os.path.join(root, data_dir)
-        data = so.load_all(data_dir) if os.path.isdir(data_dir) else {}
-        schema_rel = kbc.get("schema")
-        if schema_rel and os.path.exists(os.path.join(root, schema_rel)):
-            schema, source = so.load_schema(os.path.join(root, schema_rel)), "configured"
-        else:
-            # 快速模式: 质量门只需结构体检, 不调 LLM(否则每次 19s)
-            schema, source = so.suggest_schema(data, use_llm=False), "auto-inferred"
-        rep = oq.inspect(schema, data)
-        return {"ok": True, "kb": kb, "source": source, **rep, "verdict": oq.judge(rep)}
-    except Exception as e:
-        return {"ok": False, "error": f"质量门执行失败: {e}"}
-
-
-
-@app.get("/api/standard/roundtrip", dependencies=[Depends(require_key)])
-def standard_roundtrip():
-    """导入层自检：把导出的 ontology.ttl 读回来，与 schema 核对是否无损往返。
-
-    这是导出物质量的可重跑门 —— 导出/导入任一侧退化都会立刻暴露。
-    外部本体对齐（--align）走 CLI：python ontology_import.py --in <外部文件> --schema ... --align
-    """
-    try:
-        import ontology_import as oim
-        root = os.path.dirname(os.path.abspath(__file__))
-        # A3 同口径: 往返自检对的是**当前激活 kb** 导出的 ttl ↔ 该 kb 的 schema
-        kb = _active_kb()
-        schema_path, _err = _kb_ontology_schema(kb)
-        if _err:
-            return {"ok": False, "kb": kb, "error": "按当前激活库往返自检失败: " + _err}
-        ttl = os.path.join(root, "export", "ontology.ttl")
-        if not os.path.exists(ttl):
-            return {"ok": False, "error": "导出物不存在，请先生成标准导出物"}
-        fmt, data = oim.parse_input(ttl)
-        model = oim.graph_to_model(data[1])
-        rt = oim.roundtrip(model, schema_path)
-        return {"ok": bool(rt.get("ok")), "kb": kb, **rt,
-                "classes_note": f"{rt.get('classes_imported')}/{rt.get('classes_expected')}",
-                "props_note": f"{rt.get('dataprops_imported')}/{rt.get('props_expected')}"}
-    except Exception as e:
-        return {"ok": False, "error": f"往返自检失败: {e}"}
-
-
-@app.post("/api/standard/import-align", dependencies=[Depends(require_key)])
-def standard_import_align(payload: dict | None = None):
-    """外部本体对齐：入参 {"path": "外部 .ttl"} 或 {"content": "Turtle 文本"}，
-    与 schema 做对齐报告（同名类匹配、外部独有类），供"对标国标"落到可核对清单。"""
-    try:
-        import ontology_import as oim
-        import tempfile
-        root = os.path.dirname(os.path.abspath(__file__))
-        payload = payload or {}
-        path = payload.get("path")
-        tmp = None
-        if not path and payload.get("content"):
-            # 按内容探测后缀：JSON-LD 原文是 JSON，若写成 .ttl 会被按 Turtle 解析(曾静默出 0 类)
-            content = payload["content"]
-            suffix = ".jsonld" if content.lstrip().startswith(("{", "[")) else ".ttl"
-            fd, tmp = tempfile.mkstemp(suffix=suffix, text=True)
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(content)
-            path = tmp
-        if not path or not os.path.exists(path):
-            return {"ok": False, "error": "需提供存在的 path 或 content"}
-        try:
-            fmt, data = oim.parse_input(path)
-            triples = oim.graph_from_jsonld(data)[0] if fmt == "jsonld" else data[1]
-            model = oim.graph_to_model(triples)
-            al = oim.align_report(model, os.path.join(root, "config", "ontology_schema.json"))
-            out = {"ok": True, "format": fmt, "external_classes": len(model["classes"]), **al}
-            # 无类可对齐时给出可操作提示（常见误操作：喂了 SHACL 约束文件而非本体文件）
-            if not model["classes"]:
-                n_shapes = sum(1 for t in triples if "shacl#" in str(t[1]))
-                out["hint"] = ("该文件未含 owl:Class，无法对齐。"
-                               + ("看起来是 SHACL 约束文件（shapes.ttl），请改喂本体文件（ontology.ttl / .jsonld）。"
-                                  if n_shapes else "请确认是本体文件（含 owl:Class 的 .ttl / .jsonld）。"))
-                out["ok"] = False
-            return out
-        finally:
-            if tmp and os.path.exists(tmp):
-                os.remove(tmp)
-    except Exception as e:
-        return {"ok": False, "error": f"对齐失败: {e}"}
-
-
 # ── 溯源审计链 API(可选, 审核可追责) ──────────────
-@app.get("/api/audit/chain", dependencies=[Depends(require_key)])
-def audit_chain_status():
-    """校验溯源审计链完整性(防篡改/防删行)。"""
-    ac = _audit_chain()
-    if not ac:
-        return {"ok": False, "error": "审计链未启用(需 audit_chain.py 可用)"}
-    try:
-        ok, issues = ac.verify_chain()
-        return {"ok": True, "chain_integrity": "PASS" if ok else "FAIL",
-                "integrity_issues": issues, **ac.audit_report()}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.get("/api/audit/decisions", dependencies=[Depends(require_key)])
-def audit_decisions(category: str = Query("", description="决策类别过滤")):
-    """列出审计链中的决策记录(可选 category 过滤)。"""
-    ac = _audit_chain()
-    if not ac:
-        return {"ok": False, "error": "审计链未启用"}
-    try:
-        decs = ac.decisions(category=category or None, limit=200)
-        return {"ok": True, "count": len(decs), "decisions": decs}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.get("/api/audit/export", dependencies=[Depends(require_key)])
-def audit_export(fmt: str = Query("json", description="json/csv/prov-o")):
-    """导出审计报告到 temp, 返回文件路径与校验状态。"""
-    ac = _audit_chain()
-    if not ac:
-        return {"ok": False, "error": "审计链未启用"}
-    try:
-        import tempfile
-        out = os.path.join(tempfile.gettempdir(), f"factory_audit.{fmt}"
-                           if fmt != "prov-o" else "factory_audit.prov-o.json")
-        r = ac.export_audit(out, fmt=fmt)
-        return {"ok": True, **r}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
 # ════════════════════════════════════════════════════════════════════════
 # 契约端点 v1.0 — knowledge / eval / assets / version（增量，不影响既有接口）
 # 统一响应信封: {ok, data?, error?, elapsed_s}
@@ -2467,7 +2180,8 @@ def _asset_manifest(kb="food"):
             with open(p, encoding="utf-8") as f:
                 m = json.load(f)
                 return m if isinstance(m, dict) else {}
-    except Exception:
+    except Exception as e:
+        note_swallow("_asset_manifest", e)
         pass
     return {}
 
@@ -2478,7 +2192,8 @@ def _asset_save_manifest(man, kb="food"):
         os.makedirs(kb_dir, exist_ok=True)
         with open(os.path.join(kb_dir, "manifest.json"), "w", encoding="utf-8") as f:
             json.dump(man, f, ensure_ascii=False, indent=2)
-    except Exception:
+    except Exception as e:
+        note_swallow("_asset_save_manifest", e)
         pass
 
 
@@ -2488,7 +2203,8 @@ def _asset_active(kb="food"):
         if os.path.exists(p):
             with open(p, encoding="utf-8") as f:
                 return f.read().strip() or None
-    except Exception:
+    except Exception as e:
+        note_swallow("_asset_active", e)
         pass
     return None
 
@@ -2498,7 +2214,8 @@ def _asset_set_active(v, kb="food"):
         os.makedirs(_asset_dir(kb), exist_ok=True)
         with open(os.path.join(_asset_dir(kb), "active.txt"), "w", encoding="utf-8") as f:
             f.write(v)
-    except Exception:
+    except Exception as e:
+        note_swallow("_asset_set_active", e)
         pass
 
 
@@ -2515,7 +2232,8 @@ def _hash_dir(d):
             with open(p, "rb") as f:
                 h.update(rel.encode("utf-8"))
                 h.update(f.read())
-        except Exception:
+        except Exception as e:
+            note_swallow("_hash_dir", e)
             pass
     return h.hexdigest()[:16]
 
@@ -2533,12 +2251,14 @@ def _asset_snapshot(kb="food"):
     if os.path.exists(lex_file):
         try:
             shutil.copy2(lex_file, os.path.join(vdir, "lexicon.json")); copied["lexicon"] = True
-        except Exception:
+        except Exception as e:
+            note_swallow("_asset_snapshot", e)
             pass
     if os.path.exists(nt_file):
         try:
             shutil.copy2(nt_file, os.path.join(vdir, "ontology.nt")); copied["ontology"] = True
-        except Exception:
+        except Exception as e:
+            note_swallow("_asset_snapshot", e)
             pass
     try:
         os.makedirs(os.path.join(vdir, "knowledge"), exist_ok=True)
@@ -2615,209 +2335,7 @@ class AssetRollbackReq(BaseModel):
 
 # ── 1. knowledge ──
 
-@app.post("/api/knowledge/ingest", dependencies=[Depends(require_key)])
-async def knowledge_ingest(file: UploadFile = File(...),
-                           kb: str = Form("food"),
-                           doc_id: str = Form("")):
-    """上传文档(PDF/Word/TXT) → 解析+切块+向量化+入库。同 doc_id 幂等覆盖。"""
-    start = time.time()
-    _kb_guard(kb)  # 多租户: 越权 KB → 403(拒绝)
-    try:
-        from knowledge.ingest import extract_text
-        from knowledge.chunk import chunk_text
-        from knowledge.embed import embed_chunks
-        from knowledge.store import KnowledgeStore
-    except Exception as e:
-        logger.warning(f"API内部错误[知识引擎不可用]: {e}")
-        return _err_env(5001, "知识引擎不可用(内部错误已记录)", start)
-    fname = file.filename or "upload.txt"
-    ext = os.path.splitext(fname)[1].lower()
-    if ext not in (".pdf", ".doc", ".docx", ".txt"):
-        return _err_env(4001, f"仅支持 PDF/Word/TXT, 收到: {ext or '未知扩展名'}", start)
-    # 体积上限(第2轮, 可配 FOOD_MAX_UPLOAD_MB): 分块读入, 超限 413 且不落盘
-    # (在创建临时文件之前就中止, 临时目录不留残留)。读入方式不得无界。
-    try:
-        _body = await _read_upload_capped(file)
-    except UploadTooLarge:
-        return JSONResponse(_err_env(4001, "文件过大: 超过上限 %.0fMB" % MAX_UPLOAD_MB, start),
-                            status_code=413)
-    kbdir = _kb_dir(kb)
-    if kbdir is None:
-        return _err_env(4001, "非法 kb 名", start)
-    tmp = os.path.join(_TMP_UPLOAD, f"{time.time_ns()}{ext}")
-    try:
-        try:
-            os.makedirs(_TMP_UPLOAD, exist_ok=True)
-            with open(tmp, "wb") as f:
-                f.write(_body)
-            doc = extract_text(tmp)
-            if not doc:
-                return _err_env(4001, "文档解析失败(缺解析库或内容为空), 未入库", start)
-            # 用用户上传的原始文件名(去扩展名)作为标题, 便于辨识/删除,
-            # 避免 extract_text 默认用时间戳临时文件名(如 {time_ns()})做 title。
-            doc["title"] = os.path.splitext(fname)[0]
-            chunks = chunk_text(doc["raw_text"])
-            if not chunks:
-                return _err_env(4001, "文档切块为空, 未入库", start)
-            vectors = embed_chunks(chunks)
-            if not vectors:
-                return _err_env(5031, "embedding 服务不可用(未产出向量), 文档未入库", start)
-            did = _safe_doc_id(doc_id.strip()) or "%s_%s" % (
-                doc["title"], hashlib.md5(doc["raw_text"].encode("utf-8")).hexdigest()[:8])
-            store = KnowledgeStore(kbdir)
-            if not store.add_doc(did, doc["title"], chunks, vectors):
-                return _err_env(5001, "文档入库失败", start)
-            return _ok_env({"kb": kb, "doc_id": did, "title": doc["title"],
-                            "chunks": len(chunks), "status": "stored"}, start)
-        finally:
-            if os.path.exists(tmp):
-                try:
-                    os.remove(tmp)
-                except Exception:
-                    pass
-    except Exception as e:
-        logger.warning(f"API内部错误[文档接入失败]: {e}")
-        return _err_env(5001, "文档接入失败(内部错误已记录)", start)
-
-
-@app.post("/api/knowledge/query", dependencies=[Depends(require_key)])
-def knowledge_query(req: KnowledgeQueryReq):
-    """文档 RAG 检索。body {kb, q, top_k?} → {answer, evidence}。"""
-    start = time.time()
-    _kb_guard(req.kb)  # 多租户: 越权 KB → 403(拒绝)
-    try:
-        from knowledge.rag import answer as rag_answer
-        from knowledge.store import KnowledgeStore
-    except Exception as e:
-        logger.warning(f"API内部错误[知识引擎不可用]: {e}")
-        return _err_env(5001, "知识引擎不可用(内部错误已记录)", start)
-    if not (req.q or "").strip():
-        return _err_env(4001, "缺少 q", start)
-    kbdir = _kb_dir(req.kb)
-    if kbdir is None:
-        return _err_env(4001, "非法 kb 名", start)
-    try:
-        store = KnowledgeStore(kbdir)
-        res = rag_answer(None, req.q, store, top_k=max(1, min(req.top_k, 20)))
-    except Exception as e:
-        logger.warning(f"API内部错误[检索失败]: {e}")
-        return _err_env(5001, "检索失败(内部错误已记录)", start)
-    ans = res.get("answer", "")
-    if ans.startswith("[模型未配置]"):
-        return _err_env(5031, "模型未配置", start)
-    return _ok_env({"kb": req.kb, "answer": ans, "evidence": res.get("evidence", [])}, start)
-
-
-@app.get("/api/knowledge/list", dependencies=[Depends(require_key)])
-def knowledge_list(kb: str = Query("food")):
-    """列出某 kb 的已入库文档。"""
-    start = time.time()
-    _kb_guard(kb)  # 多租户: 越权 KB → 403(拒绝)
-    try:
-        from knowledge.store import KnowledgeStore
-    except Exception as e:
-        logger.warning(f"API内部错误[知识引擎不可用]: {e}")
-        return _err_env(5001, "知识引擎不可用(内部错误已记录)", start)
-    kbdir = _kb_dir(kb)
-    if kbdir is None:
-        return _err_env(4001, "非法 kb 名", start)
-    try:
-        docs = KnowledgeStore(kbdir).list_docs()
-    except Exception as e:
-        logger.warning(f"API内部错误[读取失败]: {e}")
-        return _err_env(5001, "读取失败(内部错误已记录)", start)
-    return _ok_env({"kb": kb, "docs": docs}, start)
-
-
-@app.post("/api/knowledge/delete", dependencies=[Depends(require_key)])
-def knowledge_delete(req: KnowledgeDeleteReq):
-    """删除某 kb 下的一篇文档。幂等: 重复删除已不存在文档返回 4041。"""
-    start = time.time()
-    _kb_guard(req.kb)  # 多租户: 越权 KB → 403(拒绝)
-    try:
-        from knowledge.store import KnowledgeStore
-    except Exception as e:
-        logger.warning(f"API内部错误[知识引擎不可用]: {e}")
-        return _err_env(5001, "知识引擎不可用(内部错误已记录)", start)
-    kbdir = _kb_dir(req.kb)
-    if kbdir is None:
-        return _err_env(4001, "非法 kb 名", start)
-    try:
-        ok = KnowledgeStore(kbdir).delete(req.doc_id)
-    except Exception as e:
-        logger.warning(f"API内部错误[删除失败]: {e}")
-        return _err_env(5001, "删除失败(内部错误已记录)", start)
-    if not ok:
-        return _err_env(4041, f"文档不存在: {req.doc_id}", start)
-    return _ok_env({"kb": req.kb, "deleted": req.doc_id}, start)
-
-
 # ── 2. eval ──
-
-@app.get("/api/eval/benchmark", dependencies=[Depends(require_key)])
-def eval_benchmark(kb: str = Query("food")):
-    """评测基线: 用 kb 配置的示例题目跑 EvalAgent baseline, 返回命中率。"""
-    start = time.time()
-    kbc = KBS.get(kb, {})
-    questions = kbc.get("examples") or _kb.get("examples", [])
-    if not questions:
-        return _err_env(4001, f"kb '{kb}' 无评测题目(未配置 examples)", start)
-    ctx = _get_kb_ctx(kb)  # 多租户: 按 kb 取本体/词典, 与 /api/ask 对齐
-    if ctx is None:
-        return _err_env(4001, f"知识库 '{kb}' 无效或数据缺失", start)
-    try:
-        from agents.eval_agent import EvalAgent
-        r = EvalAgent().run({"questions": questions, "nt_file": ctx["nt_file"],
-                             "lexicon": ctx["lex_file"], "mode": "baseline"})
-    except Exception as e:
-        logger.warning(f"API内部错误[评测引擎不可用]: {e}")
-        return _err_env(5001, "评测引擎不可用(内部错误已记录)", start)
-    if not r.ok:
-        return _err_env(5001, r.error, start)
-    data = r.data or {}
-    per = data.get("per_question", [])
-    hits = sum(1 for p in per if p.get("hit"))
-    return _ok_env({"kb": kb, "questions_n": data.get("questions_n", len(per)),
-                    "hits": hits, "score": data.get("score")}, start)
-
-
-@app.post("/api/eval/isolate", dependencies=[Depends(require_key)])
-async def eval_isolate(request: Request):
-    """评测隔离: 只问答不打分。字段白名单 {kb, questions}; 出现 gold/rubric/score 返回 4001。"""
-    start = time.time()
-    try:
-        body = await request.json()
-    except Exception:
-        return _err_env(4001, "请求体不是合法 JSON", start)
-    if not isinstance(body, dict):
-        return _err_env(4001, "请求体应为 JSON 对象", start)
-    allowed = {"kb", "questions"}
-    extra = set(body.keys()) - allowed
-    if extra:
-        return _err_env(4001, f"isolate 模式禁止字段: {sorted(extra)} (白名单: {sorted(allowed)})", start)
-    questions = body.get("questions")
-    if not isinstance(questions, list) or not questions:
-        return _err_env(4001, "缺少非空 questions 列表", start)
-    if any(not isinstance(q, str) or not q.strip() for q in questions):
-        return _err_env(4001, "questions 必须全为非空字符串", start)
-    kb = body.get("kb", "food")
-    ctx = _get_kb_ctx(kb)  # 多租户: 按 kb 取本体/词典, 与 /api/ask 对齐
-    if ctx is None:
-        return _err_env(4001, f"知识库 '{kb}' 无效或数据缺失", start)
-    try:
-        from agents.eval_agent import EvalAgent
-        r = EvalAgent().run({"questions": questions, "nt_file": ctx["nt_file"],
-                             "lexicon": ctx["lex_file"], "mode": "isolate"})
-    except Exception as e:
-        logger.warning(f"API内部错误[评测引擎不可用]: {e}")
-        return _err_env(5001, "评测引擎不可用(内部错误已记录)", start)
-    if not r.ok:
-        return _err_env(5001, r.error, start)
-    data = r.data or {}
-    per = data.get("per_question", [])
-    answers = [{"q": p.get("q"), "answer": p.get("answer"), "hit": p.get("hit")} for p in per]
-    return _ok_env({"kb": kb, "questions_n": len(answers), "answers": answers}, start)
-
 
 # ── 3. assets ──
 
@@ -3042,7 +2560,8 @@ def ontology_suggest(req: OntologySuggestReq):
                 if f.lower().endswith((".csv", ".xlsx", ".json")):
                     try:
                         _name, _cols, rows = dl.load_table(os.path.join(src_abs, f))
-                    except Exception:
+                    except Exception as e:
+                        note_swallow("ontology_suggest", e)
                         continue
                     if rows:
                         data[_name] = rows
@@ -3095,8 +2614,15 @@ def ontology_suggest(req: OntologySuggestReq):
 
 class OntologyConfirmReq(BaseModel):
     """③ 人拍板：把人工确认/修改后的 schema 提交生效。"""
+    # 字段不能直接叫 schema：那会遮蔽 BaseModel.schema()（pydantic v2 起动即报
+    # UserWarning: Field name "schema" shadows an attribute in parent "BaseModel"，
+    # 且实例上的 .schema 变成 dict —— 任何按 BaseModel 约定调用它的地方都会 AttributeError）。
+    # 修法：Python 侧改叫 schema_，用 alias 把**对外 JSON 字段名保持为 "schema"**，
+    # 接口契约不变；populate_by_name 让按字段名传也照样解析（向后兼容）。
+    model_config = ConfigDict(populate_by_name=True)
+
     kb: str
-    schema: dict
+    schema_: dict = Field(alias="schema")
     data_dir: str = None      # 数据源目录（缺省从 kbs.json 该 kb 的 data_dir 取）
     # ③ 人在环：类层次与 Definition 必须在「层次与定义确认」里显式拍板后才允许落库。
     #    未确认 → confirm 直接拒绝（不静默通过），避免模型/规则建议瞒过人写进本体。
@@ -3116,7 +2642,7 @@ def ontology_confirm(req: OntologyConfirmReq):
     kb = (req.kb or "").strip()
     if not kb or kb.startswith(".") or any(c in kb for c in ("/", "\\", "..")):
         return _err_env(4001, "非法 kb 名", start)
-    sch = req.schema or {}
+    sch = req.schema_ or {}
     if not sch.get("entities"):
         return _err_env(4001, "schema 缺少 entities", start)
     # A4(2026-09-25): data_dir 占用冲突校验 —— 同一数据目录已被别的(非本 kb、非备案清理项)
@@ -3280,7 +2806,8 @@ async def ontology_self_onboard(request: Request):
             continue  # 只接受表格/文本类数据文件
         try:
             data = await f.read()
-        except Exception:
+        except Exception as e:
+            note_swallow("ontology_self_onboard", e)
             continue
         try:
             with open(os.path.join(dest, fname), "wb") as fh:
@@ -3392,7 +2919,8 @@ def _set_active_kb(kb, nt_rel=None, lex_rel=None, source="build"):
         sp, _err = _kb_ontology_schema(kb)
         if sp:
             rec["schema"] = os.path.relpath(sp, ROOT).replace("\\", "/")
-    except Exception:
+    except Exception as e:
+        note_swallow("_set_active_kb", e)
         pass
     try:
         os.makedirs(os.path.dirname(ACTIVE_FILE), exist_ok=True)
@@ -3434,114 +2962,21 @@ def kb_active_get():
 
 @app.post("/api/kb/active", dependencies=[Depends(require_key)])
 def kb_active_set(req: ActiveKbReq):
-    """A1: 切库即更新持久态。非法 kb 名 / 越权 → 拒绝（不静默通过）。"""
+    """A1: 切库即更新持久态。非法 kb 名 / 未知 kb / 越权 → 拒绝（不静默通过）。
+
+    契约测试(2026-10-02)发现: 原来只挡了路径穿越形态的非法名，**没校验 kb 是否存在**，
+    传一个不存在的库名也会返回 switched=True 并写进激活态（静默切到不存在的库，
+    后续问答/统计全部落空）。此处补存在性校验：不在可见 kb 集合里 → ok=False 且**不落盘**。
+    """
     kb = (req.kb or "").strip()
     if not kb or kb.startswith(".") or any(c in kb for c in ("/", "\\", "..")):
         return {"ok": False, "error": "非法 kb 名"}
     _kb_guard(kb)
+    if kb not in KBS:
+        return {"ok": False, "error": "未知知识库: %r（不在已注册 kb 中，未切换）" % kb}
     _set_active_kb(kb, source="switch")
     _invalidate_kb(kb)
     return {"ok": True, "kb": kb, "switched": True, "file": ACTIVE_FILE}
-
-
-@app.get("/api/industry/list", dependencies=[Depends(require_key)])
-def industry_dict_list():
-    """列出公共工业本体词典集(00基础+01泵阀+02化工+03地质)及各规模。"""
-    try:
-        from industrial_dict_loader import _DICT_DIR
-        items = []
-        for fn in sorted(os.listdir(_DICT_DIR)):
-            if not fn.endswith(".json") or fn == "index.json":
-                continue
-            fp = os.path.join(_DICT_DIR, fn)
-            d = json.load(open(fp, encoding="utf-8"))
-            items.append({
-                "file": fn,
-                "description": d.get("description", ""),
-                "type": len(d.get("type_cn2en", {})),
-                "status": len(d.get("status_cn2en", {})),
-                "synonym": len(d.get("synonym_map", {})),
-                "entity": len(d.get("entity_cn2en", {})),
-            })
-        return {"ok": True, "items": items}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.post("/api/industry/absorb", dependencies=[Depends(require_key)])
-async def industry_dict_absorb(req: Request):
-    """吸收企业词典 → 候选池 → 行业层（按「独立来源数」判定，默认阈值 3）。
-
-    body: {lexicon: 企业词典路径, industry: 行业名, threshold?: int}
-    行业名: 泵阀/精细化工/地球物理/基础。
-    单一企业来源通常不足以升级进行业层，词会先进候选池等待后续企业确认。
-    """
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
-    lexicon = body.get("lexicon", "")
-    industry = body.get("industry", "基础")
-    if not lexicon or not os.path.exists(lexicon):
-        return {"ok": False, "error": f"企业词典不存在: {lexicon}"}
-    try:
-        from absorb_public_dict import learn_from_kb, load_candidates, CROSS_KB_THRESHOLD
-        res = learn_from_kb(lexicon, industry=industry,
-                            threshold=int(body.get("threshold", CROSS_KB_THRESHOLD)), verbose=False)
-        if res.get("ok"):
-            res["candidates"] = len(load_candidates())
-        return res
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.get("/api/industry/export", dependencies=[Depends(require_key)])
-def industry_dict_export(industry: str = Query("泵阀"), download: bool = Query(False)):
-    """导出行业词典。industry: 泵阀/精细化工/地球物理/基础。
-    download=true 返回文件下载, 否则返回 JSON。"""
-    try:
-        from absorb_public_dict import load_public, INDUSTRY_FILES
-        fn = INDUSTRY_FILES.get(industry, "00_basis.json")
-        pub = load_public(industry)
-        export_dir = os.path.join(ROOT, "..", "dict_export")
-        os.makedirs(export_dir, exist_ok=True)
-        out = os.path.join(export_dir, fn)
-        with open(out, "w", encoding="utf-8") as f:
-            json.dump(pub, f, ensure_ascii=False, indent=2)
-        if download:
-            return FileResponse(out, filename=fn, media_type="application/json")
-        return {"ok": True, "file": out, "industry": industry, "type": len(pub.get("type_cn2en", {}))}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-@app.get("/api/industry/candidates", dependencies=[Depends(require_key)])
-def industry_dict_candidates(limit: int = Query(50)):
-    """候选池：服务过的企业里出现、但独立来源数尚未达阈值的概念。
-
-    返回 {threshold, similarity, file, total, items:[{word, sources, n, key, first_seen, last_seen}]}
-    """
-    try:
-        from absorb_public_dict import load_candidates, CAND_PATH, CROSS_KB_THRESHOLD, SAME_SOURCE_JACCARD
-        cand = load_candidates()
-        items = sorted(cand.items(), key=lambda x: -len(x[1].get("sources", [])))
-        return {
-            "ok": True,
-            "threshold": CROSS_KB_THRESHOLD,
-            "similarity": SAME_SOURCE_JACCARD,
-            "file": CAND_PATH,
-            "total": len(cand),
-            "items": [{
-                "word": w,
-                "sources": e.get("sources", []),
-                "n": len(e.get("sources", [])),
-                "key": e.get("key", ""),
-                "first_seen": e.get("first_seen", ""),
-                "last_seen": e.get("last_seen", ""),
-            } for w, e in items[:limit]],
-        }
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
 
 
 @app.get("/api/kb/{kb}/lexicon/export", dependencies=[Depends(require_key)])
@@ -3608,7 +3043,8 @@ async def kb_lexicon_import(kb: str, req: Request):
         if tmp and os.path.exists(tmp):
             try:
                 os.remove(tmp)
-            except Exception:
+            except Exception as e:
+                note_swallow("kb_lexicon_import", e)
                 pass
 
 
@@ -3641,125 +3077,6 @@ def _flow_registry():
 
 class FlowRunReq(BaseModel):
     params: dict = {}
-
-
-@app.get("/api/flows")
-def flows_list():
-    """只读：列出可用流程、预设卡与**流程加载失败的真实原因**。"""
-    try:
-        fr = _flow_registry()
-        return {"ok": True, **fr.status()}
-    except Exception as e:
-        return {"ok": False, "error": f"流程注册表不可用: {type(e).__name__}: {e}"}
-
-
-@app.get("/api/flows/presets")
-def flows_presets():
-    """只读：预设卡列表（放配置不放代码，与流程定义一一对应）。"""
-    try:
-        fr = _flow_registry()
-        return {"ok": True, "presets": fr.presets(),
-                "preset_config": fr.presets_file, "preset_error": fr._preset_error}
-    except Exception as e:
-        return {"ok": False, "error": f"读取预设失败: {type(e).__name__}: {e}"}
-
-
-@app.post("/api/flows/{flow_id}/run", dependencies=[Depends(require_key)])
-def flows_run(flow_id: str, req: FlowRunReq = None):
-    """触发：按 flow_id 一键运行某流程，返回每步状态与事件/审计结果。"""
-    import flow_engine as fe
-    try:
-        eng = _flow_engine()
-        fr = _flow_registry()
-        params = dict(req.params) if (req and req.params) else {}
-    except Exception as e:
-        return {"ok": False, "error": f"流程引擎不可用: {type(e).__name__}: {e}"}
-    try:
-        flow = fr.get(flow_id)
-    except fe.FlowError as e:
-        # 流程不存在/加载失败 → 如实输出真实原因
-        return {"ok": False, "flow_id": flow_id, "error": str(e),
-                "load_errors": list(fr.errors)}
-    try:
-        return {"ok": True, **eng.run(flow, params)}
-    except fe.FlowError as e:
-        return {"ok": False, "flow_id": flow_id, "error": f"流程执行失败: {e}"}
-    except Exception as e:
-        logger.exception("流程执行异常: %s", flow_id)
-        return {"ok": False, "flow_id": flow_id,
-                "error": f"流程执行异常: {type(e).__name__}: {e}"}
-
-
-class EvolveConfirmReq(BaseModel):
-    name: str
-    node: str | None = None
-    aliases: list | None = None
-    cls: str | None = None
-
-
-class EvolveRejectReq(BaseModel):
-    name: str
-
-
-class EvolveRollbackReq(BaseModel):
-    target_version: int | None = None
-
-
-@app.get("/api/ontology/evolve/pending", dependencies=[Depends(require_key)])
-def evolve_pending():
-    """本体自演进：列出待确认候选（只读，不改词典）。"""
-    from ontology_evolve import pending as _ev_pending, alias_version as _ev_alias_version
-    kb = _active_kb()
-    return {"ok": True, "kb": kb, "version": _ev_alias_version(kb), "pending": _ev_pending(kb)}
-
-
-@app.post("/api/ontology/evolve/confirm", dependencies=[Depends(require_key)])
-def evolve_confirm(req: EvolveConfirmReq):
-    """本体自演进：人拍板 —— 候选并入词典 synonym_map + 在本体里长出一个节点（版本+1 + 审计 + 快照）。"""
-    from ontology_evolve import (confirm as _ev_confirm, alias_version as _ev_alias_version,
-                                add_evolve_node as _ev_add_node)
-    kb = _active_kb()
-    ok, msg = _ev_confirm(req.name, req.node, kb=kb, aliases=req.aliases)
-    node_uri = ""
-    if ok:
-        # 本体自演进：除词典别名外，再往「演化节点」里长一个真节点（图谱里可见）。
-        try:
-            _n_ok, _n_msg = _ev_add_node(req.name, req.cls or "Evolved", kb, aliases=req.aliases)
-            if _n_ok:
-                node_uri = "%s_%s" % (req.cls or "Evolved", req.name)
-            else:
-                logger.info("evolve 节点未新增(可能已存在): %s" % _n_msg)
-        except Exception as _e:
-            logger.warning("evolve 节点写入失败(词典已并入,不影响): %s" % _e)
-    _invalidate_kb(kb)
-    return {"ok": ok, "message": msg, "version": _ev_alias_version(kb), "node": node_uri}
-
-
-@app.post("/api/ontology/evolve/reject", dependencies=[Depends(require_key)])
-def evolve_reject(req: EvolveRejectReq):
-    """本体自演进：拒绝候选（记住不再提，不进词典）。"""
-    from ontology_evolve import reject as _ev_reject
-    _kb2 = _active_kb()
-    ok, msg = _ev_reject(req.name, kb=_kb2)
-    _invalidate_kb(_kb2)
-    return {"ok": ok, "message": msg}
-
-
-@app.post("/api/ontology/evolve/rollback", dependencies=[Depends(require_key)])
-def evolve_rollback(req: EvolveRollbackReq):
-    """本体自演进：回退词典到某版本（默认上一版）。"""
-    from ontology_evolve import rollback as _ev_rollback, alias_version as _ev_alias_version
-    kb = _active_kb()
-    ok, msg = _ev_rollback(req.target_version, kb=kb)
-    _invalidate_kb(kb)
-    return {"ok": ok, "message": msg, "version": _ev_alias_version(kb)}
-
-
-@app.get("/api/ontology/evolve/history", dependencies=[Depends(require_key)])
-def evolve_history():
-    """本体自演进：版本/快照/待确认/已拒绝 概览。"""
-    from ontology_evolve import history as _ev_history
-    return {"ok": True, **_ev_history(kb=_active_kb())}
 
 
 _SKIP_COL = ('id', 'code', 'no', 'num', 'key', 'batch', 'raw', 'uuid', 'guid', 'sn', 'hash', 'ts', 'time', 'date', 'created', 'updated', 'index', 'idx', 'pk', 'fk')
@@ -3816,10 +3133,23 @@ def _auto_evolve_after_sync():
         return {"ok": False, "error": str(e)}
 
 
-@app.post("/api/ontology/evolve/trigger", dependencies=[Depends(require_key)])
-def evolve_trigger():
-    """手动触发一次本体自演化（重读数据目录 → 提候选 → 待确认区）。"""
-    return _auto_evolve_after_sync()
+
+
+# 以 `python api_server.py` 启动时本模块的名字是 __main__，routes/*.py 里的
+# `import api_server as core` 会二次导入本文件并形成循环导入（族路由全挂不上）。
+# 先把当前模块登记成 api_server，族模块就能拿到同一份对象。
+import sys as _sys  # noqa: E402
+_sys.modules.setdefault('api_server', _sys.modules[__name__])
+
+# ── 路由族挂载（P1-1 拆分）：各族已移入 codes/routes/<family>_routes.py ──
+import importlib as _importlib  # noqa: E402
+
+_ROUTE_FAMILIES = ['audit', 'eval', 'evolve', 'export', 'flows', 'industry', 'knowledge', 'standard', 'stats', 'trace']
+
+for _fam in _ROUTE_FAMILIES:
+    _m = _importlib.import_module('routes.%s_routes' % _fam)
+    app.include_router(_m.router)
+
 
 if __name__ == "__main__":
     import uvicorn
@@ -3841,7 +3171,3 @@ if __name__ == "__main__":
     # 后台预热 embedding 模型(不阻塞服务启动)
     threading.Thread(target=_warm_embedding, daemon=True).start()
     uvicorn.run(app, host=host, port=port)
-
-
-
-
