@@ -304,7 +304,7 @@ function isDataDirWithCsv(dir) {
 /**
  * 返回全部可建模行业（kbs.json 驱动）: [{kb, name, icon, dir}]
  * dir 为 codes/ 下该行业的专属数据目录（data_<dir>），供改行业后自动建模。
- * 无专属目录且无兜底目录的 kb 不返回（无法用示例数据建模，避免"已就绪但无模型"）。
+ * 无专属目录且无兜底目录的 kb 不返回（无法用数据建模，避免“已就绪但无模型”）。
  * @returns {{kb:string, name:string, icon:string, dir:string}[]}
  */
 export function listIndustries() {
@@ -326,7 +326,7 @@ export function listIndustries() {
 }
 
 /**
- * 用行业示例数据自动建模（改行业事件驱动的核心动作）。
+ * 用行业数据自动建模（改行业事件驱动的核心动作）。
  * 读取 codes/<dir> 下全部 CSV → 复用 setupOntologyMulti 多表统一建本体到该行业 kb。
  * @param {string} dir 行业数据目录（相对 codes/），如 data_valve
  * @param {string} kb 目标知识库（行业 kb）
@@ -361,12 +361,12 @@ function readLexiconAttrs(lexPath) {
 
 // Web 上传支持的文本格式(文本可直接传输; 二进制 sqlite/xlsx 走命令行 codes/ 套件)
 const TEXT_EXT = ['.csv', '.json'];
-// 示例数据目录（相对套件 codes/），供前端免手选文件直接体验
+// 数据目录（相对套件 codes/），供前端免手选文件直接体验
 const EXAMPLE_DIRS = ['data_valve', 'data_chem', 'data_machining', 'data_precision',
   'data_bellows', 'data_eco', 'data_ship', 'data_seismic', 'data_food_co', 'data'];
 
 /**
- * 扫描套件示例数据目录，返回示例文件列表
+ * 扫描套件数据目录，返回数据文件列表
  * @returns {{name:string, path:string, size:number}[]}
  */
 export function listExamples() {
@@ -389,13 +389,13 @@ export function listExamples() {
 }
 
 /**
- * 读取指定示例文件内容（安全：只允许九大行业示例目录 + data 下，防目录穿越）
+ * 读取指定数据文件内容（安全：只允许九大行业数据目录 + data 下，防目录穿越）
  * @param {string} relPath 相对套件 codes/ 的路径，如 data_chem/chem_equipment.csv
  * @returns {{ok, content?, name?, size?, error?}}
  */
 export function readExample(relPath) {
   const p = String(relPath || '').replace(/^[\\\\/]+/, '').replace(/\\\\/g, '/');
-  // 白名单放开到九大行业示例目录(data_chem/data_machining/data_precision/data_bellows/
+// 白名单放开到九大行业数据目录(data_chem/data_machining/data_precision/data_bellows/
   // data_eco/data_ship/data_seismic/data_food_co/data_valve) + 通用 data/, 拒绝其它目录防穿越
   if (!/^(data_valve|data_chem|data_machining|data_precision|data_bellows|data_eco|data_ship|data_seismic|data_food_co|data)\/[^/]+$/.test(p)) return { ok: false, error: '非法示例路径' };
   const fp = join(KIT, p);
@@ -428,7 +428,7 @@ export function browse(dirArg) {
   // 相对路径安全解析：统一分隔符、去掉首分隔、过滤 . 和 .. 穿越
   const raw = String(dirArg || '').replace(/\\/g, '/').replace(/^\/+/, '');
   const parts = raw.split('/').filter(s => s && s !== '.' && s !== '..');
-  // 默认根 = 示例目录（无参数/非法参数时落回）
+// 默认根 = 数据目录（无参数/非法参数时落回）
   if (parts.length === 0) parts.push('data_valve');
   let dirRel = parts.join('/');
   let abs = join(BROWSE_ROOT, dirRel);
