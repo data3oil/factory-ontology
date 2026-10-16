@@ -1,7 +1,7 @@
 <script>
   // 工厂智能体 · 本体问答 — 独立 Web 应用（工业软件浅色风格）
   import { onMount } from 'svelte';
-  import { setupOntologyMulti, dbSetup, askOntology, analyzeOntology, setModel, getModels, saveModels, fetchVersion, browseFiles, readDataFile, fetchExample, fetchKbs, setKb, fetchEnterprise, saveEnterprise, authLogin, authRegister, authMe, authLogout, onboardEnterprise, resetEnterprise, getToken, setToken, fetchIndustries, switchIndustry, fetchStandard, buildStandardExport, downloadStandard, fetchRoundtrip, importAlign, fetchQuality } from './lib/api.js';
+  import { setupOntologyMulti, dbSetup, askOntology, analyzeOntology, setModel, getModels, saveModels, fetchVersion, browseFiles, readDataFile, fetchExample, fetchKbs, setKb, fetchEnterprise, saveEnterprise, authLogin, authRegister, authMe, authLogout, onboardEnterprise, resetEnterprise, getToken, setToken, fetchIndustries, switchIndustry, fetchStandard, buildStandardExport, downloadStandard, fetchRoundtrip, importAlign, fetchQuality, fetchUsers, createMember, setMemberRole } from './lib/api.js';
   import DashboardPanel from './components/DashboardPanel.svelte';
   import ModelGraph from './components/ModelGraph.svelte';
   import WelcomeModel from './components/WelcomeModel.svelte';
@@ -12,6 +12,13 @@
   import SelfModelPanel from './components/SelfModelPanel.svelte';
   import LexiconAssetPanel from './components/LexiconAssetPanel.svelte';
   import EvolvePanel from './components/EvolvePanel.svelte';
+  import SideNav from './components/SideNav.svelte';
+  import AppTopBar from './components/AppTopBar.svelte';
+  import OrchStatusCard from './components/OrchStatusCard.svelte';
+  import MemberAdmin from './components/MemberAdmin.svelte';
+  import AnswerProvenance from './components/AnswerProvenance.svelte';
+  import BuildGuide from './components/BuildGuide.svelte';
+  import LandingPref from './components/LandingPref.svelte';
 
   // ─── 企业用户登录态 ───
   let user = $state(null);        // {username, enterpriseName, logo, industry, kb, onboarded}
@@ -84,7 +91,7 @@
   }
 
   // ─── 引导 onboarding（新企业未配置时）───
-  // 步骤: 1 确认企业(名/logo/行业) → 2 用所选行业示例建本体 → 3 完成解锁
+// 步骤: 1 确认企业(名/logo/行业) → 2 用所选行业数据建本体 → 3 完成解锁
   let onboardStep = $state(1);          // 1 企业信息 | 2 建本体 | 3 完成
   let onboardForm = $state({ name: '', logo: '', industry: '' });
   let onboardBusy = $state(false);
@@ -103,7 +110,7 @@
       }
     } catch (e) { /* 后端不可达则降级为空，行业下拉暂空 */ }
   }
-  // 行业名(中文) → 示例数据目录(data_xxx)；找不到时兜底默认阀门
+// 行业名(中文) → 数据目录(data_xxx)；找不到时兜底默认阀门
   const industryDirByName = $derived((() => {
     const m = {};
     for (const i of industries) m[i.name] = i.dir;
@@ -197,14 +204,46 @@
   }
 
   // ─── 状态 ───
-  let activeTab = $state('model');   // model | selfmodel | query | dashboard | eval | knowledge | assets
+  let activeTab = $state('query');   // 默认落地页=知识问答（原为 model）；model | selfmodel | query | dashboard | eval | knowledge | assets
                                     // | lexasset | evolve | orch
+  // ─── 导航分区（3 主区 + 设置区）；activeTab 仍是内部真相源，十个分支一律不动 ───
+  const NAV_MAP = { ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
+  // 交付与迁移是一级区，内部两个页签（版本与交付 / 词典），两条都可达
+  const DELIVERY_TABS = { delivery: 'assets', lexicon: 'lexasset' };
+  const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
+  // 角色口径：设置区显示哪些条目，以后端返回的 settingsEntries 为准（单一真相源在 server/roles.js）
+  const visibleEntries = $derived(
+    user && Array.isArray(user.settingsEntries) && user.settingsEntries.length
+      ? SETTINGS_ENTRIES.filter((k) => user.settingsEntries.includes(k))
+      : SETTINGS_ENTRIES,
+  );
+  const isAdminUser = $derived(!!(user && user.can && user.can.enterprise));
+  // 建本体三步向导：这三个设置页各自对应一步（数据建模→自助建模→本体演进）
+  const buildStep = $derived(activeTab === 'model' ? 1 : activeTab === 'selfmodel' ? 2 : 3);
+  const goBuildStep = (n) => switchTab(n === 1 ? 'model' : n === 2 ? 'selfmodel' : 'evolve');
+  // 登录后先看（本机偏好，只影响首次落地分区；不动后端）
+  const LANDING_KEY = 'fo_landing_pref';
+  let landingPref = $state(
+    (typeof localStorage !== 'undefined' && localStorage.getItem(LANDING_KEY)) || 'ask',
+  );
+  function setLandingPref(v) {
+    landingPref = v === 'dashboard' ? 'dashboard' : 'ask';
+    try { localStorage.setItem(LANDING_KEY, landingPref); } catch (e) { /* fail-open: 存不了就只作用于本次会话 */ }
+  }
+  const NAV_LABELS = { ask: '知识问答', dashboard: '数据看板', delivery: '交付与迁移' };
+  const ENTRY_LABELS = { model: '数据建模', selfmodel: '自助建模', evolve: '本体演进（人确认）', knowledge: '知识库管理', eval: '评测基线', orch: '本体编排', enterprise: '企业与账号' };
+  let navArea = $state('ask');         // ask | dashboard | delivery
+  let settingsOpen = $state(false);    // 是否处于设置区
+  let settingsEntry = $state('model'); // 设置条目：见 SETTINGS_ENTRIES
+  // 顶部条上显示的知识库名（与原有 cur-kb-tag 同一口径，不新造真相源）
+  const kbLabel = $derived((user && user.industry) || kbList.find(k => k.key === currentKb)?.name || currentKb || '');
   // ─── 本体编排层（独立模块，默认跑在本机 :8010）───
   // 用当前 hostname 拼：端口写死会在反代/远程访问时指到错的机器。
   const ORCH_HOST = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
   const ORCH_URL = `http://${ORCH_HOST}:8010/console`;
   // 编排层没部署时不留死 iframe：探到 /health 才嵌，探不到只说状态。
   let orchUp = $state(null);   // null=探测中 | true=已在跑 | false=未部署
+  let orchLastProbe = $state(null);   // 上次探测时间（状态卡片上显示）
   let showModel = $state(false);      // 数据建模右栏：默认欢迎界面，点"显示本体模型"才显示模型图
   // ─── 文件浏览框（学习 solo-agent-kit /api/browse，默认 data_valve 示例目录）───
   let browseDir = $state('data_valve');    // 当前目录（相对 codes/）
@@ -218,8 +257,8 @@
   // 本地文件多选建模
   let localFiles = $state([]);       // [{name, content}] 本地选择文件
   let localBusy = $state(false);
-  let defaultBusy = $state(false);   // 默认示例建模中
-  // 行业示例：动态来自后端 kbs.json（事件驱动无死角，不再硬编码 9 个）。
+let defaultBusy = $state(false);   // 默认数据建模中
+// 行业数据：动态来自后端 kbs.json（事件驱动无死角，不再硬编码 9 个）。
   // 行业列表 = industries（[kb,name,icon,dir]）；兼容旧引用：INDUSTRIES 统一指向 industries。
   const INDUSTRIES = $derived(industries);
   let defaultIndustry = $state('data_valve'); // 当前选中的行业示例
@@ -296,8 +335,45 @@
     entForm = { name: (user && user.enterpriseName) || '', logo: (user && user.logo) || '', industry: (user && user.industry) || '' };
     entErr = ''; entOk = '';
     entOpen = true;
+    loadMembers();   // 管理员才真的去取（普通成员进来是空表，也看不到这块）
   }
   function closeEnterprise() { entOpen = false; }
+
+  // ─── 成员与角色（只有管理员会真的取；接口层也拦了非管理员）───
+  let members = $state([]);
+  let membersBusy = $state(false);
+  let membersErr = $state('');
+
+  async function loadMembers() {
+    if (!isAdminUser) { members = []; return; }
+    membersBusy = true; membersErr = '';
+    try {
+      const res = await fetchUsers();
+      if (res && res.ok && Array.isArray(res.users)) members = res.users;
+      else { members = []; membersErr = (res && res.error) || '读取成员失败'; }
+    } catch (e) { membersErr = '读取成员失败'; }
+    membersBusy = false;
+  }
+
+  async function addMember({ username, password }) {
+    membersBusy = true; membersErr = '';
+    try {
+      const res = await createMember(username, password);
+      if (res && res.ok) await loadMembers();
+      else membersErr = (res && res.error) || '添加成员失败';
+    } catch (e) { membersErr = '添加成员失败'; }
+    membersBusy = false;
+  }
+
+  async function changeMemberRole(username, role) {
+    membersBusy = true; membersErr = '';
+    try {
+      const res = await setMemberRole(username, role);
+      if (res && res.ok) await loadMembers();
+      else membersErr = (res && res.error) || '改角色失败';
+    } catch (e) { membersErr = '改角色失败'; }
+    membersBusy = false;
+  }
 
   // 选择预设 emoji 作 logo
   function pickLogoEmoji(e) {
@@ -406,12 +482,14 @@
   // 编排层可达性探测：no-cors 拿到不透明响应也算通，只有连不上才会 reject。
   async function probeOrch() {
     orchUp = null;
+    orchLastProbe = null;
     try {
       await fetch(`http://${ORCH_HOST}:8010/health`, { mode: 'no-cors', cache: 'no-store' });
       orchUp = true;
     } catch (e) {
       orchUp = false;
     }
+    orchLastProbe = new Date();
   }
 
   function switchTab(tab) {
@@ -419,8 +497,44 @@
     if (tab === 'orch') probeOrch();
   }
 
+  // ─── 导航：一级区 / 设置条目 两路（2026-10-16 菜单改版）───
+  function pickNav(payload) {
+    if (!payload) return;
+    if (payload.kind === 'area' && NAV_MAP[payload.area]) {
+      navArea = payload.area;
+      settingsOpen = false;
+      switchTab(NAV_MAP[payload.area]);
+      return;
+    }
+    if (payload.kind === 'entry' && visibleEntries.includes(payload.entry)) {
+      settingsOpen = true;
+      settingsEntry = payload.entry;
+      // 预期分支：「企业与账号」不是一个报告面板，它对应已有的企业设置弹窗，不占用 activeTab
+      if (payload.entry === 'enterprise') { openEnterprise(); return; }
+      switchTab(payload.entry);
+    }
+  }
+
+  function openSettings() {
+    settingsOpen = true;
+    // 普通成员只看得到的条目：落在当前页（若可见）否则第一个可见条目
+    settingsEntry = visibleEntries.includes(activeTab) ? activeTab : (visibleEntries[0] ?? 'model');
+  }
+
+  function backToAsk() {
+    navArea = 'ask';
+    settingsOpen = false;
+    switchTab('query');
+  }
+
+  // 顶部常驻提问框：先回到问答区，再走已有提问链路 doAsk（不新造第二条链路）
+  async function topAsk(text) {
+    backToAsk();
+    await doAsk(text);
+  }
+
   // ─── 单企业 kb 加载（无切换）───
-  // 从后端读取当前企业唯一 kb（/api/ontology/kbs → 只含登录企业 kb），供查询示例问题。
+// 从后端读取当前企业唯一 kb（/api/ontology/kbs → 只含登录企业 kb），供查询问题。
   async function loadKbs() {
     try {
       const res = await fetchKbs();
@@ -448,6 +562,9 @@
     if (needsOnboard) initOnboard();
     // 加载当前企业唯一 kb（决定查询/看板/本体图检索哪个）→ 注册 kb 放行问答输入（status → ready）
     await loadKbs();
+    // 登录后先看：按设置里的偏好落地（默认知识问答）
+    navArea = landingPref === 'dashboard' ? 'dashboard' : 'ask';
+    switchTab(NAV_MAP[navArea]);
     // 企业设置：读取登录企业用户的信息（顶部品牌跟随）
     await loadEnterprise();
     // 本体标准合规度（GB/T 48000.3）：后台加载，不阻塞进入
@@ -575,16 +692,16 @@
     }
   }
 
-  // ─── 用行业示例自动建模（事件驱动无死角，走后端全量行业清单）───
-  // 欢迎页示例传的是行业 dir，这里解析为行业名后调用 switchIndustry 自动建模并联动 kb。
+// ─── 用行业数据自动建模（事件驱动无死角，走后端全量行业清单）───
+// 欢迎页传的是行业 dir，这里解析为行业名后调用 switchIndustry 自动建模并联动 kb。
   async function doDefaultExample(dirArg) {
     if (defaultBusy) return;
     const dir = dirArg || defaultIndustry || 'data_valve';
-    defaultIndustry = dir;   // 同步左侧行业下拉（点击欢迎页示例时跟随）
+defaultIndustry = dir;   // 同步左侧行业下拉（点击欢迎页时跟随）
     const ind = INDUSTRIES.find(i => i.dir === dir);
     const industry = (ind && ind.name) || dir;
     defaultBusy = true;
-    setStatus('info', `正在用「${industry}」示例数据自动建模…`);
+setStatus('info', `正在用「${industry}」数据自动建模…`);
     try {
       const res = await switchIndustry(industry);
       if (!res.ok) {
@@ -803,11 +920,17 @@
           answer = a || '（无结果）';
           answerHTML = renderAnswerHTML(a);
           evidence = res.evidence || null;
-          recallMeta = {
-            deep: deepRecall, mode: res.mode, engines: res.engines || [],
-            confidence: res.confidence,
-            n: Array.isArray(res.evidence) ? res.evidence.length : (res.evidence ? 1 : 0),
-          };
+          // 后端没带回溯源字段时不要编：宁可说「这次没有带回溯源信息」，也不给一个凭空的低可信度
+          const hasProv = !!(res.mode || (res.engines && res.engines.length) || res.confidence != null || res.evidence);
+          recallMeta = hasProv
+            ? {
+                deep: deepRecall, mode: res.mode, engines: res.engines || [],
+                confidence: res.confidence,
+                n: Array.isArray(res.evidence) ? res.evidence.length : (res.evidence ? 1 : 0),
+                // 后端自己标的「没有依据」原样透出，不在前端另编一个判断
+                noBasis: !!res.no_basis,
+              }
+            : null;
           status = 'ready';
           setStatus('ok', `查询完成：${q}`);
         }
@@ -919,7 +1042,7 @@
         <button class="login-btn" onclick={loginMode === 'login' ? doLogin : doRegister} disabled={loginBusy}>
           {loginBusy ? '请稍候…' : (loginMode === 'login' ? '登 录' : '注册并登录')}
         </button>
-        <p class="login-hint">{loginMode === 'login' ? '演示账号：admin / admin123' : '注册后自动创建企业空间，进入引导配置'}</p>
+<p class="login-hint">{loginMode === 'login' ? '登录后进入企业知识库' : '注册后自动创建企业空间，进入引导配置'}</p>
       </div>
     </div>
   {:else if needsOnboard}
@@ -964,7 +1087,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="ob-name">企业名称</label>
-            <input id="ob-name" class="db-input" placeholder="如：示例制造公司" bind:value={onboardForm.name} />
+<input id="ob-name" class="db-input" placeholder="如：某某制造有限公司" bind:value={onboardForm.name} />
           </div>
           <div class="form-group">
             <label class="form-label" for="ob-industry">所属行业</label>
@@ -981,7 +1104,7 @@
           </button>
         {:else if onboardStep === 2}
           <h2 class="onboard-title">🧪 为「{user && user.enterpriseName}」建本体</h2>
-          <p class="onboard-sub">行业「{onboardForm.industry}」已确定，系统将用该行业示例数据为您的企业建本体（唯一知识库，一企业一行业一数据）。</p>
+<p class="onboard-sub">行业「{onboardForm.industry}」已确定，系统将用该行业数据为您的企业建本体（唯一知识库，一企业一行业一数据）。</p>
           <div class="onboard-industries">
             <button class="ob-industry sel">
               <span class="ob-ind-icon">{onboardInd && onboardInd.icon}</span>
@@ -1036,64 +1159,57 @@
         <span class="status-dot"></span>
         <span class="status-text">{statusMsg}</span>
       </span>
-      <button class="ent-btn" onclick={openEnterprise} title="企业设置">
-        <span class="btn-icon">⚙️</span> 企业设置
-      </button>
-      <button class="ent-btn ent-btn-danger" onclick={() => (resetOpen = true)} title="重置当前企业数据">
-        <span class="btn-icon">🔄</span> 重置企业
-      </button>
-      <button class="ent-btn" onclick={doLogout} title="退出登录">
-        <span class="btn-icon">⎋</span> 退出
-      </button>
+      <!-- 企业设置 / 重置企业 / 退出：前两个归位到设置区顶部条，退出归位到 AppTopBar -->
     </div>
   </header>
 
-  <!-- ═══ 标签栏 ═══ -->
-  <nav class="tabbar">
-    <button class="tab" class:active={activeTab === 'model'} onclick={() => switchTab('model')}>
-      <span class="tab-icon">📊</span> 数据建模
-    </button>
-    <button class="tab" class:active={activeTab === 'selfmodel'} onclick={() => switchTab('selfmodel')}>
-      <span class="tab-icon">🧭</span> 自助建模
-    </button>
-    <button class="tab" class:active={activeTab === 'query'} onclick={() => switchTab('query')}>
-      <span class="tab-icon">💬</span> 查询分析
-    </button>
-    <button class="tab" class:active={activeTab === 'dashboard'} onclick={() => switchTab('dashboard')}>
-      <span class="tab-icon">📈</span> 数据看板
-    </button>
-    <button class="tab" class:active={activeTab === 'eval'} onclick={() => switchTab('eval')}>
-      <span class="tab-icon">🧪</span> 评测
-    </button>
-    <button class="tab" class:active={activeTab === 'knowledge'} onclick={() => switchTab('knowledge')}>
-      <span class="tab-icon">📚</span> 知识库
-    </button>
-    <button class="tab" class:active={activeTab === 'assets'} onclick={() => switchTab('assets')}>
-      <span class="tab-icon">📦</span> 资产
-    </button>
-    <button class="tab" class:active={activeTab === 'lexasset'} onclick={() => switchTab('lexasset')}>
-      <span class="tab-icon">📖</span> 词典资产
-    </button>
-    <button class="tab" class:active={activeTab === 'evolve'} onclick={() => switchTab('evolve')}>
-      <span class="tab-icon">🌱</span> 本体自演进
-    </button>
-    <button class="tab" class:active={activeTab === 'orch'} onclick={() => switchTab('orch')}>
-      <span class="tab-icon">🧠</span> 本体编排
-    </button>
-  </nav>
+  <!-- ═══ 顶部常驻条（企业/知识库 + 提问框 + 设置 + 退出）═══ -->
+  <AppTopBar
+    enterprise=""
+    kb=""
+    busy={asking}
+    onAsk={topAsk}
+    onOpenSettings={openSettings}
+    settingsActive={settingsOpen}
+    onSwitchKb={() => switchTab('knowledge')}
+    onLogout={doLogout}
+  />
 
-  <!-- ═══ 主区域 ═══ -->
-  <main class="workspace">
+  <!-- ═══ 左侧导航 + 内容区（208px 导航 + 内容自适应）═══ -->
+  <div class="app-body">
+    <SideNav area={navArea} entry={settingsEntry} settingsOpen={settingsOpen} entries={visibleEntries} onPick={pickNav} />
+    <div class="content-col">
+      {#if settingsOpen}
+        <div class="settings-bar">
+          <span class="settings-crumb">设置 › {ENTRY_LABELS[settingsEntry] ?? settingsEntry}</span>
+          <button class="settings-back" onclick={backToAsk}>← 返回问答</button>
+          <span class="settings-spacer"></span>
+          {#if isAdminUser}
+          <button class="ent-btn" onclick={openEnterprise} title="企业设置">⚙️ 企业设置</button>
+          <button class="ent-btn ent-btn-danger" onclick={() => (resetOpen = true)} title="重置当前企业数据">🔄 重置企业</button>
+          {/if}
+        </div>
+      {/if}
+      {#if !settingsOpen && navArea === 'delivery'}
+        <div class="settings-bar">
+          <span class="settings-crumb">交付与迁移</span>
+          <button class="settings-back" class:on={activeTab === 'assets'} onclick={() => switchTab('assets')}>版本与交付</button>
+          <button class="settings-back" class:on={activeTab === 'lexasset'} onclick={() => switchTab('lexasset')}>词典</button>
+          <span class="settings-spacer"></span>
+        </div>
+      {/if}
+      <main class="workspace">
     {#if activeTab === 'model'}
     <!-- ─── 左栏：数据建模 ─── -->
     <section class="pane pane-left">
       <div class="pane-title">数据建模<span class="pane-sub">上传数据、连接数据库或配置模型，构建企业专属本体</span></div>
+      <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
 
       {#if defaultBusy || localBusy || dbBusy}
         <div class="model-busy-overlay">
           <span class="model-busy-spin"></span>
           <span class="model-busy-text">
-            {defaultBusy ? '正在用示例数据建本体，请稍候…' : localBusy ? '正在读取本地文件并建本体…' : '正在连接数据库并建模…'}
+{defaultBusy ? '正在用数据建本体，请稍候…' : localBusy ? '正在读取本地文件并建本体…' : '正在连接数据库并建模…'}
           </span>
         </div>
       {/if}
@@ -1418,7 +1534,7 @@
           <!-- refreshKey=ts：重新建模 ts 变 → ModelGraph 的 $effect 触发重新加载；kb=当前激活知识库，本体图跟随该 kb（非 food） -->
           <ModelGraph refreshKey={modelResult ? modelResult.ts : Date.now()} kb={currentKb} />
         {:else}
-          <!-- 未点显示模型：科幻风格 SVG 企业欢迎页（企业欢迎词 + 建模示例），按企业所属行业识别 -->
+<!-- 未点显示模型：科幻风格 SVG 企业欢迎页（企业欢迎词 + 快速建模），按企业所属行业识别 -->
           <WelcomeModel kb={currentKb} kbList={kbList} industries={INDUSTRIES} industry={user && user.industry} onModel={(dir) => doDefaultExample(dir)} />
         {/if}
       </div>
@@ -1427,6 +1543,7 @@
     <!-- ─── 自助建模（三步：选数据源 → AI 建议可编辑 → 人拍板确认生效）─── -->
     <section class="pane pane-full">
       <div class="pane-title">自助建模<span class="pane-sub">选数据源 → 看 AI 建议并修改 → 人拍板确认生效（人工可控的建模流程）</span></div>
+      <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
       <div class="dashboard-body">
         <SelfModelPanel kb={currentKb} />
       </div>
@@ -1434,7 +1551,10 @@
     {:else if activeTab === 'query'}
     <!-- ─── 查询分析（独立标签页）─── -->
     <section class="pane pane-full">
-      <div class="pane-title">查询分析<span class="pane-sub">用自然语言查询企业知识库，每个答案带证据溯源</span></div>
+      <div class="pane-title">知识问答<span class="pane-sub">用自然语言查询企业知识库，每个答案带证据溯源</span></div>
+      <div style="padding:10px 18px 0;display:flex;gap:10px;align-items:center">
+        <button class="settings-back" onclick={() => pickNav({ kind: 'area', area: 'dashboard' })}>去数据看板 →</button>
+      </div>
       <div class="query-body">
         <div class="query-bar">
           <input
@@ -1494,15 +1614,6 @@
           {:else if answer}
             <div class="result-head">
               <span class="result-label">查询结果</span>
-              {#if recallMeta}
-                <span class="recall-meta">
-                  <span class="rm rm-strong">{recallMeta.deep ? '深度召回' : '快速'}</span>
-                  {#if recallMeta.mode}<span class="rm">模式 {recallMeta.mode}</span>{/if}
-                  {#if recallMeta.engines && recallMeta.engines.length}<span class="rm">引擎 {recallMeta.engines.join('+')}</span>{/if}
-                  {#if recallMeta.confidence}<span class="rm">置信 {recallMeta.confidence}</span>{/if}
-                  <span class="rm">证据 {recallMeta.n} 条</span>
-                </span>
-              {/if}
             </div>
             <div class="result-scroll result-fade" bind:this={answerBox}>
               {#if answerHTML}
@@ -1511,17 +1622,12 @@
                 <pre class="result-text">{answer}</pre>
               {/if}
             </div>
-            {#if evidence}
-              <div class="evidence-wrap">
-                <button class="evidence-toggle" onclick={() => (evidenceOpen = !evidenceOpen)}>
-                  📎 证据溯源
-                  <span class="chevron">{evidenceOpen ? '▾' : '▸'}</span>
-                </button>
-                {#if evidenceOpen}
-                  <div class="evidence-body">{@html renderEvidence(evidence)}</div>
-                {/if}
-              </div>
-            {/if}
+            <!-- 这份答案怎么来的：可信度判定 + 条件清单 + 证据明细（原来散成一排小标签，看不出靠不靠得住） -->
+            <AnswerProvenance
+              meta={recallMeta}
+              evidenceCount={(recallMeta && recallMeta.n) || 0}
+              evidenceHtml={evidence ? renderEvidence(evidence) : ''}
+            />
           {:else}
             <div class="result-empty">{#if kbsLoaded && currentKb}当前知识库「{kbList.find(k => k.key === currentKb)?.name || currentKb}」已就绪，输入中文问题开始查询。{/if}</div>
           {/if}
@@ -1531,6 +1637,9 @@
     {:else if activeTab === 'dashboard'}
     <section class="pane pane-full">
       <div class="pane-title">数据看板<span class="pane-sub">企业关键数据的可视化概览</span></div>
+      <div style="padding:10px 18px 0;display:flex;gap:10px;align-items:center">
+        <button class="settings-back" onclick={() => pickNav({ kind: 'area', area: 'ask' })}>去知识问答 →</button>
+      </div>
       <div class="dashboard-body">
         <DashboardPanel kb={currentKb} />
       </div>
@@ -1538,7 +1647,7 @@
     {:else if activeTab === 'eval'}
     <!-- ─── 评测（问答命中率基线）─── -->
     <section class="pane pane-full">
-      <div class="pane-title">评测基线<span class="pane-sub">用示例题目评测知识库的问答命中率</span></div>
+<div class="pane-title">评测基线<span class="pane-sub">用题目评测知识库的问答命中率</span></div>
       <div class="dashboard-body">
         <EvalPanel kb={currentKb} />
       </div>
@@ -1571,6 +1680,7 @@
     <!-- ─── 本体自演进（数据变更后自动提候选 → 人拍板 → 并入词典）─── -->
     <section class="pane pane-full">
       <div class="pane-title">本体自演进<span class="pane-sub">数据变更后自动抽取新实体候选；人确认才并入词典（可回退）</span></div>
+      <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
       <div class="dashboard-body">
         <EvolvePanel kb={currentKb} />
       </div>
@@ -1579,6 +1689,18 @@
     <!-- ─── 本体编排层（外部独立服务，本仓库只做入口，不复制逻辑）─── -->
     <section class="pane pane-full">
       <div class="pane-title">本体编排<span class="pane-sub">独立的编排层服务，默认跑在本机 :8010；本页只做入口</span></div>
+      <div style="padding:12px 18px 0;display:flex;flex-direction:column;gap:10px">
+        <OrchStatusCard
+          state={orchUp === null ? 'probing' : orchUp ? 'up' : 'down'}
+          url={ORCH_URL}
+          lastProbe={orchLastProbe}
+          onRefresh={probeOrch}
+          onOpen={() => window.open(ORCH_URL, '_blank', 'noreferrer')}
+        />
+        {#if isAdminUser}
+        <LandingPref value={landingPref} onChange={setLandingPref} />
+        {/if}
+      </div>
       <div class="dashboard-body">
         {#if orchUp === true}
         <iframe title="本体编排层控制台" src={ORCH_URL}
@@ -1605,7 +1727,9 @@
       </div>
     </section>
     {/if}
-  </main>
+      </main>
+    </div>
+  </div>
 
   <!-- ═══ 企业设置弹窗 ═══ -->
   {#if entOpen}
@@ -1647,7 +1771,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="ent-name">企业名称</label>
-          <input id="ent-name" class="db-input" placeholder="请输入企业名称（如：示例制造公司）" bind:value={entForm.name} />
+<input id="ent-name" class="db-input" placeholder="请输入企业名称（如：某某制造有限公司）" bind:value={entForm.name} />
         </div>
         <div class="form-group">
           <label class="form-label" for="ent-industry">所属行业</label>
@@ -1658,6 +1782,9 @@
             {/each}
           </select>
         </div>
+        {#if isAdminUser}
+        <MemberAdmin users={members} me={user} busy={membersBusy} error={membersErr} onAdd={addMember} onSetRole={changeMemberRole} />
+        {/if}
         {#if entErr}<div class="ent-err">✗ {entErr}</div>{/if}
         {#if entOk}<div class="ent-ok">✓ {entOk}</div>{/if}
       </div>
@@ -1855,6 +1982,19 @@
   .ob-ind-icon { font-size: 24px; }
   .ob-ind-name { font-size: 12px; font-weight: 600; color: var(--txt); }
 
+  /* ─── 新导航布局：左导航 + 内容列（2026-10-16 菜单改版）─── */
+  .app-body { display: flex; align-items: stretch; min-height: 0; }
+  .content-col { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+  .settings-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    border-bottom: 1px solid var(--line); background: var(--bg-card); font-size: 13px; color: var(--txt-sub); }
+  .settings-crumb { color: var(--txt); font-weight: 600; }
+  .settings-back { border: 1px solid var(--line); background: var(--bg-card); color: var(--txt-sub);
+    border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px; cursor: pointer;
+    transition: background .12s ease, border-color .12s ease; }
+  .settings-back:hover { background: var(--bg-hover); border-color: var(--brand); color: var(--brand); }
+  .settings-back.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .settings-spacer { flex: 1 1 auto; }
+
   /* ─── 顶部工具栏 ─── */
   .toolbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -2047,11 +2187,11 @@
   }
   .file-remove:hover { background: #fee2e2; }
 
-  /* ─── 默认示例：次级按钮（模型配置等）─── */
+/* ─── 默认：次级按钮（模型配置等）─── */
   .btn-default { background: #1e293b; }
   .btn-default:hover:not(:disabled) { background: #0f172a; }
 
-  /* ─── 数据文件选择器（单一入口，默认示例目录，目录导航 + Ctrl/Shift 多选）─── */
+/* ─── 数据文件选择器（单一入口，默认数据目录，目录导航 + Ctrl/Shift 多选）─── */
   .example-empty { font-size: 12px; color: #94a3b8; padding: 8px 2px; }
   .example-item {
     display: flex; align-items: center; gap: 6px; padding: 4px 6px;
@@ -2393,7 +2533,7 @@
   .skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .skel-kpi { height: 74px; }
 
-  /* ─── 建模进行中骨架（本地/示例/数据库建模 busy 时展示）─── */
+/* ─── 建模进行中骨架（本地/数据/数据库建模 busy 时展示）─── */
   .model-busy-overlay {
     position: relative; overflow: hidden;
     background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
