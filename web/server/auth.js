@@ -2,6 +2,10 @@
 // 用户存储: web/users.json。密码 scrypt 哈希加盐。登录签发不透明随机 token（内存会话，含过期）。
 // 每个企业用户绑定唯一 kb（单企业唯一性），数据隔离复用后端多租户内核。
 import { scryptSync, randomBytes, timingSafeEqual } from 'crypto';
+// 角色与权限矩阵的单一真相源（纯函数模块，2026-10-16 落地"角色调整到真"）
+import { normalizeRole, roleForNewUser, describeRole, visibleSettingsEntries, isAdmin, canManageEnterprise, canManageUsers, canResetEnterprise } from './roles.js';
+// 老账号补角色（角色引入前建的账号没有 role 字段，不补会把企业管理员降级锁死）
+import { assignMissingRoles, migrationSummary } from './role_migration.js';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -46,7 +50,14 @@ function loadUsers() {
   try {
     if (existsSync(USERS_FILE)) {
       const d = JSON.parse(readFileSync(USERS_FILE, 'utf-8'));
-      return (d && d.users) || {};
+      const users = (d && d.users) || {};
+      // 读到老账号就先补角色（幂等：没有缺角色的账号时什么都不做、不写盘）
+      const mig = assignMissingRoles(users);
+      if (mig.changed) {
+        saveUsers(mig.users);
+        console.log('[roles] ' + migrationSummary(mig));
+      }
+      return mig.users;
     }
   } catch (e) { /* 损坏视为空 */ }
   return {};
@@ -79,12 +90,21 @@ export function publicUser(u) {
     industry: u.industry || '',
     kb: u.kb || '',
     onboarded: !!u.onboarded,
+    // 角色面：前端只渲染后端给的东西，不在浏览器里各写一套权限矩阵
+    role: normalizeRole(u.role),
+    roleLabel: describeRole(u),
+    settingsEntries: visibleSettingsEntries(u),
+    can: {
+      enterprise: canManageEnterprise(u),
+      users: canManageUsers(u),
+      reset: canResetEnterprise(u),
+    },
   };
 }
 
 // ── 企业用户 CRUD ─────────────────────────────────────────────
 /** 创建企业用户。kb 缺省自动生成 ent_<username>（单企业唯一命名空间）。 */
-export function createUser({ username, password, enterpriseName = '', logo = '', industry = '', kb = '', onboarded = false }) {
+export function createUser({ username, password, enterpriseName = '', logo = '', industry = '', kb = '', onboarded = false, role = '' }) {
   const name = String(username || '').trim();
   if (!name) return { ok: false, error: '用户名必填' };
   if (!password) return { ok: false, error: '密码必填' };
@@ -100,6 +120,8 @@ export function createUser({ username, password, enterpriseName = '', logo = '',
     industry: String(industry || '').trim().slice(0, 30),
     kb: kb || 'ent_' + name.replace(/[^A-Za-z0-9_-]/g, '_'),
     onboarded: !!onboarded,
+    // 第一个创建的人 = 企业管理员，其后加入的 = 普通成员（roleForNewUser 里的口径）
+    role: role ? normalizeRole(role) : roleForNewUser(Object.keys(users).length),
     created: Date.now(),
   };
   users[name] = user;
@@ -129,6 +151,7 @@ export function updateUser(username, patch) {
   // kb 支持显式清空(null/'' 都视为清空)与更新——reset 场景需要把旧 kb 清掉重建
   if (patch.kb !== undefined) u.kb = patch.kb === null || patch.kb === '' ? '' : String(patch.kb).trim();
   if (patch.onboarded !== undefined) u.onboarded = !!patch.onboarded;
+  if (patch.role !== undefined) u.role = normalizeRole(patch.role);
   users[username] = u;
   saveUsers(users);
   return { ok: true, user: publicUser(u) };
@@ -141,6 +164,17 @@ export function deleteUser(username) {
   delete users[username];
   saveUsers(users);
   return { ok: true };
+}
+
+/** 列出全部企业用户（公开面，供管理员在设置里看成员与角色）。 */
+export function listUsers() {
+  const users = loadUsers();
+  return {
+    ok: true,
+    users: Object.values(users)
+      .map(publicUser)
+      .sort((a, b) => (isAdmin(b) ? 1 : 0) - (isAdmin(a) ? 1 : 0) || String(a.username).localeCompare(String(b.username))),
+  };
 }
 
 // ── 登录/会话 ─────────────────────────────────────────────────
@@ -183,9 +217,9 @@ export function me(token) {
 export function seedUsersIfEmpty() {
   const users = loadUsers();
   if (Object.keys(users).length > 0) return;
-  // 预置两个演示企业用户：
+// 预置两个企业账号：
   //  - admin / admin123：已 onboard，绑定额外阀 kb=valve（复用现成 data_valve 示例，登录即见企业系统）
-  //  - demo  / demo123：新企业未配置，用于演示引导 onboarding
-  createUser({ username: 'admin', password: 'admin123', enterpriseName: '示例制造公司', logo: '🏭', industry: '阀门制造', kb: 'valve', onboarded: true });
-  createUser({ username: 'demo', password: 'demo123', enterpriseName: '示例企业B', logo: '🌱', industry: '', kb: 'ent_demo', onboarded: false });
+//  - demo  / demo123：新企业未配置，用于新企业引导流程
+createUser({ username: 'admin', password: 'admin123', enterpriseName: '某某制造有限公司', logo: '🏭', industry: '阀门制造', kb: 'valve', onboarded: true });
+createUser({ username: 'demo', password: 'demo123', enterpriseName: '', logo: '🌱', industry: '', kb: 'ent_demo', onboarded: false });
 }
