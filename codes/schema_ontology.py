@@ -1090,10 +1090,32 @@ def suggest_schema(data: dict, use_llm: bool = True, industry: str = None) -> di
     return schema
 
 
+def fk_parts(fk):
+    """解析外键写法为 (表, 列)。单一真相源。
+
+    支持两种写法：
+      · `表.列`（如 `seis_lines.region`）
+      · 等值连接 `左表.左列=右表.右列`（取左边那段；右表.右列只用于连接条件）
+    列名里再有点也不会炸（按第一个 `.` 切）。
+    解析不出来返回 (None, None)，调用方按“跳过该关系”处理。
+    """
+    if not fk or not isinstance(fk, str):
+        return (None, None)  # fail-open: 空/None/非字符串无法定位表列，交给调用方跳过
+    left = fk.split("=", 1)[0]
+    if "." not in left:
+        return (None, None)  # fail-open: 没有点无法切出表与列，交给调用方跳过
+    table, col = left.split(".", 1)
+    if not table or not col:
+        return (None, None)  # fail-open: 表或列为空无法定位，交给调用方跳过
+    return (table, col)
+
+
 def build_graph(data: dict, schema: dict) -> dict:
     """跨表跨域建统一实例图：实体实例 + 关系边（FK join）。"""
     graph = {"nodes": {}, "edges": []}
-    entities = schema.get("_entities", {})
+    entities = schema.get("_entities")
+    if entities is None:
+        entities = {e["id"]: e for e in schema.get("entities", [])}
     declared_fks = {r.get("fk") for r in schema.get("relations", []) if r.get("fk")}
     inferred = [r for r in _infer_relations(data) if r.get("fk") not in declared_fks]
     relations = list(schema.get("relations", [])) + inferred
@@ -1129,15 +1151,49 @@ def build_graph(data: dict, schema: dict) -> dict:
     for r in relations:
         if r.get("abstract") or not r.get("fk"):
             continue
-        ftable, fcol = r["fk"].split(".")
+        ftable, fcol = fk_parts(r["fk"])
+        if ftable is None:
+            continue
         if ftable not in data:
             continue
         from_e = entities.get(r["from"], {})
         to_e = entities.get(r["to"], {})
+        # 等值连接 `左表.左列=右表.右列`：按右表.右列取值匹配，而非对像主键
+        eq_join = "=" in r["fk"]
+        rtable, rcol = (None, None)
+        if eq_join:
+            right = r["fk"].split("=", 1)[1]
+            if "." in right:
+                rt, rc = right.split(".", 1)
+                if rt and rc:
+                    rtable, rcol = rt, rc
+            if rtable is None:
+                continue  # fail-open: 等值连接右半边解析不出表列，跳过该关系
         fk_val_to_nodes = {}
+        # 等值连接：把对像实体每个实例节点按「右表.右列在该行里的取值」建索引
+        rcol_val_to_nodes = {}
+        if eq_join and rtable in data:
+            for nd in node_ids.get(r["to"], []):
+                info = graph["nodes"][nd]
+                rv = info["data"].get(rcol)
+                if rv:
+                    rcol_val_to_nodes.setdefault(str(rv), []).append(nd)
         for nd in node_ids.get(r["to"], []):
             info = graph["nodes"][nd]
             fk_val_to_nodes.setdefault(f"{info['id']}", []).append(nd)
+        if eq_join:
+            # 等值连接：左表.左列 = 右表.右列，按列值相等把两侧实例连起来
+            lcol = r["fk"].split("=", 1)[0].split(".", 1)[1]
+            for i, row in enumerate(data[ftable]):
+                lv = row.get(lcol)
+                if not lv:
+                    continue
+                src = f"{r['from']}:{row.get(from_e['key'])}@{i}" if from_e.get("detail") else f"{r['from']}:{row.get(from_e['key'])}"
+                if src not in graph["nodes"]:
+                    continue
+                for dst in rcol_val_to_nodes.get(str(lv), []):
+                    graph["edges"].append({"from": src, "to": dst, "rel": r["id"], "label": r.get("label", r["id"])})
+            continue
         for i, row in enumerate(data[ftable]):
             val = row.get(fcol)
             if not val:
@@ -1193,7 +1249,9 @@ def validate(data: dict, schema: dict) -> list:
                         pass
     for c in schema.get("constraints", []):
         if c.get("type") == "required":
-            ent, attr = c["on"].split(".")
+            ent, attr = fk_parts(c["on"])
+            if ent is None:
+                continue
             if ent in entities and entities[ent]["table"] in data:
                 for row in data[entities[ent]["table"]]:
                     if not row.get(attr):
@@ -1444,7 +1502,7 @@ def _nt_property_decls(entities, relations, data, eid_to_cls, L, ns):
         if table not in data or not data[table]:
             continue
         key = ent.get("key")
-        rel_cols = {r["fk"].split(".")[1] for r in relations if (r.get("fk") or "").startswith(table + ".")}
+        rel_cols = {fk_parts(r["fk"])[1] for r in relations if (r.get("fk") or "").startswith(table + ".")}
         for attr in ent.get("attributes", []):
             aname = attr["name"]
             if aname == key or aname in rel_cols:
@@ -1471,14 +1529,14 @@ def _nt_property_decls(entities, relations, data, eid_to_cls, L, ns):
         folded_uri = None
         if ent.get("detail") and not own_attrs:
             _pr = next((r for r in relations
-                        if (r.get("fk") or "").startswith(table + ".") and r["fk"].split(".")[1] == key), None)
+                        if (r.get("fk") or "").startswith(table + ".") and fk_parts(r["fk"])[1] == key), None)
             if _pr:
                 folded_uri = f"{ns}{eid_to_cls.get(_pr['to'], _pr['to'])}"
         for r in relations:
             if (r.get("fk") or "").startswith(table + "."):
                 rel = r.get("iri") or (ns + r["id"])   # 对象属性 URI(显式 iri 优先, 否则关系 id)
                 if folded_uri:
-                    if r["fk"].split(".")[1] == key:
+                    if fk_parts(r["fk"])[1] == key:
                         continue                        # 父连接关系已吸收
                     dom_uri = folded_uri                # domain 上提到父类
                 else:
@@ -1520,7 +1578,7 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
         key = ent.get("key")
         detail = ent.get("detail", False)
         rels_of_table = [r for r in relations if (r.get("fk") or "").startswith(table + ".")]
-        rel_cols = {r["fk"].split(".")[1] for r in rels_of_table}
+        rel_cols = {fk_parts(r["fk"])[1] for r in rels_of_table}
         # 纯连接表(多对多中间表): 只有主键 + 外键, 没有自身列。
         # 通用判据, 域无关 —— 这类表若建成 N-ary 实体, 检索要多跳一层(父→连接实体→目标)
         # 且引入无信息节点, 反而降低精度; 直接把非主键外键提升为 父→目标 直连边。
@@ -1528,7 +1586,7 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
         own_attrs = [a["name"] for a in ent.get("attributes", [])
                      if a["name"] != key and a["name"] not in rel_cols]
         if detail and not own_attrs:
-            parent_rel = next((r for r in rels_of_table if r["fk"].split(".")[1] == key), None)
+            parent_rel = next((r for r in rels_of_table if fk_parts(r["fk"])[1] == key), None)
             if parent_rel:
                 pcls = eid_to_cls.get(parent_rel["to"], parent_rel["to"])
                 for row in data[table]:
@@ -1537,7 +1595,7 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
                         continue
                     pinst = f"{ns}{pcls}_{pv}"
                     for r in rels_of_table:
-                        fcol = r["fk"].split(".")[1]
+                        fcol = fk_parts(r["fk"])[1]
                         if fcol == key or not row.get(fcol):
                             continue
                         rel = r.get("iri") or (ns + r["id"])
@@ -1563,10 +1621,35 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
                     t = _guess_type(row[aname])
                     L.append(f"<{inst_uri}> <{ns}{p}> {_q(row[aname])}^^<{_NS_URI}{t.split(':')[1]}> .")
             for r in rels_of_table:
-                fcol = r["fk"].split(".")[1]
+                fcol = fk_parts(r["fk"])[1]
                 if fcol in row and row.get(fcol):
                     rel = r.get("iri") or (ns + r["id"])
                     L.append(f"<{inst_uri}> <{rel}> <{ns}{eid_to_cls.get(r['to'], r['to'])}_{row[fcol]}> .")
+
+
+def _normalize_entities(schema: dict) -> dict:
+    """把 schema 的实体来源统一成 {实体ID: 实体字典}。
+
+    兼容 (a) schema["_entities"] dict；(b) schema["entities"] list（元素带 id）；
+    (c) 容错：非 dict 值按其自身/str(值) 作 eid，类名回退为 eid 的 capfirst。
+    """
+    raw = schema.get("_entities")
+    if raw is None:
+        raw = schema.get("entities")
+    if isinstance(raw, dict):
+        items = list(raw.items())
+    elif isinstance(raw, list):
+        items = [(e.get("id") if isinstance(e, dict) else None, e) for e in raw]
+    else:
+        return {}
+    out = {}
+    for eid, ent in items:
+        if isinstance(ent, dict):
+            out[eid if eid is not None else ent.get("id")] = ent
+        else:
+            key = eid if eid is not None else str(ent)
+            out[key] = {"id": key, "table": key}
+    return out
 
 
 def to_nt(data: dict, schema: dict, outpath: str = None) -> list:
@@ -1579,7 +1662,7 @@ def to_nt(data: dict, schema: dict, outpath: str = None) -> list:
     outpath 非空则写文件，返回行列表。
     """
     L = []
-    entities = schema.get("_entities", schema)
+    entities = _normalize_entities(schema)
     # 命名空间 + IRI 自动补全（幂等；schema 已填 _ns 则复用）
     schema = fill_iris(schema)
     m = schema.get("_ns") or resolve_namespace(schema)

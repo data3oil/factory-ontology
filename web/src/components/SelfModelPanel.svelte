@@ -246,6 +246,15 @@
         for (const e of schema.entities) {
           if (defMap[e.id]) e.definition = defMap[e.id];
         }
+        // 同理：把建议的上属类（层次边）即时落到实体上——界面「实体挂载（→ 上属类）」里看到的
+        // 就是要写库的值。漏了这一步会出现「表格里明明写着上属类、点确认却被自己的未挂父类校验挡住」
+        const parMap = {};
+        for (const n of hierarchy) {
+          if (n && n.kind === 'entity' && (n.parent || '').trim()) parMap[n.name] = n.parent.trim();
+        }
+        for (const e of schema.entities) {
+          if (!(e.parent || '').trim() && parMap[e.id]) e.parent = parMap[e.id];
+        }
         openAttrs = {};
         step = 2;
       } else {
@@ -272,7 +281,8 @@
     }
     const noParent = schema.entities.filter(e => !((e.parent || '').trim())).map(e => e.id);
     if (noParent.length) {
-      confirmErr = '以下实体未挂父类（类层次不完整），请先确认/修改：' + noParent.join('、');
+      confirmErr = '以下实体未挂父类（类层次不完整）：' + noParent.join('、')
+        + '。请在下面的「实体挂载（→ 上属类）」里逐条填上属类（建议值已列在那里，可直接照填）。';
       hierOpen = true;
       return;
     }

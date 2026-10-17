@@ -11,6 +11,7 @@
   let { kb = '' } = $props();      // 当前企业唯一 kb（只读 prop，跟随登录企业）
 
   import { getToken } from '../lib/api.js';
+  import EvalDetail from './EvalDetail.svelte';
 
   let result = $state(null);       // {kb, questions_n, hits, score}（benchmark 模式）
   let elapsed = $state(null);      // 耗时秒（benchmark）
@@ -32,7 +33,7 @@
   // 进度条配色：<60 橙、<80 蓝、其余绿（浅色护眼）
   const barColor = $derived(pct < 60 ? '#f59e0b' : pct < 80 ? '#0D9488' : '#10b981');
   const verdict = $derived(
-    pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏低，建议补充词典/示例'
+pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏低，建议补充词典/数据'
   );
 
   async function run() {
@@ -109,7 +110,7 @@
       <button class="btn-run" onclick={run} disabled={loading}>
         {loading ? '评测进行中…' : '运行评测'}
       </button>
-      <span class="eval-hint">对所选知识库的示例题目跑评测基线，统计问答命中率</span>
+<span class="eval-hint">对所选知识库的题目跑评测基线，统计问答命中率</span>
     </div>
 
     {#if error}
@@ -231,6 +232,8 @@
       </div>
     {/if}
   {/if}
+  <!-- 逐题明细可视化（原来只有几个数字，看不出哪几道题答错） -->
+  <EvalDetail result={result} answers={isoResult && isoResult.answers ? isoResult.answers : null} elapsed={elapsed} />
 </div>
 
 <style>

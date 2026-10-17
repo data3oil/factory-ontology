@@ -1,8 +1,8 @@
 <script>
   // WelcomeModel — 建模区域科幻风格 SVG 企业欢迎页（替代空白空态）
   // 视觉：深色渐变背景 + 星海/粒子 + 光效 + HUD 科幻元素；中文科幻排版。
-  // 跟随当前激活 kb：切换行业（化工→阀门）→ 企业欢迎词/建模示例跟随。
-  // 建模示例可点击 → 复用 doDefaultExample 直接建模。
+// 跟随当前激活 kb：切换行业（化工→阀门）→ 企业欢迎词/快速建模跟随。
+// 快速建模可点击 → 复用 doDefaultExample 直接建模。
   import { onMount } from 'svelte';
 
   let { kb = '', kbList = [], industries = [], industry = '', onModel = () => {} } = $props();
@@ -19,11 +19,11 @@
   // 行业 → 欢迎语/说明
   const WELCOME = $derived(cur.name.endsWith('企业') ? cur.name : cur.name + '企业');
 
-  // 建模示例（该行业可建模方向；点击即建模）
+// 快速建模（该行业可建模方向；点击即建模）
   const EXAMPLES = $derived([
     { label: cur.name + '本体', sub: '一键构建领域知识图谱', dir: cur.dir },
     { label: '产品 × 设备 × 客户', sub: '多表关联建模', dir: cur.dir },
-    { label: '全量示例数据', sub: '读取示例数据直接建模', dir: cur.dir },
+{ label: '全量数据', sub: '读取数据直接建模', dir: cur.dir },
   ]);
 
   // ── 确定性星海（固定种子，避免刷新闪烁）──
@@ -127,9 +127,9 @@
       构建您的领域本体，驱动智能问答与数据分析 —— 数据本地处理，安全不出厂
     </text>
 
-    <!-- 建模示例 -->
+<!-- 快速建模 -->
     <text x="640" y="476" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="15" fill="#c7d2fe" letter-spacing="3">
-      ◆ 快速建模示例 · 点击即刻生成企业知识本体 ◆
+◆ 快速建模 · 点击即刻生成企业知识本体 ◆
     </text>
     {#each EXAMPLES as ex, i}
       {@const cx = 640 + (i - 1) * 250}

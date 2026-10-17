@@ -5,7 +5,9 @@ import { readFileSync, existsSync } from 'fs';
 import { extname, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger } from './ontology.js';
-import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, seedUsersIfEmpty, restoreSessions } from './auth.js';
+import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions } from './auth.js';
+// 角色判定与权限矩阵的单一真相源（不在这里另写一套）
+import { isAdmin, canManageEnterprise, canResetEnterprise } from './roles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -80,6 +82,16 @@ const server = createServer(async (req, res) => {
     }
     return user.user;
   }
+  // 管理员守卫：非管理员一律 403（角色口径见 roles.js）
+  function requireAdmin() {
+    const user = requireAuth();
+    if (!user) return null;
+    if (!isAdmin(user)) {
+      writeErr(403, { ok: false, error: '需要管理员权限', forbidden: true });
+      return null;
+    }
+    return user;
+  }
   const writeErr = (code, obj) => {
     res.writeHead(code, { 'Content-Type': 'application/json;charset=utf-8' });
     res.end(JSON.stringify(obj));
@@ -125,6 +137,58 @@ const server = createServer(async (req, res) => {
     authLogout(getToken());
     res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // ── API: 成员与角色（仅管理员）──
+  if (req.method === 'GET' && url === '/api/auth/users') {
+    const meAdm = requireAdmin(); if (!meAdm) return;
+    const r = listUsers();
+    res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
+    res.end(JSON.stringify({
+      ok: true, users: r.users,
+      me: { username: meAdm.username, role: meAdm.role, roleLabel: meAdm.roleLabel },
+    }));
+    return;
+  }
+  if (req.method === 'POST' && url === '/api/auth/users/role') {
+    const meAdm = requireAdmin(); if (!meAdm) return;
+    try {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      const target = String(body.username || '').trim();
+      if (!target) { writeErr(400, { ok: false, error: '用户名必填' }); return; }
+      // 不许改自己：否则唯一管理员把自己降级就把企业锁死了
+      if (target === meAdm.username) { writeErr(400, { ok: false, error: '不能修改自己的角色' }); return; }
+      const upd = updateUser(target, { role: body.role });
+      if (!upd.ok) { writeErr(400, upd); return; }
+      res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, user: upd.user }));
+    } catch (err) { writeErr(500, { ok: false, error: String(err.message || err) }); }
+    return;
+  }
+  // 加成员（仅管理员）：新账号继承本企业信息、角色固定为普通成员、onboarded=true 登录即进应用
+  if (req.method === 'POST' && url === '/api/auth/users/create') {
+    const meAdm = requireAdmin(); if (!meAdm) return;
+    try {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      const username = String(body.username || '').trim();
+      const password = String(body.password || '');
+      if (!username || !password) { writeErr(400, { ok: false, error: '用户名和密码都要填' }); return; }
+      if (username === meAdm.username) { writeErr(400, { ok: false, error: '不能用当前账号用户名' }); return; }
+      const r = createUser({
+        username,
+        password,
+        enterpriseName: meAdm.enterpriseName || '',
+        logo: meAdm.logo || '',
+        industry: meAdm.industry || '',
+        kb: meAdm.kb || '',
+        onboarded: true,
+        role: 'member',
+      });
+      if (!r.ok) { writeErr(400, r); return; }
+      res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, user: r.user }));
+    } catch (err) { writeErr(500, { ok: false, error: String(err.message || err) }); }
     return;
   }
 
@@ -568,7 +632,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // ── API: 行业切换（显式触发自动建模，供 onboarding/欢迎页/一键建示例用）──
+// ── API: 行业切换（显式触发自动建模，供 onboarding/欢迎页/一键建模用）──
   // body: {industry} 行业名（kbs.json 全量解析）→ 自动用该行业数据建模并联动 kb。
   if (req.method === 'POST' && url === '/api/ontology/industry-switch') {
     try {
@@ -597,6 +661,8 @@ const server = createServer(async (req, res) => {
     try {
       const user = req.user;
       if (!user || !user.kb) { writeErr(400, { ok: false, error: '无企业数据可重置' }); return; }
+      // 重置企业 = 管理员专属（普通成员看不到这个入口，接口层也拦住）
+      if (!canResetEnterprise(user)) { writeErr(403, { ok: false, error: '需要管理员权限', forbidden: true }); return; }
       const r = resetKb(user.kb);
       if (!r.ok) { writeErr(500, r); return; }
       // 重置企业字段为未配置 + onboarded=false + kb 清空 → 前端进入引导 onboarding，
@@ -613,6 +679,7 @@ const server = createServer(async (req, res) => {
     try {
       const body = JSON.parse((await readBody(req)) || '{}');
       const user = req.user;
+      if (!canManageEnterprise(user)) { writeErr(403, { ok: false, error: '需要管理员权限', forbidden: true }); return; }
       const upd = updateUser(user.username, {
         enterpriseName: body.name, logo: body.logo, industry: body.industry,
         kb: body.kb || user.kb, onboarded: true,
@@ -770,7 +837,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // ── API: 示例数据列表/读取（免手选文件直接体验）──
+// ── API: 数据列表/读取（免手选文件直接体验）──
   if (req.method === 'GET' && url === '/api/ontology/examples') {
     res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
     res.end(JSON.stringify({ ok: true, examples: listExamples() }));

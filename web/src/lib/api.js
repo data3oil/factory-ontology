@@ -377,6 +377,27 @@ export function selfOnboardFiles(files, { kb = '', name = '', industry = '' } = 
   return fetchRetry('/api/ontology/self-onboard', { method: 'POST', body: fd });
 }
 
+// ── 成员与角色（仅管理员；接口层也拦非管理员）──
+export async function fetchUsers() {
+  return fetchRetry('/api/auth/users', { headers: authHeaders(), cache: 'no-store' });
+}
+
+export async function createMember(username, password) {
+  return fetchRetry('/api/auth/users/create', {
+    method: 'POST',
+    headers: authHeaders(JSON_HEADERS),
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function setMemberRole(username, role) {
+  return fetchRetry('/api/auth/users/role', {
+    method: 'POST',
+    headers: authHeaders(JSON_HEADERS),
+    body: JSON.stringify({ username, role }),
+  });
+}
+
 // ── 企业设置（企业名/logo/行业，后端持久化）──
 export async function fetchEnterprise() {
   return fetchRetry('/api/ontology/enterprise', { cache: 'no-store' });

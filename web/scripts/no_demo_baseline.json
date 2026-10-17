@@ -1,0 +1,10 @@
+{
+ "count": 4,
+ "sites": [
+  "server/auth.js:222",
+  "server/auth.js:224",
+  "server/role_migration.js:142",
+  "server/role_migration.js:144"
+ ],
+ "note": "文案清洁门基线：只降不涨。剩下这几处都是账号标识符本身（demo / demo123 / ent_demo 与自检夹具里的同名账号），不是“演示/示例”字样——改账号名会让既有账号数据（users.json）失效，也不该为过门去改自检。除此之外不得新增演示/示例字样。"
+}

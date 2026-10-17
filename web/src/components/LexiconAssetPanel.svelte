@@ -143,7 +143,7 @@
       {#if fileName}<div class="la-file-name">已选：{fileName}</div>{/if}
       {#if preview}
         <table class="la-table">
-          <thead><tr><th>词表键</th><th>将新增</th><th>示例</th></tr></thead>
+<thead><tr><th>词表键</th><th>将新增</th><th>样例</th></tr></thead>
           <tbody>
             {#each diffRows as r}
               <tr>
