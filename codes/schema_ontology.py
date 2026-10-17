@@ -1181,6 +1181,19 @@ def build_graph(data: dict, schema: dict) -> dict:
         for nd in node_ids.get(r["to"], []):
             info = graph["nodes"][nd]
             fk_val_to_nodes.setdefault(f"{info['id']}", []).append(nd)
+        if eq_join:
+            # 等值连接：左表.左列 = 右表.右列，按列值相等把两侧实例连起来
+            lcol = r["fk"].split("=", 1)[0].split(".", 1)[1]
+            for i, row in enumerate(data[ftable]):
+                lv = row.get(lcol)
+                if not lv:
+                    continue
+                src = f"{r['from']}:{row.get(from_e['key'])}@{i}" if from_e.get("detail") else f"{r['from']}:{row.get(from_e['key'])}"
+                if src not in graph["nodes"]:
+                    continue
+                for dst in rcol_val_to_nodes.get(str(lv), []):
+                    graph["edges"].append({"from": src, "to": dst, "rel": r["id"], "label": r.get("label", r["id"])})
+            continue
         for i, row in enumerate(data[ftable]):
             val = row.get(fcol)
             if not val:
@@ -1614,6 +1627,31 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
                     L.append(f"<{inst_uri}> <{rel}> <{ns}{eid_to_cls.get(r['to'], r['to'])}_{row[fcol]}> .")
 
 
+def _normalize_entities(schema: dict) -> dict:
+    """把 schema 的实体来源统一成 {实体ID: 实体字典}。
+
+    兼容 (a) schema["_entities"] dict；(b) schema["entities"] list（元素带 id）；
+    (c) 容错：非 dict 值按其自身/str(值) 作 eid，类名回退为 eid 的 capfirst。
+    """
+    raw = schema.get("_entities")
+    if raw is None:
+        raw = schema.get("entities")
+    if isinstance(raw, dict):
+        items = list(raw.items())
+    elif isinstance(raw, list):
+        items = [(e.get("id") if isinstance(e, dict) else None, e) for e in raw]
+    else:
+        return {}
+    out = {}
+    for eid, ent in items:
+        if isinstance(ent, dict):
+            out[eid if eid is not None else ent.get("id")] = ent
+        else:
+            key = eid if eid is not None else str(ent)
+            out[key] = {"id": key, "table": key}
+    return out
+
+
 def to_nt(data: dict, schema: dict, outpath: str = None) -> list:
     """把 schema 驱动建模结果输出成标准 N-Triples（统一替代 csv_to_owl/multi_table）。
 
@@ -1624,7 +1662,7 @@ def to_nt(data: dict, schema: dict, outpath: str = None) -> list:
     outpath 非空则写文件，返回行列表。
     """
     L = []
-    entities = schema.get("_entities", schema)
+    entities = _normalize_entities(schema)
     # 命名空间 + IRI 自动补全（幂等；schema 已填 _ns 则复用）
     schema = fill_iris(schema)
     m = schema.get("_ns") or resolve_namespace(schema)
