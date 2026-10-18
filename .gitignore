@@ -127,4 +127,4 @@ scripts/_spec_wave*.md
 docs/research/竞品/
 
 # 前端文案扫描工作记录
-web/scripts/wording_sweep_*.json
+web/scripts/*wording_sweep*.json

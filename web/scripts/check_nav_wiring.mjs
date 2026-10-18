@@ -1,4 +1,4 @@
-// 导航接线检查器。在 D:/factory-ontology/web 下运行: node scripts/check_nav_wiring.mjs
+// 导航接线检查器。在 web 目录下运行: node scripts/check_nav_wiring.mjs
 import { readdirSync, statSync, readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, relative, sep, dirname } from 'node:path';
@@ -281,7 +281,7 @@ if (anyFail) {
 }
 
 // ---------- 自检输出（真实运行记录） ----------
-// 运行: cd D:/factory-ontology/web && node scripts/check_nav_wiring.mjs
+// 运行: cd web && node scripts/check_nav_wiring.mjs
 // 期望: C1/C2/C5 PASS, C3/C4/C6 FAIL, 退出码 1
 //
 // 实际输出（本机执行）:
