@@ -1,16 +1,16 @@
 # factory-ontology
 
 > ⭐ **觉得有用就给我们一个 Star** —— 开源维护靠社区支持，你的 Star 让这个项目被更多人看见。
-> [![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology?style=social)](https://github.com/zhengjinjun1975/factory-ontology)
+> [![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology?style=social)](https://github.com/data3oil/factory-ontology)
 
 **工厂本体驱动的数据问答框架。** 把结构化台账变成可自然语言提问的语义知识图谱，CSV 进，答案出，每个答案都带证据。
 
 [![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
-[![CI](https://github.com/zhengjinjun1975/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/zhengjinjun1975/factory-ontology/actions)
-[![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology)](https://github.com/zhengjinjun1975/factory-ontology)
-[![GitHub forks](https://img.shields.io/github/forks/zhengjinjun1975/factory-ontology)](https://github.com/zhengjinjun1975/factory-ontology)
+[![CI](https://github.com/data3oil/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/data3oil/factory-ontology/actions)
+[![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
+[![GitHub forks](https://img.shields.io/github/forks/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
 
 **它能帮你解决**：
 - 🏭 **数据看不懂** → 业务人员用自然语言问"报警的空压机有几台"，不用 SQL
@@ -579,14 +579,14 @@ start.bat      # Windows
 
 如果你觉得 factory-ontology 有用，请花 3 秒给我们一个 **Star**：
 
-[![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology?style=social)](https://github.com/zhengjinjun1975/factory-ontology) ⬅️ 点这里
+[![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology?style=social)](https://github.com/data3oil/factory-ontology) ⬅️ 点这里
 
 **Star 的意义**：
 - 让更多需要"工厂数据问答"的人找到这个项目
 - 激励我们持续迭代（新行业词典、问答能力、GraphRAG 增强）
 - 开源维护者最需要的正向反馈
 
-**反馈与贡献**：有问题提 [Issue](https://github.com/zhengjinjun1975/factory-ontology/issues)，有想法提交 PR，欢迎一起把工厂数据问答做得更好。
+**反馈与贡献**：有问题提 [Issue](https://github.com/data3oil/factory-ontology/issues)，有想法提交 PR，欢迎一起把工厂数据问答做得更好。
 
 ## 谁在维护
 
