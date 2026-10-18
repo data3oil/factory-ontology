@@ -97,3 +97,34 @@ docs/20261012_*.md
 
 # AAS 编排层台账词典示例（AAS 模块自定不推远端，示例随之一并留本地）
 codes/config/lexicon_aas_example.json
+
+# ── 2026-10-18 组织门面清理（三油科技 GitHub 组织上线前）────────────────────
+# 判据：另一条产品线（舆情 opa-monitor）的内部设计、商业化内部账与差距评估、
+# 漏洞清单、竞对调研、内部计划/过程/交接管理文档，一律不进公开树。
+# 本地文件保留，仅撤出 git 索引。
+
+# 舆情系统（另一产品线）相关内部设计
+docs/舆情*/
+docs/*舆情*
+docs/对齐分析_*
+docs/共享建模内核_*
+
+# 商业化内部材料
+docs/架构梳理与商业化差距评估.md
+docs/深度研究_*
+docs/实验/商业化鉴权4轮总账-*.md
+
+# 安全审查与内部管理
+docs/深度梳理与漏洞审查.md
+docs/实验/_4轮工作计划-*.md
+docs/实验/开源净化与推远端-*.md
+docs/实验/待修-*.md
+docs/发布/发布准备-*.md
+docs/2026-10-*_收工交接.md
+scripts/_spec_wave*.md
+
+# 竞对情报
+docs/research/竞品/
+
+# 前端文案扫描工作记录
+web/scripts/wording_sweep_*.json
