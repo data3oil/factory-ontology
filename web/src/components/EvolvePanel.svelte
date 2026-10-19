@@ -11,6 +11,7 @@
   let err = $state('');
   let msg = $state('');
   let busy = $state('');
+  let bulkBusy = $state(false);   // 「全部确认」批量进行中
   let openName = $state('');
   let showHistory = $state(false);
   let classList = $state([]);
@@ -70,6 +71,28 @@
   }
   function toggle(name) { openName = openName === name ? '' : name; }
 
+  // 全部确认：逐个走同一个 confirm 接口（后端一次一个候选），前端串行跑并给出汇总。
+  // 不做乐观并发：并发写同一份词典会让版本号互相覆盖。
+  async function confirmAll() {
+    if (busy || bulkBusy || pending.length === 0) return;
+    const items = pending.slice();
+    if (typeof window !== 'undefined' && !window.confirm(`确认把 ${items.length} 个候选全部并入知识结构？版本会逐个 +1，可在「历史与回退」里回退。`)) return;
+    bulkBusy = true; err = ''; msg = '';
+    let okN = 0, failN = 0;
+    for (const c of items) {
+      try {
+        const r = await evolveConfirm({ name: c.name, cls: clsPick[c.name] || 'Evolved' });
+        if (r && r.ok) okN++; else failN++;
+      } catch (e) {
+        // fail-open: 单个候选失败只计数，不中断整批（整批停会让用户不知道做到哪）
+        failN++;
+      }
+    }
+    bulkBusy = false;
+    msg = `已确认 ${okN} 个${failN ? `，失败 ${failN} 个` : ''}`;
+    await refresh();
+  }
+
   async function loadClasses() {
     try {
       const _t = getToken();
@@ -93,6 +116,9 @@
     <span class="kb">{kb}</span>
     <button class="btn" disabled={!!busy} onclick={refresh}>刷新</button>
     <button class="btn primary" disabled={!!busy} onclick={trigger}>重新提取候选</button>
+    <button class="btn ok" disabled={!!busy || bulkBusy || pending.length === 0} onclick={confirmAll}>
+      {bulkBusy ? '批量确认中…' : `全部确认${pending.length ? `（${pending.length}）` : ''}`}
+    </button>
   </div>
 
   {#if err}<div class="err">{err}</div>{/if}

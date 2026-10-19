@@ -8,39 +8,60 @@
   let {
     area = 'ask',
     entry = 'query',
+    tab = '',
     settingsOpen = false,
     onPick = () => {},
     entries = null,   // 可见的设置条目 key 列表（后端按角色给）；null/空 = 全部可见
   } = $props();
 
   const AREAS = [
-    { area: 'ask', icon: '💬', label: '知识问答' },
-    { area: 'dashboard', icon: '📈', label: '数据看板' },
-    { area: 'delivery', icon: '📦', label: '交付与迁移' },
+    { area: 'ask', icon: '💬', label: '问答' },
+    { area: 'kb', icon: '📚', label: '知识库' },
+    { area: 'dashboard', icon: '📈', label: '看板' },
   ];
 
+  // 管理 + 设置两组（2026-10-19 商业化改版）：业务三入口在上，这里只放管理与运维，
+  // 默认折叠；可见性由后端 entries（roles.js）决定，普通成员只会看到「模型与检索」。
+  // 「系统」单独成组置底（2026-10-19 老郑要求）：与日常管理/设置分开，避免误点。
   const GROUPS = [
-    { title: '建本体与演进', items: [
-      { key: 'model', label: '数据建模' },
-      { key: 'selfmodel', label: '自助建模' },
-      { key: 'evolve', label: '本体演进（人确认）' },
+    { title: '管理', items: [
+      { key: 'ontology.model', entry: 'ontology', tab: 'model', label: '本体建模' },
+      { key: 'ontology.selfmodel', entry: 'ontology', tab: 'selfmodel', label: '自动匹配建模' },
+      { key: 'ontology.evolve', entry: 'ontology', tab: 'evolve', label: '本体演进（人确认）' },
+      { key: 'ontology.lexasset', entry: 'ontology', tab: 'lexasset', label: '词典' },
+      { key: 'eval', label: '评测' },
     ] },
-    { title: '知识库', items: [
-      { key: 'knowledge', label: '知识库管理' },
-    ] },
-    { title: '模型与质量', items: [
-      { key: 'eval', label: '评测基线' },
+    { title: '设置', items: [
+      { key: 'models', label: '模型与检索' },
+      { key: 'members', label: '企业与成员' },
     ] },
     { title: '系统', items: [
-      { key: 'orch', label: '本体编排' },
-      { key: 'enterprise', label: '企业与账号' },
+      { key: 'system', icon: '🖥️', label: '系统' },
     ] },
   ];
 
-  // 角色可见性：entries 是后端按角色给的可见条目；不给或给空 = 全部可见（向后兼容）
-  const ALLOWED = $derived(Array.isArray(entries) && entries.length ? new Set(entries) : null);
+  // 角色可见性：entries 是后端按角色给的条目键。
+  // 新旧版本键位不一致时（后端还返回 model/selfmodel/orch/enterprise，前端已改成 ontology/models…），
+  // 用别名表把旧键映射到新条目，避免整块菜单被滤空；一个都对不上就当版本错配 → 全部可见。
+  // 越权仍由服务端端点鉴权兜底，菜单只负责「看得见」。
+  const ALIASES = {
+    ontology: ['model', 'selfmodel', 'evolve', 'lexasset', 'knowledge'],
+    system: ['orch', 'assets', 'enterprise', 'delivery'],
+    members: ['enterprise'],
+  };
+  const ALLOWED = $derived.by(() => {
+    if (!Array.isArray(entries) || !entries.length) return null;
+    const allowed = new Set();
+    for (const g of GROUPS) {
+      for (const it of g.items) {
+        const key = it.entry || it.key;
+        if (entries.includes(key) || (ALIASES[key] || []).some((a) => entries.includes(a))) allowed.add(key);
+      }
+    }
+    return allowed.size ? allowed : null;
+  });
   const VISIBLE_GROUPS = $derived(
-    GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => !ALLOWED || ALLOWED.has(it.key)) })).filter(
+    GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => !ALLOWED || ALLOWED.has(it.entry || it.key)) })).filter(
       (g) => g.items.length > 0,
     ),
   );
@@ -82,12 +103,15 @@
     onclick={() => (open = !open)}
   >
     <span class="icon">⚙️</span>
-    <span class="label">设置</span>
+    <span class="label">管理与设置</span>
   </button>
 
   {#if open}
     <div class="groups">
-      {#each VISIBLE_GROUPS as g (g.title)}
+      {#each VISIBLE_GROUPS as g, gi (g.title)}
+        {#if gi > 0}
+          <div class="divider group-divider"></div>
+        {/if}
         <div class="group">
           <div class="group-title">{g.title}</div>
           <ul class="list">
@@ -96,9 +120,10 @@
                 <button
                   type="button"
                   class="row"
-                  class:active={entry === it.key}
-                  onclick={() => pickEntry(it.key)}
+                  class:active={it.entry ? (entry === it.entry && (!it.tab || tab === it.tab)) : entry === it.key}
+                  onclick={() => onPick({ kind: 'entry', entry: it.entry || it.key, tab: it.tab })}
                 >
+                  {#if it.icon}<span class="icon">{it.icon}</span>{/if}
                   <span class="label">{it.label}</span>
                 </button>
               </li>
@@ -158,6 +183,20 @@
     color: var(--brand);
   }
 
+  .row.child {
+    height: 30px;
+    padding-left: 30px;
+    font-size: 12.5px;
+    color: var(--txt-muted);
+  }
+
+  .row.child.active {
+    color: var(--brand);
+    background: transparent;
+    border-left-color: transparent;
+    font-weight: 600;
+  }
+
   .icon {
     width: 16px;
     text-align: center;
@@ -185,6 +224,10 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 8px;
+  }
+
+  .group-divider {
+    margin: 6px 12px;
   }
 
   .group {

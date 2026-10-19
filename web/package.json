@@ -3,10 +3,17 @@
   "version": "0.5.0",
   "private": true,
   "description": "工厂本体问答 Web 应用 — CSV上传→本体建模→自然语言问答",
+  "license": "Apache-2.0",
+  "author": "北京三油科技有限责任公司 <data3oil.com>",
+  "homepage": "https://github.com/data3oil/factory-ontology",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/data3oil/factory-ontology.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy_static.mjs",
     "start": "node server/index.js"
   },
   "devDependencies": {

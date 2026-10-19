@@ -74,9 +74,14 @@ export function saveEnterprise(cfg) {
   }
 }
 
+// Windows 无 PYTHONUTF8 时 Python 子进程 stdout 走 GBK，Node 按 UTF-8 解码必乱码
+// （2026-10-19 实测复现：问"炮点数最多的测线"返回全 � 乱码）；
+// 统一注入 UTF-8 模式，保证 CLI 降级路径中文不乱。
+const CHILD_UTF8 = { PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
+
 function run(cmd, args, cwd) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { cwd, timeout: 180000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(cmd, args, { cwd, timeout: 180000, maxBuffer: 10 * 1024 * 1024, env: { ...process.env, ...CHILD_UTF8 } }, (err, stdout, stderr) => {
       if (err) {
         resolve({ ok: false, error: (stderr || err.message || '').trim().split('\n').pop() });
       } else {
@@ -89,7 +94,7 @@ function run(cmd, args, cwd) {
 // 带额外环境变量的运行（DB 密码经环境变量传 Python，不入库/不落盘）
 function runWithEnv(cmd, args, cwd, env) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { cwd, env: { ...process.env, ...env }, timeout: 180000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(cmd, args, { cwd, env: { ...process.env, ...CHILD_UTF8, ...env }, timeout: 180000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
         resolve({ ok: false, error: (stderr || err.message || '').trim().split('\n').pop() });
       } else {
@@ -258,9 +263,19 @@ export function setCurrentKb(kb) {
   saveWebState(web);
 }
 
-/** C1/C4: 暴露后端连接配置给 index.js 的代理（不打印 key 本身）。 */
+/** C1/C4: 暴露后端连接配置给 index.js 的代理（不打印 key 本身）。
+ * adminKey：admin.html 运维后台的 audit/upload 代理用（后端这两类端点要 admin key）。
+ * 来源优先级同 API_KEY：环境变量 FOOD_ADMIN_KEY > apiserver.config.json 的 adminApiKey。 */
 export function backendConfig() {
-  return { url: API_URL, key: API_KEY, hasKey: !!API_KEY };
+  let adminKey = (process.env.FOOD_ADMIN_KEY || '').trim();
+  if (!adminKey) {
+    try {
+      const p = join(__dirname, 'apiserver.config.json');
+      if (existsSync(p)) adminKey = (JSON.parse(readFileSync(p, 'utf-8')).adminApiKey || '').trim();
+    } catch (e) { /* 无配置文件则空 */
+    }
+  }
+  return { url: API_URL, key: API_KEY, adminKey, hasKey: !!API_KEY };
 }
 
 /**

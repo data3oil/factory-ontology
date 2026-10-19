@@ -14,7 +14,6 @@
   import EvolvePanel from './components/EvolvePanel.svelte';
   import SideNav from './components/SideNav.svelte';
   import AppTopBar from './components/AppTopBar.svelte';
-  import OrchStatusCard from './components/OrchStatusCard.svelte';
   import MemberAdmin from './components/MemberAdmin.svelte';
   import AnswerProvenance from './components/AnswerProvenance.svelte';
   import BuildGuide from './components/BuildGuide.svelte';
@@ -204,19 +203,39 @@
   }
 
   // ─── 状态 ───
-  let activeTab = $state('query');   // 默认落地页=知识问答（原为 model）；model | selfmodel | query | dashboard | eval | knowledge | assets
-                                    // | lexasset | evolve | orch
-  // ─── 导航分区（3 主区 + 设置区）；activeTab 仍是内部真相源，十个分支一律不动 ───
-  const NAV_MAP = { ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
-  // 交付与迁移是一级区，内部两个页签（版本与交付 / 词典），两条都可达
-  const DELIVERY_TABS = { delivery: 'assets', lexicon: 'lexasset' };
-  const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
-  // 角色口径：设置区显示哪些条目，以后端返回的 settingsEntries 为准（单一真相源在 server/roles.js）
-  const visibleEntries = $derived(
-    user && Array.isArray(user.settingsEntries) && user.settingsEntries.length
-      ? SETTINGS_ENTRIES.filter((k) => user.settingsEntries.includes(k))
-      : SETTINGS_ENTRIES,
-  );
+  let activeTab = $state('query');   // 内部路由真相源：query | knowledge | dashboard
+                                    // | model | selfmodel | evolve | lexasset | eval | models | assets
+  // ─── 导航分区（业务三入口 + 建设/设置两组，2026-10-19 商业化改版）───
+  const NAV_MAP = { ask: 'query', kb: 'knowledge', dashboard: 'dashboard' };
+  const SETTINGS_ENTRIES = ['ontology', 'eval', 'models', 'members', 'system'];
+  // 每个设置条目的落地 tab；members 对应企业设置弹窗，不占 activeTab
+  const ENTRY_HOME = { ontology: 'model', eval: 'eval', models: 'models', system: 'assets' };
+  // 反查：当前 tab 属于哪个设置条目（右上角「设置」用，保证与左侧菜单同一位置）
+  const ENTRY_BY_TAB = { model: 'ontology', selfmodel: 'ontology', evolve: 'ontology', lexasset: 'ontology', eval: 'eval', models: 'models', assets: 'system' };
+  // 本体是一个入口，内部四个 tab
+  const ONTOLOGY_TABS = [
+    { tab: 'model', label: '数据建模' },
+    { tab: 'selfmodel', label: '自动匹配建模' },
+    { tab: 'evolve', label: '演进（人确认）' },
+    { tab: 'lexasset', label: '词典' },
+  ];
+  // 角色口径：可见条目以后端返回的 settingsEntries 为准（单一真相源在 server/roles.js）。
+  // 后端还没升级时返回的是旧键（model/selfmodel/orch/enterprise…），这里用别名表换算成新条目；
+  // 换算后仍为空（真·版本错配）就退回全部可见——菜单只负责看得见，越权由服务端端点鉴权兜底。
+  const ENTRY_ALIASES = {
+    ontology: ['model', 'selfmodel', 'evolve', 'lexasset', 'knowledge'],
+    system: ['assets', 'orch', 'enterprise', 'delivery'],
+    members: ['enterprise'],
+    models: ['model'],
+  };
+  const visibleEntries = $derived.by(() => {
+    const raw = user && Array.isArray(user.settingsEntries) ? user.settingsEntries : null;
+    if (!raw || !raw.length) return SETTINGS_ENTRIES;
+    const out = SETTINGS_ENTRIES.filter(
+      (k) => raw.includes(k) || (ENTRY_ALIASES[k] || []).some((a) => raw.includes(a)),
+    );
+    return out.length ? out : SETTINGS_ENTRIES;
+  });
   const isAdminUser = $derived(!!(user && user.can && user.can.enterprise));
   // 建本体三步向导：这三个设置页各自对应一步（数据建模→自助建模→本体演进）
   const buildStep = $derived(activeTab === 'model' ? 1 : activeTab === 'selfmodel' ? 2 : 3);
@@ -230,20 +249,16 @@
     landingPref = v === 'dashboard' ? 'dashboard' : 'ask';
     try { localStorage.setItem(LANDING_KEY, landingPref); } catch (e) { /* fail-open: 存不了就只作用于本次会话 */ }
   }
-  const NAV_LABELS = { ask: '知识问答', dashboard: '数据看板', delivery: '交付与迁移' };
-  const ENTRY_LABELS = { model: '数据建模', selfmodel: '自助建模', evolve: '本体演进（人确认）', knowledge: '知识库管理', eval: '评测基线', orch: '本体编排', enterprise: '企业与账号' };
-  let navArea = $state('ask');         // ask | dashboard | delivery
-  let settingsOpen = $state(false);    // 是否处于设置区
-  let settingsEntry = $state('model'); // 设置条目：见 SETTINGS_ENTRIES
+  const NAV_LABELS = { ask: '问答', kb: '知识库', dashboard: '看板' };
+  const ENTRY_LABELS = { ontology: '本体', eval: '评测基线', models: '模型与检索', members: '企业与成员', system: '系统' };
+  let navArea = $state('ask');         // ask | kb | dashboard
+  let settingsOpen = $state(false);    // 是否处于建设/设置区
+  let settingsEntry = $state('ontology'); // 设置条目：见 SETTINGS_ENTRIES
   // 顶部条上显示的知识库名（与原有 cur-kb-tag 同一口径，不新造真相源）
   const kbLabel = $derived((user && user.industry) || kbList.find(k => k.key === currentKb)?.name || currentKb || '');
-  // ─── 本体编排层（独立模块，默认跑在本机 :8010）───
-  // 用当前 hostname 拼：端口写死会在反代/远程访问时指到错的机器。
-  const ORCH_HOST = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
-  const ORCH_URL = `http://${ORCH_HOST}:8010/console`;
-  // 编排层没部署时不留死 iframe：探到 /health 才嵌，探不到只说状态。
-  let orchUp = $state(null);   // null=探测中 | true=已在跑 | false=未部署
-  let orchLastProbe = $state(null);   // 上次探测时间（状态卡片上显示）
+  // ─── 系统页的服务状态（原「本体编排」探活降级到这里，不再占一级菜单）───
+  let svcUp = $state(null);       // null=未探测 | true=后端可达 | false=不可达
+  let svcInfo = $state('');       // 例如「版本 0.5.0」
   let showModel = $state(false);      // 数据建模右栏：默认欢迎界面，点"显示本体模型"才显示模型图
   // ─── 文件浏览框（学习 solo-agent-kit /api/browse，默认 data_valve 示例目录）───
   let browseDir = $state('data_valve');    // 当前目录（相对 codes/）
@@ -255,7 +270,9 @@
   let browseBusy = $state(false);
   let modelResult = $state(null);   // {table, attrs}
   // 本地文件多选建模
-  let localFiles = $state([]);       // [{name, content}] 本地选择文件
+  let localFiles = $state([]);       // [{name, content, size, file}] 本地选择文件
+  let filePickerInput = $state(null); // 隐藏 file input 引用（点击/键盘唤起系统浏览框）
+  let dragging = $state(false);       // 文件拖拽悬停态
   let localBusy = $state(false);
 let defaultBusy = $state(false);   // 默认数据建模中
 // 行业数据：动态来自后端 kbs.json（事件驱动无死角，不再硬编码 9 个）。
@@ -263,9 +280,9 @@ let defaultBusy = $state(false);   // 默认数据建模中
   const INDUSTRIES = $derived(industries);
   let defaultIndustry = $state('data_valve'); // 当前选中的行业示例
   // 本地文件建模折叠区（默认收起，保持左侧干净大功能卡排队）
-  let localModelOpen = $state(false);
+  let intakeTab = $state('file');    // 接入数据：file（上传文件）| db（连接数据库）
+  let stdOpen = $state(false);       // 本体标准合规：默认收起，只留一行分数
   // 数据库接入
-  let dbOpen = $state(false);
   let dbBusy = $state(false);
   let dbResult = $state(null);      // {ok, table?, output?, error?}
   let dbForm = $state({ db_type: 'mysql', host: '127.0.0.1', port: '3306', user: '', password: '', database: '', tables: '' });
@@ -291,7 +308,6 @@ let defaultBusy = $state(false);   // 默认数据建模中
   let analysis = $state(null);       // {report, stats} 智能分析结果
   let modelList = $state([]);        // 可用模型
   let activeModel = $state('');      // 当前生效模型 key
-  let modelOpen = $state(false);     // 模型管理折叠区
   let modelEditBusy = $state(false);
   let editModels = $state([]);       // 可编辑模型配置 [{key,name,type,base_url,model,api_key}]
   let editActive = $state('');       // 编辑态 active
@@ -479,25 +495,26 @@ let defaultBusy = $state(false);   // 默认数据建模中
     return '';
   }
 
-  // 编排层可达性探测：no-cors 拿到不透明响应也算通，只有连不上才会 reject。
-  async function probeOrch() {
-    orchUp = null;
-    orchLastProbe = null;
+  // 系统页服务状态：直接问后端版本接口，能回 ok 就算服务可达。
+  async function probeService() {
+    svcUp = null;
+    svcInfo = '';
     try {
-      await fetch(`http://${ORCH_HOST}:8010/health`, { mode: 'no-cors', cache: 'no-store' });
-      orchUp = true;
+      const v = await fetchVersion();
+      svcUp = !!(v && v.ok);
+      svcInfo = v && v.version ? `版本 ${v.version}` : '';
     } catch (e) {
-      orchUp = false;
+      // fail-open: 探测失败只影响系统页那行状态，不影响任何业务页
+      svcUp = false;
     }
-    orchLastProbe = new Date();
   }
 
   function switchTab(tab) {
     activeTab = tab;
-    if (tab === 'orch') probeOrch();
+    if (tab === 'assets') probeService();
   }
 
-  // ─── 导航：一级区 / 设置条目 两路（2026-10-16 菜单改版）───
+  // ─── 导航：业务区 / 建设与设置条目 两路（2026-10-19 商业化改版）───
   function pickNav(payload) {
     if (!payload) return;
     if (payload.kind === 'area' && NAV_MAP[payload.area]) {
@@ -507,18 +524,21 @@ let defaultBusy = $state(false);   // 默认数据建模中
       return;
     }
     if (payload.kind === 'entry' && visibleEntries.includes(payload.entry)) {
+      // 企业与成员不是一个报告面板，它对应企业设置弹窗（管理员）
+      if (payload.entry === 'members') { openEnterprise(); return; }
       settingsOpen = true;
       settingsEntry = payload.entry;
-      // 预期分支：「企业与账号」不是一个报告面板，它对应已有的企业设置弹窗，不占用 activeTab
-      if (payload.entry === 'enterprise') { openEnterprise(); return; }
-      switchTab(payload.entry);
+      const home = payload.tab || ENTRY_HOME[payload.entry];
+      if (home) switchTab(home);
     }
   }
 
   function openSettings() {
     settingsOpen = true;
-    // 普通成员只看得到的条目：落在当前页（若可见）否则第一个可见条目
-    settingsEntry = visibleEntries.includes(activeTab) ? activeTab : (visibleEntries[0] ?? 'model');
+    // 与右上角「设置」对应：按当前页面反查它属于哪个设置条目，落到同一个位置
+    const mapped = ENTRY_BY_TAB[activeTab];
+    if (mapped) settingsEntry = mapped;
+    else if (!visibleEntries.includes(settingsEntry)) settingsEntry = visibleEntries[0] || 'ontology';
   }
 
   function backToAsk() {
@@ -720,17 +740,54 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     } finally { defaultBusy = false; }
   }
 
-  // ─── 本地文件多选（系统浏览框）───
-  function onPickFiles(e) {
-    const files = Array.from(e.target.files || []);
+  // ─── 本地文件多选（系统浏览框 + 拖拽）───
+  function resetFileInput() {
+    if (filePickerInput) filePickerInput.value = '';
+  }
+
+  // 应用一批拾取文件（浏览框 change 与拖拽 drop 共用）：校验格式 → 替换待建模列表
+  function applyPickedFiles(files) {
     if (!files.length) return;
-    const invalid = files.find(f => !/\.(csv|json)$/i.test(f.name));
+    const invalid = files.find((f) => !/\.(csv|json)$/i.test(f.name));
     if (invalid) {
       setStatus('err', '仅支持 .csv / .json 文本文件');
-      e.target.value = ''; return;
+      resetFileInput();
+      return;
     }
-    localFiles = files.map(f => ({ name: f.name, content: null, size: f.size, file: f }));
+    localFiles = files.map((f) => ({ name: f.name, content: null, size: f.size, file: f }));
     setStatus('info', `已选 ${localFiles.length} 个本地文件`);
+  }
+
+  function onPickFiles(e) {
+    applyPickedFiles(Array.from(e.target.files || []));
+  }
+
+  function onDropFiles(e) {
+    e.preventDefault();
+    dragging = false;
+    applyPickedFiles(Array.from(e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : []));
+  }
+
+  function removePickedFile(i) {
+    localFiles = localFiles.filter((_, idx) => idx !== i);
+    if (!localFiles.length) resetFileInput();
+  }
+
+  function clearPickedFiles() {
+    localFiles = [];
+    resetFileInput();
+  }
+
+  function fmtSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function extOf(name) {
+    const m = /\.([A-Za-z0-9]+)$/.exec(name || '');
+    return m ? m[1].toUpperCase() : 'FILE';
   }
 
   // 本地文件 → 读取内容 → 多文件建模
@@ -1171,17 +1228,22 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     onAsk={topAsk}
     onOpenSettings={openSettings}
     settingsActive={settingsOpen}
-    onSwitchKb={() => switchTab('knowledge')}
+    onSwitchKb={() => pickNav({ kind: 'area', area: 'kb' })}
     onLogout={doLogout}
   />
 
   <!-- ═══ 左侧导航 + 内容区（208px 导航 + 内容自适应）═══ -->
   <div class="app-body">
-    <SideNav area={navArea} entry={settingsEntry} settingsOpen={settingsOpen} entries={visibleEntries} onPick={pickNav} />
+    <SideNav area={navArea} entry={settingsEntry} tab={activeTab} settingsOpen={settingsOpen} entries={visibleEntries} onPick={pickNav} />
     <div class="content-col">
       {#if settingsOpen}
         <div class="settings-bar">
-          <span class="settings-crumb">设置 › {ENTRY_LABELS[settingsEntry] ?? settingsEntry}</span>
+          <span class="settings-crumb">{settingsEntry === 'ontology' || settingsEntry === 'eval' ? '管理' : '设置'} › {ENTRY_LABELS[settingsEntry] ?? settingsEntry}</span>
+          {#if settingsEntry === 'ontology'}
+            {#each ONTOLOGY_TABS as t (t.tab)}
+              <button class="settings-back" class:on={activeTab === t.tab} onclick={() => switchTab(t.tab)}>{t.label}</button>
+            {/each}
+          {/if}
           <button class="settings-back" onclick={backToAsk}>← 返回问答</button>
           <span class="settings-spacer"></span>
           {#if isAdminUser}
@@ -1190,19 +1252,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           {/if}
         </div>
       {/if}
-      {#if !settingsOpen && navArea === 'delivery'}
-        <div class="settings-bar">
-          <span class="settings-crumb">交付与迁移</span>
-          <button class="settings-back" class:on={activeTab === 'assets'} onclick={() => switchTab('assets')}>版本与交付</button>
-          <button class="settings-back" class:on={activeTab === 'lexasset'} onclick={() => switchTab('lexasset')}>词典</button>
-          <span class="settings-spacer"></span>
-        </div>
-      {/if}
       <main class="workspace">
     {#if activeTab === 'model'}
     <!-- ─── 左栏：数据建模 ─── -->
     <section class="pane pane-left">
-      <div class="pane-title">数据建模<span class="pane-sub">上传数据、连接数据库或配置模型，构建企业专属本体</span></div>
+      <div class="pane-title">数据建模<span class="pane-sub">上传数据或连接数据库，构建企业专属本体</span></div>
       <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
 
       {#if defaultBusy || localBusy || dbBusy}
@@ -1214,97 +1268,70 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         </div>
       {/if}
 
-      <!-- ─── 卡片① 本地文件建模（折叠式，对齐模型配置管理）─── -->
+      <!-- ─── 接入数据：合并原「本地文件建模」与「数据库接入」两张卡（2026-10-19 收拢）─── -->
       <div class="card">
-        <button class="card-head card-head-btn" class:expanded={localModelOpen} onclick={() => (localModelOpen = !localModelOpen)}>
-          <span class="card-icon ic-file">📄</span>
+        <div class="card-head">
+          <span class="card-icon ic-file">📥</span>
           <div class="card-titles">
-            <div class="card-title">本地文件建模</div>
-            <div class="card-desc">{localModelOpen ? '点击收起' : '点击展开'}上传 CSV / JSON 文件建模</div>
+            <div class="card-title">接入数据</div>
+            <div class="card-desc">上传文件，或直连数据库；建完自动生成本体</div>
           </div>
-          <span class="chevron">{localModelOpen ? '▾' : '▸'}</span>
-        </button>
-        {#if localModelOpen}
+          <div class="intake-tabs">
+            <button class="intake-tab" class:on={intakeTab === 'file'} onclick={() => (intakeTab = 'file')}>上传文件</button>
+            <button class="intake-tab" class:on={intakeTab === 'db'} onclick={() => (intakeTab = 'db')}>连接数据库</button>
+          </div>
+        </div>
+        {#if intakeTab === 'file'}
         <div class="card-body">
-          <div class="file-upload-zone">
-            <label class="file-input">
-              <input type="file" multiple accept=".csv,.json" onchange={onPickFiles} />
-              <span class="file-upload-icon">📁</span>
-              <span class="file-upload-main">
-                <span class="file-upload-title">{localFiles.length ? `已选 ${localFiles.length} 个文件` : '选择 CSV / JSON 文件'}</span>
-                <span class="file-upload-hint">可多选，支持 .csv / .json</span>
-              </span>
-              <span class="file-upload-btn">浏览选择文件</span>
-            </label>
-            {#if localFiles.length}
-              <div class="file-selected">
-                <div class="file-selected-title">待建模文件</div>
-                <div class="file-selected-list">
-                  {#each localFiles as f}
-                    <span class="file-selected-chip">📄 {f.name}</span>
-                  {/each}
-                </div>
+          <div
+            class="file-drop"
+            class:drag={dragging}
+            role="button"
+            tabindex="0"
+            aria-label="选择或拖拽 CSV / JSON 文件"
+            onclick={() => filePickerInput && filePickerInput.click()}
+            onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); filePickerInput && filePickerInput.click(); } }}
+            ondragover={(e) => { e.preventDefault(); dragging = true; }}
+            ondragleave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) dragging = false; }}
+            ondrop={onDropFiles}
+          >
+            <input bind:this={filePickerInput} type="file" multiple accept=".csv,.json" onchange={onPickFiles} class="file-native" />
+            <span class="file-drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 15V3" /><path d="m7 8 5-5 5 5" /><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+              </svg>
+            </span>
+            <span class="file-drop-text">
+              <span class="file-drop-title">拖拽或点击选择 CSV / JSON</span>
+              <span class="file-drop-hint">可多选 · 本地解析，不出网</span>
+            </span>
+          </div>
+          {#if localFiles.length}
+            <div class="file-picked">
+              <div class="file-picked-head">
+                <span class="file-picked-title">待建模文件 · {localFiles.length} 个</span>
+                <button type="button" class="file-picked-clear" onclick={clearPickedFiles}>清空</button>
+              </div>
+              <div class="file-picked-list">
+                {#each localFiles as f, i (f.name)}
+                  <span class="file-chip">
+                    <span class="file-chip-ext">{extOf(f.name)}</span>
+                    <span class="file-chip-name" title={f.name}>{f.name}</span>
+                    <span class="file-chip-size">{fmtSize(f.size)}</span>
+                    <button type="button" class="file-chip-del" aria-label={`移除 ${f.name}`} onclick={() => removePickedFile(i)}>×</button>
+                  </span>
+                {/each}
               </div>
               <button class="btn-action" onclick={doLocalModel} disabled={localBusy}>
                 <span class="btn-icon">{localBusy ? '⏳' : '⚙'}</span>
                 {localBusy ? '建模进行中…' : `确认并建模（${localFiles.length} 个文件）`}
               </button>
-            {/if}
-          </div>
+            </div>
+          {/if}
         </div>
         {/if}
-      </div>
 
-      {#if modelResult}
-        <div class="card">
-          <div class="card-head">
-            <span class="card-icon">✅</span>
-            <div class="card-titles">
-              <div class="card-title">建模结果</div>
-              <div class="card-desc">知识库 {modelResult.table}</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="model-summary">
-              <span class="sum-tables">共 {modelResult.tables || localFiles.length || 1} 张表</span>
-              <span class="sum-sep">·</span>
-              <span class="sum-fields">{(modelResult.attrs || []).length} 个字段</span>
-              <span class="sum-ok">✓ 建模完成</span>
-            </div>
-            {#if localFiles.length > 0}
-              <div class="model-files">
-                <div class="model-files-title">已建模文件</div>
-                <div class="model-files-list">
-                  {#each localFiles as f}
-                    <span class="model-file-chip">📄 {f.name}</span>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-            <div class="attr-chips">
-              {#each modelResult.attrs as a}
-                <span class="attr-chip">{typeof a === 'object' && a !== null ? (a.cn || a.field || JSON.stringify(a)) : a}</span>
-              {/each}
-            </div>
-            <div class="model-actions">
-              <span class="model-hint">右栏已生成本体结构力导向图，可拖动缩放查看。</span>
-              <button class="btn-action btn-small" onclick={() => switchTab('query')}>💬 进入问答</button>
-            </div>
-          </div>
-        </div>
-      {/if}
-
-      <!-- ─── 卡片③ 数据库接入（折叠式，对齐模型配置管理）─── -->
-      <div class="card">
-        <button class="card-head card-head-btn" class:expanded={dbOpen} onclick={() => (dbOpen = !dbOpen)}>
-          <span class="card-icon ic-db">🗄️</span>
-          <div class="card-titles">
-            <div class="card-title">数据库接入</div>
-            <div class="card-desc">{dbOpen ? '点击收起' : '点击展开'}连接 MES / ERP / 台账数据库</div>
-          </div>
-          <span class="chevron">{dbOpen ? '▾' : '▸'}</span>
-        </button>
-        {#if dbOpen}
+        {#if intakeTab === 'db'}
         <div class="card-body">
           <div class="form-group">
             <label class="form-label" for="db-type">数据库类型</label>
@@ -1366,81 +1393,45 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         {/if}
       </div>
 
-      <!-- ─── 卡片④ 模型配置管理（查看/编辑/增删/设 active，api_key 脱敏）─── -->
-      <div class="card">
-        <button class="card-head card-head-btn" class:expanded={modelOpen} onclick={() => (modelOpen = !modelOpen)}>
-          <span class="card-icon ic-model">⚙️</span>
-          <div class="card-titles">
-            <div class="card-title">模型配置管理</div>
-            <div class="card-desc">{modelOpen ? '点击收起' : '点击展开'}模型/向量配置</div>
+      {#if modelResult}
+        <div class="card">
+          <div class="card-head">
+            <span class="card-icon">✅</span>
+            <div class="card-titles">
+              <div class="card-title">建模结果</div>
+              <div class="card-desc">知识库 {modelResult.table}</div>
+            </div>
           </div>
-          <span class="chevron">{modelOpen ? '▾' : '▸'}</span>
-        </button>
-        {#if modelOpen}
           <div class="card-body">
-            <div class="db-hint">模型配置持久化到 model_config.json。api_key 仅在输入新值时更新，留空/不改则保留原值。本地优先：默认 ornith/qwen 可直连 Ollama。</div>
-            {#each editModels as m, i}
-              <div class="m-edit">
-                <div class="m-edit-head">
-                  <label class="m-radio">
-                    <input type="radio" checked={editActive === m.key} onclick={() => setEditActive(m.key)} />
-                    <span class="m-active-tag">{editActive === m.key ? '✓ 生效' : '设为生效'}</span>
-                  </label>
-                  <span class="m-key">key: {m.key}</span>
-                  <button class="file-remove" onclick={() => removeModel(i)} aria-label="删除">✕</button>
-                </div>
-                <div class="db-row">
-                  <div class="form-group">
-                    <span class="form-label">名称</span>
-                    <input class="db-input" placeholder="模型名称" bind:value={m.name} />
-                  </div>
-                  <div class="form-group">
-                    <span class="form-label">类型</span>
-                    <select class="db-input" bind:value={m.type}>
-                      <option value="ollama">ollama</option>
-                      <option value="openai">openai</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="db-row">
-                  <div class="form-group">
-                    <span class="form-label">Base URL</span>
-                    <input class="db-input" placeholder="http://127.0.0.1:11434" bind:value={m.base_url} />
-                  </div>
-                  <div class="form-group">
-                    <span class="form-label">Model</span>
-                    <input class="db-input" placeholder="ornith:latest" bind:value={m.model} />
-                  </div>
-                </div>
-                <div class="form-group">
-                  <span class="form-label">API Key（{m.api_key ? '已配置，输入新值可更新' : '未配置'}{m.api_key ? '：' + m.api_key : ''}）</span>
-                  <input class="db-input" type="password" placeholder="留空 = 保留原值" bind:value={m.api_key} />
-                </div>
-              </div>
-            {/each}
-            <div class="m-embed">
-              <div class="m-embed-title">🔎 向量检索模型（embedding，默认本地）</div>
-              <div class="db-row">
-                <div class="form-group">
-                  <span class="form-label">Base URL</span>
-                  <input class="db-input" placeholder="http://127.0.0.1:11434" bind:value={editEmbedding.base_url} />
-                </div>
-                <div class="form-group">
-                  <span class="form-label">Model</span>
-                  <input class="db-input" placeholder="nomic-embed-text" bind:value={editEmbedding.model} />
-                </div>
-              </div>
-              <div class="db-hint">向量语义检索用本地 embedding，零 API 成本。改这里可切换向量模型/地址。</div>
+            <div class="model-summary">
+              <span class="sum-tables">共 {modelResult.tables || localFiles.length || 1} 张表</span>
+              <span class="sum-sep">·</span>
+              <span class="sum-fields">{(modelResult.attrs || []).length} 个字段</span>
+              <span class="sum-ok">✓ 建模完成</span>
             </div>
-            <div class="m-actions">
-              <button class="btn-action btn-default" onclick={addModel}>＋ 新增模型</button>
-              <button class="btn-action" onclick={saveModelConfig} disabled={modelEditBusy}>
-                {modelEditBusy ? '保存中…' : '💾 保存配置'}
-              </button>
+            {#if localFiles.length > 0}
+              <div class="model-files">
+                <div class="model-files-title">已建模文件</div>
+                <div class="model-files-list">
+                  {#each localFiles as f}
+                    <span class="model-file-chip">📄 {f.name}</span>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            <div class="attr-chips">
+              {#each modelResult.attrs as a}
+                <span class="attr-chip">{typeof a === 'object' && a !== null ? (a.cn || a.field || JSON.stringify(a)) : a}</span>
+              {/each}
+            </div>
+            <div class="model-actions">
+              <span class="model-hint">右栏已生成本体结构力导向图，可拖动缩放查看。</span>
+              <button class="btn-action btn-small" onclick={() => switchTab('query')}>💬 进入问答</button>
             </div>
           </div>
-        {/if}
-      </div>
+        </div>
+      {/if}
+
       <!-- ─── 本体标准合规（GB/T 48000.3 描述项 + 命名空间 + SHACL + 类层次 + 导出物）─── -->
       <div class="std-card">
         <div class="std-head">
@@ -1448,7 +1439,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           <span class="std-badge" class:ok={(compliance && compliance.standard_rate != null) ? compliance.standard_rate >= 90 : false}>
             {compliance && compliance.standard_rate != null ? compliance.standard_rate + ' / 100' : '—'}
           </span>
+          <button class="settings-back" onclick={() => (stdOpen = !stdOpen)}>{stdOpen ? '收起' : '展开'}</button>
         </div>
+        {#if stdOpen}
         {#if complianceLoading}
           <div class="std-hint">检查中…</div>
         {:else if compliance && compliance.ok !== false}
@@ -1517,6 +1510,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           {/if}
         {:else}
           <div class="std-hint">合规度不可用（后端未就绪或 schema 缺失）</div>
+        {/if}
         {/if}
       </div>
     </section>
@@ -1652,18 +1646,105 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         <EvalPanel kb={currentKb} />
       </div>
     </section>
+    {:else if activeTab === 'models'}
+    <!-- ─── 模型与检索（模型配置/向量模型；原「数据建模」页里的卡片④移到这里）─── -->
+    <section class="pane pane-full">
+      <div class="pane-title">模型与检索<span class="pane-sub">当前用哪个模型回答、用哪个向量模型检索；改完立即生效</span></div>
+      <div class="dashboard-body">
+        <div class="card">
+          <div class="card-body">
+            <div class="db-hint">模型配置持久化到 model_config.json；api_key 仅在输入新值时更新，留空则保留原值。默认走本地 Ollama，数据不出厂。</div>
+            {#each editModels as m, i}
+              <div class="m-edit">
+                <div class="m-edit-head">
+                  <label class="m-radio">
+                    <input type="radio" checked={editActive === m.key} onclick={() => setEditActive(m.key)} />
+                    <span class="m-active-tag">{editActive === m.key ? '✓ 生效' : '设为生效'}</span>
+                  </label>
+                  <span class="m-key">{m.name}</span>
+                  <button class="file-remove" onclick={() => removeModel(i)} aria-label="删除">✕</button>
+                </div>
+                <div class="db-row">
+                  <div class="form-group">
+                    <span class="form-label">名称</span>
+                    <input class="db-input" placeholder="模型名称" bind:value={m.name} />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label">类型</span>
+                    <select class="db-input" bind:value={m.type}>
+                      <option value="ollama">ollama（本地）</option>
+                      <option value="openai">openai 兼容（云端/自建）</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="db-row">
+                  <div class="form-group">
+                    <span class="form-label">服务地址</span>
+                    <input class="db-input" placeholder="http://127.0.0.1:11434" bind:value={m.base_url} />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label">模型名</span>
+                    <input class="db-input" placeholder="ornith:latest" bind:value={m.model} />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <span class="form-label">密钥（{m.api_key ? '已配置，输入新值可更新' : '未配置'}）</span>
+                  <input class="db-input" type="password" placeholder="留空 = 保留原值" bind:value={m.api_key} />
+                </div>
+              </div>
+            {/each}
+            <div class="m-embed">
+              <div class="m-embed-title">🔎 向量检索模型（embedding，默认本地）</div>
+              <div class="db-row">
+                <div class="form-group">
+                  <span class="form-label">服务地址</span>
+                  <input class="db-input" placeholder="http://127.0.0.1:11434" bind:value={editEmbedding.base_url} />
+                </div>
+                <div class="form-group">
+                  <span class="form-label">模型名</span>
+                  <input class="db-input" placeholder="nomic-embed-text" bind:value={editEmbedding.model} />
+                </div>
+              </div>
+              <div class="db-hint">向量语义检索用本地 embedding，零 API 成本。</div>
+            </div>
+            <div class="db-hint">检索力度在「问答」页的「深度检索」开关：关闭 = 规则命中就秒回；打开 = 命中后仍跑图谱/混合/文档，证据更多但更慢。</div>
+            <div class="m-actions">
+              <button class="btn-action btn-default" onclick={addModel}>＋ 新增模型</button>
+              <button class="btn-action" onclick={saveModelConfig} disabled={modelEditBusy}>
+                {modelEditBusy ? '保存中…' : '💾 保存配置'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     {:else if activeTab === 'knowledge'}
     <!-- ─── 知识库管理（文档列表）─── -->
     <section class="pane pane-full">
-      <div class="pane-title">知识库管理<span class="pane-sub">上传文档，构建企业知识库</span></div>
+      <div class="pane-title">知识库<span class="pane-sub">上传文档供问答检索；结构化台账（CSV/数据库）走「建设 › 本体 › 数据建模」</span></div>
       <div class="dashboard-body">
         <KnowledgePanel kb={currentKb} />
       </div>
     </section>
     {:else if activeTab === 'assets'}
-    <!-- ─── 资产版本（版本链）─── -->
+    <!-- ─── 系统（版本与交付 + 服务状态 + 落地偏好）─── -->
     <section class="pane pane-full">
-      <div class="pane-title">资产版本<span class="pane-sub">管理语义资产快照，支持版本回滚与交付</span></div>
+      <div class="pane-title">系统<span class="pane-sub">版本快照与交付包、服务状态、默认落地页</span></div>
+      <div style="padding:12px 18px 0;display:flex;flex-direction:column;gap:10px">
+        <div class="card">
+          <div class="card-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span class="form-label" style="margin:0">服务状态</span>
+            <span class="kb-tag" style:color={svcUp === false ? 'var(--danger)' : 'var(--txt-sub)'}>
+              {svcUp === null ? '探测中…' : svcUp ? '后端可达' : '后端未响应'}
+            </span>
+            {#if svcInfo}<span class="pane-sub">{svcInfo}</span>{/if}
+            <button class="settings-back" onclick={probeService}>重新探测</button>
+          </div>
+        </div>
+        {#if isAdminUser}
+        <LandingPref value={landingPref} onChange={setLandingPref} />
+        {/if}
+      </div>
       <div class="dashboard-body">
         <AssetPanel kb={currentKb} />
       </div>
@@ -1683,47 +1764,6 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
       <div class="dashboard-body">
         <EvolvePanel kb={currentKb} />
-      </div>
-    </section>
-    {:else if activeTab === 'orch'}
-    <!-- ─── 本体编排层（外部独立服务，本仓库只做入口，不复制逻辑）─── -->
-    <section class="pane pane-full">
-      <div class="pane-title">本体编排<span class="pane-sub">独立的编排层服务，默认跑在本机 :8010；本页只做入口</span></div>
-      <div style="padding:12px 18px 0;display:flex;flex-direction:column;gap:10px">
-        <OrchStatusCard
-          state={orchUp === null ? 'probing' : orchUp ? 'up' : 'down'}
-          url={ORCH_URL}
-          lastProbe={orchLastProbe}
-          onRefresh={probeOrch}
-          onOpen={() => window.open(ORCH_URL, '_blank', 'noreferrer')}
-        />
-        {#if isAdminUser}
-        <LandingPref value={landingPref} onChange={setLandingPref} />
-        {/if}
-      </div>
-      <div class="dashboard-body">
-        {#if orchUp === true}
-        <iframe title="本体编排层控制台" src={ORCH_URL}
-                style="width:100%;height:calc(100vh - 250px);border:1px solid #e5e7eb;border-radius:12px;background:#fff"></iframe>
-        {:else}
-        <div style="max-width:720px;padding:28px 30px;border:1px solid #e5e7eb;border-radius:14px;background:#fafafa">
-          <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:10px">
-            {orchUp === null ? '正在探测编排层…' : '编排层未部署'}
-          </div>
-          {#if orchUp === false}
-          <p style="font-size:13px;color:#6b7280;line-height:1.9;margin:0">
-            这一项依赖一个独立的编排层服务（默认 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">http://{ORCH_HOST}:8010</code>），它不在本仓库里，当前这个端口没有响应。
-          </p>
-          <p style="font-size:13px;color:#6b7280;line-height:1.9;margin:8px 0 0">
-            如果你本机已经部署了它，先把服务起起来、确认 <code style="background:#f3f4f6;padding:1px 5px;border-radius:4px">:8010/health</code> 有响应，再点下面的按钮重新探测。
-          </p>
-          {/if}
-          <div style="display:flex;align-items:center;gap:14px;margin-top:18px">
-            <button class="btn-action" onclick={probeOrch}>重新探测</button>
-            <a href={ORCH_URL} target="_blank" rel="noreferrer" style="font-size:13px;color:#2563eb;text-decoration:none">在新标签打开 →</a>
-          </div>
-        </div>
-        {/if}
       </div>
     </section>
     {/if}
@@ -1885,6 +1925,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     --ok: var(--success); --warn: var(--warning); --err: var(--danger);
   }
   :global(*) { box-sizing: border-box; }
+  /* 键盘焦点环全局兜底（鼠标点击不显示，Tab 导航可见） */
+  :global(button:focus-visible, a:focus-visible, summary:focus-visible, [role="button"]:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
   :global(body) {
     margin: 0;
     font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
@@ -2009,10 +2054,15 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .model-select { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #64748b; }
   .model-label { font-weight: 600; }
   .model-select select {
-    background: #fff; border: 1px solid #d5dbe3; border-radius: 4px;
-    padding: 4px 8px; font-size: 12px; color: #1e293b; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    padding: 4px 26px 4px 8px; font-size: 12px; color: var(--text-primary); cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
   }
-  .model-select select:focus { outline: none; border-color: var(--brand); }
+  .model-select select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
   .logo {
     font-size: 22px; line-height: 1;
     width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
@@ -2064,6 +2114,19 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .card-head-btn:hover { background: var(--bg-hover); }
   .card-head-btn:hover .card-title { color: var(--brand); }
+
+  /* 接入数据：两个方式合并成一行 tab，避免左侧堆两张折叠卡。
+     左栏很窄，tab 单独占一行，否则标题会被挤成竖排。 */
+  .card-head { flex-wrap: wrap; }
+  .intake-tabs { display: flex; gap: 4px; flex-basis: 100%; margin: 8px 0 0; }
+  .intake-tab {
+    height: 26px; padding: 0 8px; font-size: 11.5px; cursor: pointer;
+    white-space: nowrap; flex: 0 0 auto;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg-card); color: var(--txt-sub);
+  }
+  .intake-tab:hover { border-color: var(--brand); color: var(--brand); }
+  .intake-tab.on { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); font-weight: 600; }
   /* 折叠卡展开态：左侧品牌色指示条 */
   .card-head-btn.expanded { box-shadow: inset 3px 0 0 0 var(--brand); }
   .card-icon {
@@ -2126,7 +2189,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 主区域 ─── */
   .workspace {
     flex: 1; display: grid;
-    grid-template-columns: minmax(200px, 240px) 1fr;
+    /* 2026-10-19：原 240px 1fr 把「数据建模」操作栏压成 240px 窄条（上传区文案疯狂折行），
+       而右栏欢迎图/图谱占 751px。主次倒挂 → 改 3fr 2fr：操作区宽、预览区窄。 */
+    grid-template-columns: 3fr 2fr;
     gap: 14px; padding: 14px 18px;
     min-height: 0;
   }
@@ -2265,11 +2330,20 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .db-row .form-group { flex: 1; }
   .db-port { flex: 0 0 90px; }
   .db-input {
-    width: 100%; background: #fff; border: 1px solid #cbd5e1;
-    border-radius: 4px; padding: 7px 10px; font-size: 12px; color: #1e293b;
-    outline: none; transition: border-color 0.15s;
+    width: 100%; background: var(--bg-card); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); padding: 7px 10px; font-size: 12px; color: var(--text-primary);
+    outline: none; transition: border-color .15s, box-shadow .15s;
   }
-  .db-input:focus { border-color: var(--brand); }
+  .db-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+  /* select 统一换自定义箭头（Windows 原生箭头灰暗，与输入框不同源） */
+  select.db-input {
+    appearance: none; -webkit-appearance: none;
+    padding-right: 28px; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    background-size: 12px;
+  }
   .db-result { border: 1px solid #e2e8f0; border-radius: 4px; }
   .db-result .model-head { border-bottom: none; }
   .db-result.db-err { border-color: #fecaca; background: #fef2f2; }
@@ -2298,45 +2372,82 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   .file-icon { font-size: 16px; }
 
-  /* ─── 本地文件建模：上传区（对齐成熟商业软件的上传体验） ─── */
-  .file-upload-zone { display: flex; flex-direction: column; gap: 10px; }
-  .file-input {
-    display: flex; align-items: center; gap: 12px;
-    border: 1.5px dashed #cbd5e1; border-radius: 8px;
-    padding: 14px 16px; cursor: pointer; background: #f8fafc;
-    transition: border-color 0.15s, background 0.15s;
+  /* ─── 本地文件建模：上传区（2026-10-19 重构：真拖拽 + 可删除 + 设计系统变量）─── */
+  .file-drop {
+    display: flex; align-items: center; gap: 10px;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 9px 12px; cursor: pointer;
+    background: var(--bg-page);
+    transition: border-color .15s, background .15s, box-shadow .15s;
   }
-  .file-input:hover { border-color: var(--brand); background: var(--brand-soft); }
-  .file-input input[type="file"] { display: none; }
-  .file-upload-icon { font-size: 24px; flex-shrink: 0; }
-  .file-upload-main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-  .file-upload-title { font-size: 13px; font-weight: 600; color: #1e293b; }
-  .file-upload-hint { font-size: 11px; color: #64748b; }
-  .file-upload-btn {
-    font-size: 12px; font-weight: 600; color: var(--brand);
-    border: 1px solid var(--brand); border-radius: 4px; padding: 5px 12px;
-    white-space: nowrap; transition: background 0.15s;
+  .file-drop:hover { border-color: var(--brand); background: var(--brand-soft); }
+  .file-drop:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+  .file-drop.drag {
+    border-color: var(--brand); border-style: solid;
+    background: var(--brand-soft);
+    box-shadow: 0 0 0 3px var(--ring);
   }
-  .file-input:hover .file-upload-btn { background: var(--brand); color: #fff; }
-  .file-selected { display: flex; flex-direction: column; gap: 6px; }
-  .file-selected-title { font-size: 11px; font-weight: 600; color: #64748b; }
-  .file-selected-list { display: flex; flex-wrap: wrap; gap: 6px; }
-  .file-selected-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--brand-soft); color: var(--brand-dark); border: 1px solid var(--brand-line);
-    border-radius: 4px; padding: 3px 8px; font-size: 12px;
+  .file-native { display: none; }
+  .file-drop-icon {
+    width: 28px; height: 28px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-muted);
+    transition: color .15s, border-color .15s;
   }
+  .file-drop-icon svg { width: 15px; height: 15px; }
+  .file-drop:hover .file-drop-icon,
+  .file-drop.drag .file-drop-icon { color: var(--brand); border-color: var(--brand-line); }
+  .file-drop-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .file-drop-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+  .file-drop-hint { font-size: 10.5px; color: var(--text-secondary); }
+
+  .file-picked { display: flex; flex-direction: column; gap: 10px; }
+  .file-picked-head { display: flex; align-items: center; justify-content: space-between; }
+  .file-picked-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .file-picked-clear {
+    background: none; border: none; padding: 2px 8px;
+    font-size: 12px; color: var(--text-secondary); cursor: pointer;
+    border-radius: var(--radius-sm); transition: color .15s, background .15s;
+  }
+  .file-picked-clear:hover { color: var(--danger-fg); background: var(--danger-bg); }
+  .file-picked-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 100%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 4px 6px 4px 4px;
+    font-size: 12px; color: var(--text-primary);
+  }
+  .file-chip-ext {
+    flex: none;
+    font-size: 10px; font-weight: 700; letter-spacing: .02em;
+    color: var(--brand-dark); background: var(--brand-soft);
+    border-radius: 4px; padding: 2px 5px;
+  }
+  .file-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip-size { flex: none; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .file-chip-del {
+    flex: none; width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 4px; background: none;
+    color: var(--text-muted); font-size: 14px; line-height: 1; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .file-chip-del:hover { background: var(--danger-bg); color: var(--danger-fg); }
 
   .btn-action {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     background: var(--brand); color: #fff;
-    border: none; border-radius: 4px;
+    border: none; border-radius: var(--radius-sm);
     padding: 10px 16px; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s;
+    cursor: pointer; transition: background .15s;
   }
   .btn-action:hover:not(:disabled) { background: var(--brand-dark); }
-  .btn-action:disabled { background: #94a3b8; cursor: not-allowed; }
-  .btn-small { padding: 6px 12px; font-size: 12px; border-radius: 4px; }
+  .btn-action:disabled { background: var(--text-muted); cursor: not-allowed; }
+  .btn-small { padding: 6px 12px; font-size: 12px; border-radius: var(--radius-sm); }
 
   /* ─── 建模结果摘要 ─── */
   .model-summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 0; font-size: 13px; }
@@ -2702,21 +2813,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     :global(*) { transition: none !important; animation: none !important; }
   }
 
-  /* ─── 深色模式（可选，prefers-color-scheme） ─── */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg-page: #16181d; --bg-elevated: #1e2128; --bg-card: #22262e;
-      --bg-hover: #2a2e37; --bg-selected: #1e2a45;
-      --border: #2e333d; --border-strong: #3a404c;
-      --text-primary: #e8eaed; --text-secondary: #a6aeb9; --text-muted: #6b7380;
-      --brand-soft: #1e2a45; --brand-line: #33507a;
-      --success-bg: #14301f; --success-fg: #4ade80;
-      --warning-bg: #33290f; --warning-fg: #fbbf24;
-      --danger-bg: #33131a;  --danger-fg: #f87171;
-      --info-bg: #1e2a45;    --info-fg: #60a5fa;
-      --shadow-card: 0 1px 2px rgba(0,0,0,.4);
-      --shadow-hover: 0 2px 8px rgba(0,0,0,.5);
-      --shadow-popover: 0 4px 16px rgba(0,0,0,.6);
-    }
-  }
+  /* ─── 深色模式已移除（2026-10-19）───
+     原 prefers-color-scheme: dark 块只覆盖 CSS 变量，而 pane/toolbar/输入框等大量
+     硬编码 #fff/#f8fafc 不跟随 → 暗色偏好下界面「半深半浅」撕裂（无头浏览器默认
+     dark 偏好即复现：侧栏深底 + 卡片白底混搭）。企业工具定位浅色恒定，
+     要么补全暗色要么移除，选移除（补全涉及全量硬编码整改，非当前目标）。 */
 </style>

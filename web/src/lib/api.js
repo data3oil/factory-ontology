@@ -432,27 +432,29 @@ export async function evolvePending() {
   return fetchRetry('/api/ontology/evolve/pending', { cache: 'no-store' });
 }
 
-export async function evolveConfirm(name, node, aliases) {
+// 入参一律是「要发给后端的对象」本身（{name,cls} / {name} / {target_version}）：
+// 后端 pydantic 要求 name 是字符串，早前这里按位置参数拆成 {name: <对象>} → 后端恒 422。
+export async function evolveConfirm(payload = {}) {
   return fetchRetry('/api/ontology/evolve/confirm', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ name, node, aliases }),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function evolveReject(name) {
+export async function evolveReject(payload = {}) {
   return fetchRetry('/api/ontology/evolve/reject', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function evolveRollback(targetVersion) {
+export async function evolveRollback(payload = {}) {
   return fetchRetry('/api/ontology/evolve/rollback', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify(targetVersion == null ? {} : { target_version: targetVersion }),
+    body: JSON.stringify(payload || {}),
   });
 }
 

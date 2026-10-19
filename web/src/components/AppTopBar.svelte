@@ -90,15 +90,16 @@
   .kb {
     background: var(--brand-soft);
     color: var(--brand);
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
     font-size: 12px;
     padding: 3px 8px;
     cursor: pointer;
-    transition: background 120ms;
+    transition: background 120ms, border-color 120ms;
   }
   .kb:hover {
-    background: var(--bg-hover);
+    background: var(--brand-soft);
+    border-color: var(--brand);
   }
 
   .mid {
@@ -127,7 +128,7 @@
   }
   .mid input:focus {
     border-color: var(--brand);
-    box-shadow: var(--ring);
+    box-shadow: 0 0 0 3px var(--ring);
   }
   .mid input:disabled {
     background: var(--bg-hover);
@@ -138,8 +139,9 @@
     height: 32px;
     padding: 0 14px;
     font-size: 13px;
-    color: var(--brand);
-    background: var(--brand-soft);
+    font-weight: 600;
+    color: #fff;
+    background: var(--brand);
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -147,7 +149,7 @@
     transition: background 120ms;
   }
   .ask:hover:not(:disabled) {
-    background: var(--bg-hover);
+    background: var(--brand-dark);
   }
   .ask:disabled {
     color: var(--txt-muted);

@@ -26,15 +26,21 @@ export function isAdmin(user) {
   return normalizeRole(user.role) === ROLES.ADMIN;
 }
 
-export const SETTINGS_GROUPS = [
-  { title: '建本体与演进', items: ['model', 'selfmodel', 'evolve'] },
-  { title: '知识库', items: ['knowledge'] },
-  { title: '模型与质量', items: ['eval'] },
-  { title: '系统', items: ['orch', 'enterprise'] },
+// 导航分组（2026-10-19 商业化改版）：业务三入口在 SideNav 里单列，
+// 这里只给「管理」与「设置」两组，顺序即渲染顺序。
+// 键位口径：ontology 一个入口，内部再分「数据建模/自动匹配/演进/词典」四个 tab；
+// 原来的 model/selfmodel/evolve/knowledge/eval/orch/enterprise 七个键不再是一级条目。
+export const NAV_GROUPS = [
+  { title: '管理', items: ['ontology', 'eval'] },
+  { title: '设置', items: ['models', 'members', 'system'] },
 ];
 
-const ALL_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
-const MEMBER_ENTRIES = ['knowledge'];
+// 兼容旧名（外部只读不写）：指向同一份分组，避免两处维护。
+export const SETTINGS_GROUPS = NAV_GROUPS;
+
+const ALL_ENTRIES = ['ontology', 'eval', 'models', 'members', 'system'];
+// 普通成员：只看到与自用有关的「模型与检索」；建模/评测/企业/系统一律不可见。
+const MEMBER_ENTRIES = ['models'];
 
 export function visibleSettingsEntries(user) {
   return isAdmin(user) ? ALL_ENTRIES.slice() : MEMBER_ENTRIES.slice();
@@ -77,10 +83,11 @@ if (isDirectRun) {
   eq('isAdmin(null)', isAdmin(null), false);
 
   const adminEntries = visibleSettingsEntries({ role: 'admin' });
-  eq('visibleSettingsEntries(admin).length', adminEntries.length, 7);
+  eq('visibleSettingsEntries(admin).length', adminEntries.length, 5);
   eq('visibleSettingsEntries(admin).order', adminEntries,
-    ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise']);
-  eq('visibleSettingsEntries(member)', visibleSettingsEntries({ role: 'member' }), ['knowledge']);
+    ['ontology', 'eval', 'models', 'members', 'system']);
+  eq('visibleSettingsEntries(member)', visibleSettingsEntries({ role: 'member' }), ['models']);
+  eq('NAV_GROUPS.titles', NAV_GROUPS.map((g) => g.title), ['管理', '设置']);
 
   const admin = { role: 'admin' };
   const member = { role: 'member' };

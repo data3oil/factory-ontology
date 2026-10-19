@@ -46,7 +46,7 @@
     border-radius: 999px;
     white-space: nowrap;
     border: 1px solid var(--line);
-    background: #fff;
+    background: var(--bg-card);
     color: var(--txt-muted);
     cursor: pointer;
   }
