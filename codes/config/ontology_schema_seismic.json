@@ -1,0 +1,1151 @@
+{
+  "entities": [
+    {
+      "id": "Seis_equipment",
+      "label": "设备",
+      "table": "seis_equipment",
+      "key": "id",
+      "domain": "设备域",
+      "definition": "设备域中的设备，数据来源于 seis_equipment 表，以 id 唯一标识，记录device_name、device_type、owner_team、spec_value、spec_unit等信息；取值样例（设备名称=可控震源/检波器串；设备类型=激发设备/接收设备）。",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "device_name",
+          "label": "设备名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "device_type",
+          "label": "设备类型",
+          "type": "string",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "owner_team",
+          "label": "负责人班组",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "spec_value",
+          "label": "规格value",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "spec_unit",
+          "label": "规格单位",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ],
+      "parent": "设备域",
+      "parent_evidence": "归入业务域类 设备域（依据 R1-业务域，命中关键词 device, equipment）",
+      "parent_rule": "R1-业务域"
+    },
+    {
+      "id": "Seis_lines",
+      "label": "产线",
+      "table": "seis_lines",
+      "key": "id",
+      "domain": "业务域",
+      "definition": "业务域中的产线，数据来源于 seis_lines 表，以 id 唯一标识，记录line_name、region、shotpoints、receivers、status等信息；取值样例（产线名称=鄂尔多斯三维区块A/塔里木三维区块B；区域=鄂尔多斯盆地/塔里木盆地）。",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "line_name",
+          "label": "产线名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "shotpoints",
+          "label": "shotpoints",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "receivers",
+          "label": "receivers",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ],
+      "parent": "业务域",
+      "parent_evidence": "归入业务域类 业务域（依据 R1-业务域，命中关键词 —（实体已声明 domain））",
+      "parent_rule": "R1-业务域"
+    },
+    {
+      "id": "Seis_shots",
+      "label": "seis_shots",
+      "table": "seis_shots",
+      "key": "id",
+      "domain": "质量域",
+      "definition": "质量域中的seis_shots，数据来源于 seis_shots 表，以 id 唯一标识，记录line_id、shot_time、charge_kg、depth_m、quality等信息；取值样例（产线编号=L002/L002；shot_time=2026-07-10 08:30:00/2026-07-10 09:00:00）。",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "line_id",
+          "label": "产线编号",
+          "type": "string",
+          "role": "reference",
+          "required": false
+        },
+        {
+          "name": "shot_time",
+          "label": "shot_time",
+          "type": "date",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "charge_kg",
+          "label": "charge_kg",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "depth_m",
+          "label": "depth_m",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "quality",
+          "label": "quality",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "record_length_s",
+          "label": "record_length_s",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        }
+      ],
+      "parent": "质量域",
+      "parent_evidence": "归入业务域类 质量域（依据 R1-业务域，命中关键词 quality）",
+      "parent_rule": "R1-业务域"
+    },
+    {
+      "id": "Seis_teams",
+      "label": "班组",
+      "table": "seis_teams",
+      "key": "id",
+      "domain": "业务域",
+      "definition": "业务域中的班组，数据来源于 seis_teams 表，以 id 唯一标识，记录team_name、region、method、crew_size、status等信息；取值样例（班组名称=一零三地震队/二一七地震队；区域=鄂尔多斯盆地/塔里木盆地）。",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "team_name",
+          "label": "班组名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "method",
+          "label": "method",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "crew_size",
+          "label": "crew_size",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ],
+      "parent": "业务域",
+      "parent_evidence": "归入业务域类 业务域（依据 R1-业务域，命中关键词 —（实体已声明 domain））",
+      "parent_rule": "R1-业务域"
+    },
+    {
+      "id": "Seis_equipment__接收设备",
+      "label": "接收设备",
+      "table": null,
+      "key": null,
+      "domain": "设备域",
+      "kind": "subclass",
+      "definition": "设备中 device_type 为『接收设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，2 行）。",
+      "definition_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '接收设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent": "Seis_equipment",
+      "parent_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '接收设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "device_type",
+      "subclass_value": "接收设备",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "device_name",
+          "label": "设备名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "device_type",
+          "label": "设备类型",
+          "type": "string",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "owner_team",
+          "label": "负责人班组",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "spec_value",
+          "label": "规格value",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "spec_unit",
+          "label": "规格单位",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_equipment__激发设备",
+      "label": "激发设备",
+      "table": null,
+      "key": null,
+      "domain": "设备域",
+      "kind": "subclass",
+      "definition": "设备中 device_type 为『激发设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，2 行）。",
+      "definition_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '激发设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent": "Seis_equipment",
+      "parent_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '激发设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "device_type",
+      "subclass_value": "激发设备",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "device_name",
+          "label": "设备名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "device_type",
+          "label": "设备类型",
+          "type": "string",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "owner_team",
+          "label": "负责人班组",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "spec_value",
+          "label": "规格value",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "spec_unit",
+          "label": "规格单位",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_equipment__测量设备",
+      "label": "测量设备",
+      "table": null,
+      "key": null,
+      "domain": "设备域",
+      "kind": "subclass",
+      "definition": "设备中 device_type 为『测量设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '测量设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent": "Seis_equipment",
+      "parent_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '测量设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "device_type",
+      "subclass_value": "测量设备",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "device_name",
+          "label": "设备名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "device_type",
+          "label": "设备类型",
+          "type": "string",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "owner_team",
+          "label": "负责人班组",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "spec_value",
+          "label": "规格value",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "spec_unit",
+          "label": "规格单位",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_equipment__记录设备",
+      "label": "记录设备",
+      "table": null,
+      "key": null,
+      "domain": "设备域",
+      "kind": "subclass",
+      "definition": "设备中 device_type 为『记录设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '记录设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent": "Seis_equipment",
+      "parent_evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '记录设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "device_type",
+      "subclass_value": "记录设备",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "device_name",
+          "label": "设备名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "device_type",
+          "label": "设备类型",
+          "type": "string",
+          "role": "category",
+          "required": false
+        },
+        {
+          "name": "owner_team",
+          "label": "负责人班组",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "spec_value",
+          "label": "规格value",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "spec_unit",
+          "label": "规格单位",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_lines__采集中",
+      "label": "采集中",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "产线中 status 为『采集中』的具体种类（依据表 seis_lines 字段 status 的真实取值，2 行）。",
+      "definition_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_lines",
+      "parent_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "采集中",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "line_name",
+          "label": "产线名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "shotpoints",
+          "label": "shotpoints",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "receivers",
+          "label": "receivers",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_lines__设计中",
+      "label": "设计中",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "产线中 status 为『设计中』的具体种类（依据表 seis_lines 字段 status 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '设计中'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_lines",
+      "parent_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '设计中'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "设计中",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "line_name",
+          "label": "产线名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "shotpoints",
+          "label": "shotpoints",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "receivers",
+          "label": "receivers",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_lines__采集完成",
+      "label": "采集完成",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "产线中 status 为『采集完成』的具体种类（依据表 seis_lines 字段 status 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集完成'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_lines",
+      "parent_evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集完成'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "采集完成",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "line_name",
+          "label": "产线名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "shotpoints",
+          "label": "shotpoints",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "receivers",
+          "label": "receivers",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_teams__施工中",
+      "label": "施工中",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "班组中 status 为『施工中』的具体种类（依据表 seis_teams 字段 status 的真实取值，2 行）。",
+      "definition_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '施工中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_teams",
+      "parent_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '施工中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "施工中",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "team_name",
+          "label": "班组名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "method",
+          "label": "method",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "crew_size",
+          "label": "crew_size",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_teams__休整",
+      "label": "休整",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "班组中 status 为『休整』的具体种类（依据表 seis_teams 字段 status 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '休整'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_teams",
+      "parent_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '休整'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "休整",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "team_name",
+          "label": "班组名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "method",
+          "label": "method",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "crew_size",
+          "label": "crew_size",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "Seis_teams__设备检修",
+      "label": "设备检修",
+      "table": null,
+      "key": null,
+      "domain": "业务域",
+      "kind": "subclass",
+      "definition": "班组中 status 为『设备检修』的具体种类（依据表 seis_teams 字段 status 的真实取值，1 行）。",
+      "definition_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '设备检修'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent": "Seis_teams",
+      "parent_evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '设备检修'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "parent_rule": "R3-具名子类",
+      "subclass_column": "status",
+      "subclass_value": "设备检修",
+      "attributes": [
+        {
+          "name": "id",
+          "label": "编号",
+          "type": "string",
+          "role": "identifier",
+          "required": true
+        },
+        {
+          "name": "team_name",
+          "label": "班组名称",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "region",
+          "label": "区域",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "method",
+          "label": "method",
+          "type": "string",
+          "role": "text",
+          "required": false
+        },
+        {
+          "name": "crew_size",
+          "label": "crew_size",
+          "type": "number",
+          "role": "measure",
+          "required": false
+        },
+        {
+          "name": "status",
+          "label": "状态",
+          "type": "string",
+          "role": "category",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "seis_shots_line_id",
+      "from": "Seis_shots",
+      "to": "Seis_lines",
+      "fk": "seis_shots.line_id",
+      "cardinality": "N:1",
+      "label": "关联产线",
+      "auto": true,
+      "source": "fk"
+    },
+    {
+      "id": "seis_equipment_owner_team",
+      "from": "Seis_equipment",
+      "to": "Seis_teams",
+      "fk": "seis_equipment.owner_team",
+      "cardinality": "N:1",
+      "label": "关联班组",
+      "auto": true,
+      "source": "implicit_fk"
+    },
+    {
+      "id": "seis_lines_seis_teams_region",
+      "from": "Seis_lines",
+      "to": "Seis_teams",
+      "fk": "seis_lines.region=seis_teams.region",
+      "cardinality": "N:M",
+      "label": "同属区域",
+      "auto": true,
+      "source": "shared_dim"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "unique",
+      "on": "Seis_equipment.id",
+      "msg": "Seis_equipment 主键 id 唯一"
+    },
+    {
+      "type": "unique",
+      "on": "Seis_lines.id",
+      "msg": "Seis_lines 主键 id 唯一"
+    },
+    {
+      "type": "unique",
+      "on": "Seis_shots.id",
+      "msg": "Seis_shots 主键 id 唯一"
+    },
+    {
+      "type": "unique",
+      "on": "Seis_teams.id",
+      "msg": "Seis_teams 主键 id 唯一"
+    }
+  ],
+  "version": "1.0",
+  "name": "auto-inferred-ontology",
+  "industry": "seismic",
+  "hierarchy": [
+    {
+      "name": "Enterprise",
+      "parent": null,
+      "label": "企业",
+      "kind": "root",
+      "rule": "R0-根",
+      "evidence": "国标 GB/T 48000.3 §5.3 规定的根类"
+    },
+    {
+      "name": "BusinessObject",
+      "parent": "Enterprise",
+      "label": "业务对象",
+      "kind": "root",
+      "rule": "R0-根",
+      "evidence": "国标 §5.3 一级派生类：所有业务实体之共同上层类"
+    },
+    {
+      "name": "设备域",
+      "parent": "BusinessObject",
+      "label": "设备域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "表名/列名命中业务域关键词 device, equipment（_DOMAIN_KEYWORDS 命中项）"
+    },
+    {
+      "name": "业务域",
+      "parent": "BusinessObject",
+      "label": "业务域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "实体已声明业务域 '业务域'（domain 字段）"
+    },
+    {
+      "name": "质量域",
+      "parent": "BusinessObject",
+      "label": "质量域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "表名/列名命中业务域关键词 quality（_DOMAIN_KEYWORDS 命中项）"
+    },
+    {
+      "name": "Seis_equipment",
+      "parent": "设备域",
+      "label": "设备",
+      "kind": "entity",
+      "rule": "R1-业务域",
+      "evidence": "归入业务域类 设备域（依据 R1-业务域，命中关键词 device, equipment）"
+    },
+    {
+      "name": "Seis_lines",
+      "parent": "业务域",
+      "label": "产线",
+      "kind": "entity",
+      "rule": "R1-业务域",
+      "evidence": "归入业务域类 业务域（依据 R1-业务域，命中关键词 —（实体已声明 domain））"
+    },
+    {
+      "name": "Seis_shots",
+      "parent": "质量域",
+      "label": "seis_shots",
+      "kind": "entity",
+      "rule": "R1-业务域",
+      "evidence": "归入业务域类 质量域（依据 R1-业务域，命中关键词 quality）"
+    },
+    {
+      "name": "Seis_teams",
+      "parent": "业务域",
+      "label": "班组",
+      "kind": "entity",
+      "rule": "R1-业务域",
+      "evidence": "归入业务域类 业务域（依据 R1-业务域，命中关键词 —（实体已声明 domain））"
+    }
+  ],
+  "subclasses": [
+    {
+      "name": "Seis_equipment__接收设备",
+      "label": "接收设备",
+      "parent": "Seis_equipment",
+      "kind": "subclass",
+      "column": "device_type",
+      "value": "接收设备",
+      "count": 2,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '接收设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "definition": "设备中 device_type 为『接收设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，2 行）。"
+    },
+    {
+      "name": "Seis_equipment__激发设备",
+      "label": "激发设备",
+      "parent": "Seis_equipment",
+      "kind": "subclass",
+      "column": "device_type",
+      "value": "激发设备",
+      "count": 2,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '激发设备'（命中 2/6 行）；该列取值域 4 个，属可枚举种类",
+      "definition": "设备中 device_type 为『激发设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，2 行）。"
+    },
+    {
+      "name": "Seis_equipment__测量设备",
+      "label": "测量设备",
+      "parent": "Seis_equipment",
+      "kind": "subclass",
+      "column": "device_type",
+      "value": "测量设备",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '测量设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "definition": "设备中 device_type 为『测量设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，1 行）。"
+    },
+    {
+      "name": "Seis_equipment__记录设备",
+      "label": "记录设备",
+      "parent": "Seis_equipment",
+      "kind": "subclass",
+      "column": "device_type",
+      "value": "记录设备",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_equipment 的分类列 'device_type' 的真实取值 '记录设备'（命中 1/6 行）；该列取值域 4 个，属可枚举种类",
+      "definition": "设备中 device_type 为『记录设备』的具体种类（依据表 seis_equipment 字段 device_type 的真实取值，1 行）。"
+    },
+    {
+      "name": "Seis_lines__采集中",
+      "label": "采集中",
+      "parent": "Seis_lines",
+      "kind": "subclass",
+      "column": "status",
+      "value": "采集中",
+      "count": 2,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "产线中 status 为『采集中』的具体种类（依据表 seis_lines 字段 status 的真实取值，2 行）。"
+    },
+    {
+      "name": "Seis_lines__设计中",
+      "label": "设计中",
+      "parent": "Seis_lines",
+      "kind": "subclass",
+      "column": "status",
+      "value": "设计中",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '设计中'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "产线中 status 为『设计中』的具体种类（依据表 seis_lines 字段 status 的真实取值，1 行）。"
+    },
+    {
+      "name": "Seis_lines__采集完成",
+      "label": "采集完成",
+      "parent": "Seis_lines",
+      "kind": "subclass",
+      "column": "status",
+      "value": "采集完成",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_lines 的分类列 'status' 的真实取值 '采集完成'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "产线中 status 为『采集完成』的具体种类（依据表 seis_lines 字段 status 的真实取值，1 行）。"
+    },
+    {
+      "name": "Seis_teams__施工中",
+      "label": "施工中",
+      "parent": "Seis_teams",
+      "kind": "subclass",
+      "column": "status",
+      "value": "施工中",
+      "count": 2,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '施工中'（命中 2/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "班组中 status 为『施工中』的具体种类（依据表 seis_teams 字段 status 的真实取值，2 行）。"
+    },
+    {
+      "name": "Seis_teams__休整",
+      "label": "休整",
+      "parent": "Seis_teams",
+      "kind": "subclass",
+      "column": "status",
+      "value": "休整",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '休整'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "班组中 status 为『休整』的具体种类（依据表 seis_teams 字段 status 的真实取值，1 行）。"
+    },
+    {
+      "name": "Seis_teams__设备检修",
+      "label": "设备检修",
+      "parent": "Seis_teams",
+      "kind": "subclass",
+      "column": "status",
+      "value": "设备检修",
+      "count": 1,
+      "rule": "R3-具名子类",
+      "evidence": "依据表 seis_teams 的分类列 'status' 的真实取值 '设备检修'（命中 1/4 行）；该列取值域 3 个，属可枚举种类",
+      "definition": "班组中 status 为『设备检修』的具体种类（依据表 seis_teams 字段 status 的真实取值，1 行）。"
+    }
+  ],
+  "class_hierarchy": [
+    {
+      "name": "Enterprise",
+      "parent": null,
+      "label": "企业",
+      "kind": "root",
+      "rule": "R0-根",
+      "evidence": "国标 GB/T 48000.3 §5.3 规定的根类"
+    },
+    {
+      "name": "BusinessObject",
+      "parent": "Enterprise",
+      "label": "业务对象",
+      "kind": "root",
+      "rule": "R0-根",
+      "evidence": "国标 §5.3 一级派生类：所有业务实体之共同上层类"
+    },
+    {
+      "name": "设备域",
+      "parent": "BusinessObject",
+      "label": "设备域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "表名/列名命中业务域关键词 device, equipment（_DOMAIN_KEYWORDS 命中项）"
+    },
+    {
+      "name": "业务域",
+      "parent": "BusinessObject",
+      "label": "业务域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "实体已声明业务域 '业务域'（domain 字段）"
+    },
+    {
+      "name": "质量域",
+      "parent": "BusinessObject",
+      "label": "质量域",
+      "kind": "domain",
+      "rule": "R1-业务域",
+      "evidence": "表名/列名命中业务域关键词 quality（_DOMAIN_KEYWORDS 命中项）"
+    }
+  ]
+}

@@ -56,20 +56,6 @@
       "lexicon": "lexicon_food.json",
       "nt": "output/food.nt"
     },
-    "valve": {
-      "name": "阀门制造问答",
-      "icon": "🔧",
-      "examples": [
-        "有多少台设备",
-        "功率最大的设备",
-        "设备类型有哪些",
-        "不锈钢材质的设备",
-        "客户总数"
-      ],
-      "data_dir": "data_valve",
-      "lexicon": "lexicon_valve.json",
-      "nt": "output/valve.nt"
-    },
     "chem": {
       "name": "化工企业问答",
       "icon": "🧪",
@@ -594,6 +580,11 @@
       "nt": "output/food_co.nt",
       "lexicon": "lexicon_food_co.json",
       "data_dir": "data_food_co"
+    },
+    "factory_multi_1792136654867": {
+      "nt": "output/factory_multi_1792136654867.nt",
+      "lexicon": "config/lexicon_factory_multi_1792136654867.json",
+      "data_dir": "data"
     }
   }
 }

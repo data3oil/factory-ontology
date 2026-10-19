@@ -97,3 +97,9 @@ docs/20261012_*.md
 
 # AAS 编排层台账词典示例（AAS 模块自定不推远端，示例随之一并留本地）
 codes/config/lexicon_aas_example.json
+
+# 本机运行日志与内部分派台账（不发布）
+_*.log
+.dispatch/
+_dispatch/
+_run_logs/

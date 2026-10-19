@@ -1,48 +1,48 @@
 {
-  "description": "自动生成词典（multi_model, suggest_schema 推断 + LLM 语义聚类同义词 + data profiling 映射）",
+  "description": "自动生成词典（multi_model, suggest_schema 推断 + LLM 语义聚类同义词 + data profiling 映射 + 公共工业词典合并）",
   "attr_cn2en": {
     "编号": "id",
     "设备名称": "device_name",
     "设备类型": "device_type",
-    "owner班组": "owner_team",
-    "specvalue": "spec_value",
-    "specunit": "spec_unit",
+    "负责人班组": "owner_team",
+    "规格value": "spec_value",
+    "规格单位": "spec_unit",
     "状态": "status",
-    "line名称": "line_name",
+    "产线名称": "line_name",
     "区域": "region",
     "shotpoints": "shotpoints",
     "receivers": "receivers",
-    "line编号": "line_id",
-    "shottime": "shot_time",
-    "chargekg": "charge_kg",
-    "depthm": "depth_m",
+    "产线编号": "line_id",
+    "shot_time": "shot_time",
+    "charge_kg": "charge_kg",
+    "depth_m": "depth_m",
     "quality": "quality",
-    "recordlengths": "record_length_s",
+    "record_length_s": "record_length_s",
     "班组名称": "team_name",
     "method": "method",
-    "crewsize": "crew_size"
+    "crew_size": "crew_size"
   },
   "attr_en2cn": {
     "id": "编号",
     "device_name": "设备名称",
     "device_type": "设备类型",
-    "owner_team": "owner班组",
-    "spec_value": "specvalue",
-    "spec_unit": "specunit",
+    "owner_team": "负责人班组",
+    "spec_value": "规格value",
+    "spec_unit": "规格单位",
     "status": "状态",
-    "line_name": "line名称",
+    "line_name": "产线名称",
     "region": "区域",
     "shotpoints": "shotpoints",
     "receivers": "receivers",
-    "line_id": "line编号",
-    "shot_time": "shottime",
-    "charge_kg": "chargekg",
-    "depth_m": "depthm",
+    "line_id": "产线编号",
+    "shot_time": "shot_time",
+    "charge_kg": "charge_kg",
+    "depth_m": "depth_m",
     "quality": "quality",
-    "record_length_s": "recordlengths",
+    "record_length_s": "record_length_s",
     "team_name": "班组名称",
     "method": "method",
-    "crew_size": "crewsize"
+    "crew_size": "crew_size"
   },
   "status_cn2en": {
     "运行中": "running",
@@ -59,13 +59,38 @@
     "设计中": "设计中",
     "施工中": "施工中",
     "休整": "休整",
-    "设备检修": "设备检修"
+    "设备检修": "设备检修",
+    "停止": "stopped",
+    "故障": "alarm"
   },
   "type_cn2en": {
     "激发设备": "激发设备",
     "接收设备": "接收设备",
     "记录设备": "记录设备",
-    "测量设备": "测量设备"
+    "测量设备": "测量设备",
+    "设备": "equipment",
+    "机器": "machine",
+    "电机": "motor",
+    "泵": "pump",
+    "压缩机": "compressor",
+    "空压机": "air_compressor",
+    "机床": "machine_tool",
+    "数控机床": "cnc_machine",
+    "轴承": "bearing",
+    "齿轮": "gear",
+    "减速器": "reducer",
+    "联轴器": "coupling",
+    "传动轴": "drive_shaft",
+    "传感器": "sensor",
+    "执行器": "actuator",
+    "发电机": "generator",
+    "变压器": "transformer",
+    "锅炉": "boiler",
+    "离心泵": "centrifugal_pump",
+    "柱塞泵": "plunger_pump",
+    "齿轮泵": "gear_pump",
+    "螺杆泵": "screw_pump",
+    "隔膜泵": "diaphragm_pump"
   },
   "zone_cn2en": {
     "鄂尔多斯盆地": "鄂尔多斯盆地",
@@ -74,139 +99,98 @@
     "准噶尔盆地": "准噶尔盆地"
   },
   "synonym_map": {
-    "line名称": [
-      "线名称",
-      "测线名称",
-      "线名"
+    "不锈钢": [
+      "304",
+      "316",
+      "cf8",
+      "cf8m",
+      "cf3"
     ],
-    "line编号": [
-      "线编号",
-      "测线编号",
-      "线号"
+    "碳钢": [
+      "wcb",
+      "a105",
+      "20钢",
+      "20"
     ],
-    "owner班组": [
-      "负责班组",
-      "所属班组",
-      "作业班组"
+    "球墨铸铁": [
+      "qt450",
+      "qt400"
     ],
-    "specunit": [
-      "规格单位",
-      "规范单位"
+    "灰铸铁": [
+      "ht200",
+      "ht250"
     ],
-    "specvalue": [
-      "规格值",
-      "规范值"
+    "合金钢": [
+      "wc6",
+      "wc9",
+      "15crmo"
     ],
-    "休整": [
-      "休息",
-      "休整期",
-      "待命"
+    "铜": [
+      "铜合金",
+      "h62",
+      "h59"
     ],
-    "准噶尔盆地": [
-      "准噶尔",
-      "准噶尔坳陷"
+    "电动": [
+      "电装",
+      "z9"
     ],
-    "四川盆地": [
-      "四川",
-      "川中盆地"
+    "气动": [
+      "q6"
     ],
-    "塔里木盆地": [
-      "塔里木",
-      "塔里木坳陷"
+    "电机": [
+      "motor",
+      "马达",
+      "电动机"
     ],
-    "待检修": [
-      "待修",
-      "等待检修",
-      "待维修"
+    "轴承": [
+      "bearing",
+      "滚动轴承",
+      "滑动轴承"
     ],
-    "接收设备": [
-      "接收器",
-      "接收装置",
-      "检波器"
+    "数控机床": [
+      "CNC"
     ],
-    "施工中": [
-      "正在施工",
-      "作业中",
-      "施工进行中"
+    "运行中": [
+      "运行",
+      "正常",
+      "工作中"
     ],
-    "正常": [
-      "正常状态",
-      "良好",
-      "无异常"
+    "待机": [
+      "空闲"
     ],
-    "测量设备": [
-      "测量仪器",
-      "测绘设备",
-      "测量装置"
+    "停止": [
+      "停机"
     ],
-    "激发设备": [
-      "激发装置",
-      "震源设备",
-      "激发器"
+    "故障": [
+      "报警",
+      "异常"
     ],
-    "状态": [
-      "状况",
-      "情形",
-      "状态标识"
+    "维护中": [
+      "维修中",
+      "保养中"
     ],
-    "班组名称": [
-      "班组名",
-      "队组名称",
-      "作业班组名称"
-    ],
-    "编号": [
-      "号码",
-      "代码",
-      "ID"
-    ],
-    "记录设备": [
-      "记录仪",
-      "记录装置",
-      "采集记录设备"
-    ],
-    "设备名称": [
-      "设备名",
-      "装备名称",
-      "机器名称"
-    ],
-    "设备检修": [
-      "设备维修",
-      "检修设备",
-      "设备保养"
-    ],
-    "设备类型": [
-      "设备种类",
-      "设备类别",
-      "装备类型"
-    ],
-    "设计中": [
-      "设计阶段",
-      "正在设计",
-      "设计状态"
-    ],
-    "鄂尔多斯盆地": [
-      "鄂尔多斯",
-      "陕甘宁盆地"
-    ],
-    "采集中": [
-      "正在采集",
-      "采集进行中",
-      "数据采集中"
-    ],
-    "采集完成": [
-      "采集完毕",
-      "已完成采集",
-      "采集结束"
+    "原料": [
+      "原材料"
     ]
   },
   "entity_cn2en": {
     "设备": "seis_equipment",
-    "地震设备": "seis_equipment",
     "测线": "seis_lines",
+    "产线": "seis_lines",
     "炮点": "seis_shots",
-    "地震队": "seis_teams"
+    "班组": "seis_teams",
+    "产品": "product",
+    "客户": "customer",
+    "供应商": "supplier",
+    "批次": "batch",
+    "原料": "raw_material",
+    "订单": "order",
+    "销售": "sale",
+    "质检": "qc",
+    "库存": "inventory"
   },
   "numeric_fields": {
+    "规格value": "spec_value",
     "炮点数": "shotpoints",
     "检波点数": "receivers",
     "药量": "charge_kg",
@@ -228,5 +212,31 @@
       "name"
     ]
   },
-  "value_fields": []
+  "value_fields": [],
+  "_public_dict_merged": true,
+  "_industry": null,
+  "fault_cn2en": {
+    "内圈故障": "inner_race_fault",
+    "外圈故障": "outer_race_fault",
+    "滚动体故障": "rolling_element_fault",
+    "保持架故障": "cage_fault",
+    "轴承故障": "bearing_fault",
+    "磨损": "wear",
+    "疲劳": "fatigue",
+    "断裂": "fracture",
+    "腐蚀": "corrosion",
+    "卡滞": "sticking",
+    "泄漏": "leakage",
+    "密封失效": "seal_failure",
+    "过热": "overheating",
+    "短路": "short_circuit",
+    "绝缘失效": "insulation_failure",
+    "接触不良": "poor_contact",
+    "振动超标": "excess_vibration",
+    "压力异常": "abnormal_pressure",
+    "温度异常": "abnormal_temperature",
+    "流量异常": "abnormal_flow"
+  },
+  "rolled_back_from": 2,
+  "rolled_back_to": 1
 }
