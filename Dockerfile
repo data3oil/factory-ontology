@@ -1,4 +1,4 @@
-# 食品企业知识库 API 镜像
+# factory-ontology API 镜像
 # 构建: docker build -t factory-ontology-api .
 # 运行: docker compose up -d   (见 docker-compose.yml)
 FROM python:3.11-slim

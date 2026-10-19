@@ -1,16 +1,16 @@
 # factory-ontology
 
 > ⭐ **觉得有用就给我们一个 Star** —— 开源维护靠社区支持，你的 Star 让这个项目被更多人看见。
-> [![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology?style=social)](https://github.com/zhengjinjun1975/factory-ontology)
+> [![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology?style=social)](https://github.com/data3oil/factory-ontology)
 
 **工厂本体驱动的数据问答框架。** 把结构化台账变成可自然语言提问的语义知识图谱，CSV 进，答案出，每个答案都带证据。
 
 [![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
-[![CI](https://github.com/zhengjinjun1975/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/zhengjinjun1975/factory-ontology/actions)
-[![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology)](https://github.com/zhengjinjun1975/factory-ontology)
-[![GitHub forks](https://img.shields.io/github/forks/zhengjinjun1975/factory-ontology)](https://github.com/zhengjinjun1975/factory-ontology)
+[![CI](https://github.com/data3oil/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/data3oil/factory-ontology/actions)
+[![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
+[![GitHub forks](https://img.shields.io/github/forks/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
 
 **它能帮你解决**：
 - 🏭 **数据看不懂** → 业务人员用自然语言问"报警的空压机有几台"，不用 SQL
@@ -21,6 +21,8 @@
 **30 秒上手**：`python run.py setup data_valve/ && python run.py ask "有多少台设备"`
 
 大模型很聪明，但它不认识你的数据表。把台账直接丢给 LLM，它编起数字来理直气壮。这个仓库的做法很朴素：先让数据自己说话，再让模型在数据划定的圈子里回答。本体就是这个圈子。
+
+**在真实工厂里跑起来**：三油科技（data3oil.com）用这套原子在石油石化、精细化工、阀门制造等现场做落地实施——从 CSV 台账建模，到现场人员用自然语言问数据，到答案带证据回到决策桌上。想看这套东西在真实约束下怎么用（数据脏、没人标、验收没标准），以及需要人机分工怎么设计，读 [官网案例](https://www.data3oil.com) 或公众号「AI驱动数字化转型」。
 
 > **原子化定位**：本仓库是**本体认知原子**底座（schema 驱动建模 + 规则问答 + 本体约束），并组合提供 **rag 原子**（本体引导 GraphRAG + 向量混合检索）与 **事件原子**（数据变更事件），共同构成一套可复用、可组合、可被闭源侧编排的**开源算法原子层**。换工厂只换「域」（数据/词典/schema），原子代码不动。
 
@@ -577,11 +579,24 @@ start.bat      # Windows
 
 如果你觉得 factory-ontology 有用，请花 3 秒给我们一个 **Star**：
 
-[![GitHub stars](https://img.shields.io/github/stars/zhengjinjun1975/factory-ontology?style=social)](https://github.com/zhengjinjun1975/factory-ontology) ⬅️ 点这里
+[![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology?style=social)](https://github.com/data3oil/factory-ontology) ⬅️ 点这里
 
 **Star 的意义**：
 - 让更多需要"工厂数据问答"的人找到这个项目
 - 激励我们持续迭代（新行业词典、问答能力、GraphRAG 增强）
 - 开源维护者最需要的正向反馈
 
-**反馈与贡献**：有问题提 [Issue](https://github.com/zhengjinjun1975/factory-ontology/issues)，有想法提交 PR，欢迎一起把工厂数据问答做得更好。
+**反馈与贡献**：有问题提 [Issue](https://github.com/data3oil/factory-ontology/issues)，有想法提交 PR，欢迎一起把工厂数据问答做得更好。
+
+## 谁在维护
+
+本仓库由**三油科技**（data3oil.com）维护和维护方联系：
+
+- **维护方**：北京三油科技有限责任公司 —— 制造业一线的 AI 落地实施
+- **官网**：https://www.data3oil.com
+- **技术观察与落地手记**：公众号「AI驱动数字化转型」
+- **授权与合作**：商业授权、行业落地实施、技术咨询，均可通过官网 Issue 或公众号联系
+
+**仓库归属与授权**：本仓库著作权归北京三油科技有限责任公司所有，以 Apache-2.0 授权开源（见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)）。任何组织或个人可自由下载、部署、修改、商用，无需申请许可；「三油科技」「data3oil」商标与服务标识不随本授权授予（Apache-2.0 第 6 条）。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告，不要开公开 Issue。
+
+**关于数据**：仓库不接收任何真实工厂数据入库，入库示例一律为合成数据（见贡献指南）。若你在使用中发现数据外传风险，请直接提 Issue，这属于最高优先级问题。

@@ -1,7 +1,32 @@
 NOTICE
 ======
 
-factory-ontology is licensed under Apache License 2.0 (see LICENSE).
+factory-ontology
+Copyright 2026 北京三油科技有限责任公司（Beijing Sanyou Technology Co., Ltd.）
+官网 https://www.data3oil.com
+
+本项目（含本仓库全部原创代码、文档与示例数据）的著作权归北京三油科技有限责任公司所有，
+以 Apache License 2.0 授权开源（全文见 LICENSE）。任何组织或个人可依该许可证自由使用、
+修改、分发与商用，无需另行申请；使用时不强制署名，但保留本 NOTICE 与 LICENSE 是
+Apache License 2.0 第 4 条(d) 的义务。
+
+## 归属与维护主体
+
+- 著作权人：北京三油科技有限责任公司
+- 维护方：北京三油科技有限责任公司
+- 代码托管：https://github.com/data3oil/factory-ontology
+- 联系：见 README「谁在维护」；安全类问题请走 SECURITY.md 的私下渠道
+
+本仓库曾以个人账号名义发布（zhengjinjun1975/factory-ontology）。自本 NOTICE 生效起，
+著作权与维护主体统一为北京三油科技有限责任公司；此前发布版本的著作权同属本公司，
+其所附 Apache-2.0 许可条件不变。
+
+## 商标与服务标识
+
+「三油科技」「data3oil」文字与标识为北京三油科技有限责任公司的商标/服务标识。
+Apache License 2.0 第 6 条不授予商标权：你可以自由使用、修改、分发本软件，
+但不得以我方商标、产品名或域名暗示背书、认证或官方关联。如实描述来源
+（例如「基于 factory-ontology 构建」）不受此限制。
 
 ## 开源算法原子层声明
 
@@ -12,6 +37,7 @@ factory-ontology is licensed under Apache License 2.0 (see LICENSE).
 - 免费：本仓库算法不设任何付费门槛，可自由下载与自部署。
 - 数据不出厂：建模、问答、评测、交付的数据流全在工厂本地完成，本仓库不采集、不上传任何用户数据。
 - 编排边界：自动化编排、人在环、反馈学习等属闭源侧服务，不在本仓库开源范围内，亦不随本仓库分发。
+- 本仓库不包含任何真实工厂/客户数据；示例数据均为合成数据或公开数据集。
 
 ## 借鉴声明与致谢
 
@@ -36,3 +62,33 @@ factory-ontology is licensed under Apache License 2.0 (see LICENSE).
      此为机制级方法借鉴，非代码复制。
 
 以上项目的许可全文见各来源仓库 LICENSE 文件。本项目的实现代码为独立原创。
+
+## 第三方依赖与许可（不随本仓库分发）
+
+本仓库只声明依赖，不打包第三方代码；用户经 pip 安装的第三方包，其许可义务由各自
+项目承担。下表为核对基准（2026-10-19 依本机安装元数据核对；未安装者标注待复核）：
+
+| 依赖 | 位置 | 许可 |
+|---|---|---|
+| fastapi | requirements.txt | MIT |
+| uvicorn | requirements.txt | BSD-3-Clause |
+| pydantic | requirements.txt | MIT |
+| requests | requirements.txt | Apache-2.0 |
+| python-multipart | requirements.txt | Apache-2.0 |
+| httpx | requirements.txt | BSD-3-Clause |
+| pytest | requirements-dev.txt | MIT |
+| pdfplumber | requirements-optional.txt | MIT |
+| python-docx | requirements-optional.txt | MIT |
+| openpyxl | requirements-optional.txt | MIT |
+| pymysql | requirements-optional.txt | MIT |
+| numpy | requirements-optional.txt | BSD-3-Clause |
+| psycopg2-binary | requirements-optional.txt | LGPL-3.0（待复核） |
+| faster-whisper | requirements-optional.txt | MIT（待复核） |
+| sounddevice | requirements-optional.txt | MIT（待复核） |
+| pymupdf | requirements-optional.txt | AGPL-3.0（强 copyleft，已实测核对） |
+| edge-tts | requirements-optional.txt | GPL-3.0（强 copyleft，待复核） |
+
+合规提示（对我方与二次分发方同样适用）：官方 Docker 镜像只安装 requirements.txt
+（核心依赖），不含上述可选包。若把 pymupdf 或 edge-tts 一并放进**闭源分发物**
+（打包安装包、容器镜像、私有化交付包），该分发物可能须按 AGPL/GPL 承担源码开放义务。
+需要文档解析与语音能力时，建议由最终用户在自己的环境安装，或换用宽松许可的替代实现。
