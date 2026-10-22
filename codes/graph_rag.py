@@ -406,6 +406,7 @@ def answer_graph(question, nt_file, depth=1, max_nodes=40, model_key=None, lexic
         f"请只依据上图信息回答问题: {question}\n"
         "只依据提供的子图事实回答，不编造不在图中的关系、实体或属性值。"
         "如果图中信息不足，如实说明。不要编造。"
+        "直接给出答案，不要输出思考过程、推理步骤或自我说明。"
     )
     temp = _pick_temperature(question)  # 动态调温：精确/极值/计数→0.2，开放解释→0.7，其余→0.4
     ans = llm_generate(prompt, temperature=temp, max_tokens=400, model_key=model_key)

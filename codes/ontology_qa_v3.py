@@ -36,6 +36,9 @@ from collections import defaultdict
 # 词典数据收敛到 lexicon.py 唯一数据源（P1-7），仅持有只读引用，消除跨文件重复漂移。
 from lexicon import get_attr_cn_aliases, get_common_zh_status, get_entity_cn2uri
 
+# 未命中哨兵/关键词表的单一真相源(B3 收口): 不再在本文件写字面量。
+from qa_constants import MISS_ANSWER, MISS_MARKERS
+
 
 # ------------------------------------------------------------------ 词典加载
 
@@ -1356,7 +1359,7 @@ def answer(q, data, D):
         _has_entity_ref = any(cn in q for cn in (D.get("entity_cn2en", {}) or {}))
         _has_attr_ref = any(cn in q for cn in (D.get("attr_cn2en", {}) or {}))
         if _has_abstract and not _has_entity_ref and not _has_attr_ref:
-            return "暂不支持该问题"
+            return MISS_ANSWER
         sub = _entity_subset(q, D, data)  # 极值消歧(P1): 只在该实体类实例中求极值
         items = [(d, _num(_field(d, attr_en, aliases))) for d in sub.values()]
         items = [(d, v) for d, v in items if v is not None]
@@ -1510,13 +1513,12 @@ def answer(q, data, D):
             return "无相关数据，该知识库不含所问的实体概念"
         return "一共有 %d 条记录" % len(data)
 
-    return "暂不支持该问题"
+    return MISS_ANSWER
 
 
 # ------------------------------------------------------------------ 统一问答信封(批 2)
 # 未命中/无据话术标记（与批 1 评测口径一致：未命中 = 引擎拒答/无据，≠ 误答/编造）。
-_MISS_MARKERS = ("暂不支持", "无相关数据", "未找到", "没有找到", "不含所问", "无法回答",
-                 "未收录", "无该", "不存在")
+_MISS_MARKERS = MISS_MARKERS  # 单一真相源见 qa_constants.py(B3 收口)
 # "裸实体计数/总数"问句形态（有多少个X / X总数）——此类问句若跨域或计数为 0，
 # 说明库中并无该实体，应如实说未命中，而非回填"0"。
 _BARE_COUNT_RE = re.compile(r"(有多少个?|多少个|共多少|有多少|总数)[\u4e00-\u9fff]{0,8}$")

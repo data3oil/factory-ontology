@@ -28,6 +28,8 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 
+from qa_constants import MISS_ANSWER, is_miss_answer  # noqa: E402  未命中哨兵单一真相源(B3 收口)
+
 
 def _read_app_version():
     """版本单一事实源 = codes/run.py 的 __version__。
@@ -1782,7 +1784,7 @@ def _ask_impl(req: AskReq):
     _schema = {"namespace": f"http://factory.example/{ctx['kb']}#"}  # 证据 IRI 补全(按 kb 命名空间)
     # 1. 规则引擎(确定性, 结构化查询) + LLM 润色 + RAG+本体融合
     ans = v3.answer(q, QDATA, D)
-    if ans != "暂不支持该问题":
+    if not is_miss_answer(ans):
         try:
             import evidence
             raw_ev = evidence.extract_evidence(q, QDATA, D, ans)

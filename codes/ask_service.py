@@ -17,6 +17,8 @@ api_server.py 保留: 路由 + 鉴权 + _ask_impl 编排 + 多租户 ctx 缓存 
 import os
 import re
 
+from qa_constants import MISS_MARKERS  # 未命中关键词表单一真相源(B3 收口)
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 _KB_ROOT = os.path.join(ROOT, "output", "kb_store")
 
@@ -81,7 +83,7 @@ def _polish_rule_answer(question, raw_answer):
             "请改写为简洁、自然的中文回答(可加'当前知识库中/根据设备台账'等轻量衔接), "
             "保持问答助手口吻, 不要文学化。\n"
             f"用户问题: {question}\n确定性查询结果: {raw_answer}\n"
-            "请只输出润色后的回答, 不要解释。"
+            "请只输出润色后的回答本身, 不要解释, 不要输出任何思考过程、推理步骤或'我先看…'式自我说明。"
         )
         polished = llm_generate(prompt, temperature=0.1, max_tokens=300)
         if polished and not polished.startswith("["):
@@ -269,8 +271,7 @@ def _doc_rag_fallback(question, kb):
 
 # ── 统一问答信封(批 2)：把既有返回扩成 {answer, hit, reason, evidence[], advisory?} ──
 # 未命中/无据话术标记（与 ontology_qa_v3 口径一致）
-_ENV_MISS_MARKERS = ("暂不支持", "无相关数据", "未找到", "没有找到", "不含所问", "无法回答",
-                     "未收录", "无该", "不存在", "未找到与这个问题直接对应的数据")
+_ENV_MISS_MARKERS = MISS_MARKERS  # 单一真相源见 qa_constants.py(B3 收口)
 _ENV_KINDS = ("entity", "relation", "dict", "doc")
 
 
