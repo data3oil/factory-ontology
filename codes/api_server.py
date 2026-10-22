@@ -22,6 +22,7 @@ import shutil
 import hashlib
 import logging
 import threading
+import concurrent.futures
 from datetime import datetime
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -528,7 +529,9 @@ li{{margin:6px 0}} .foot{{color:#94a3b8;font-size:12px;margin-top:24px}}</style>
 
 
 class AskReq(BaseModel):
-    question: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+    question: str = Field(..., min_length=1, max_length=2000,
+                          description="用户问题(1-2000字, 首尾空白自动去除)")
     kb: str = ""  # 多租户: 指定知识库; 缺省用 FOOD_KB(默认 food), 兼容旧调用
     fuse_docs: bool = True  # RAG+本体融合: 结构化命中时是否并行检索文档补充细节/溯源(One Query 全答)
     context: dict = None  # 会话上下文(可选): 供指代消解/实体消歧, 形如 {"entity": "P005"}
@@ -1753,6 +1756,15 @@ def app_config():
 
 
 # ── 问答融合辅助逻辑已拆分至 ask_service.py(P2) ─────────────────────────
+# P1 稳定性: 问答整体超时保护。ask 端点在线程池中调用 _ask_impl,
+# 用有界 executor + future.result(timeout) 防止单请求在 BM25/向量全扫描或
+# LLM 调用上长时间挂死、拖垮整个 /api/ask 链路。超时返回确定性提示,
+# 后台线程跑完自动归还(有界池, 不会无限泄漏)。
+_ASK_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
+    max_workers=4, thread_name_prefix="ask")
+ASK_TIMEOUT = 30  # 秒
+
+
 def _ask_impl(req: AskReq):
     """问答引擎实现(供 ask 端点包装审计后调用)。"""
     ctx = _get_kb_ctx(req.kb)
@@ -2061,7 +2073,24 @@ def ask(req: AskReq):
         except Exception as e:
             note_swallow("ask", e)
             pass
-    result = _ask_impl(req)
+    try:
+        _fut = _ASK_EXECUTOR.submit(_ask_impl, req)
+        result = _fut.result(timeout=ASK_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        logger.warning("问答处理超时(%ss): %s", ASK_TIMEOUT, (req.question or "")[:80])
+        _kb = req.kb or KB_NAME
+        result = {"ok": True, "mode": "miss",
+                  "answer": "问题较复杂，处理超时，请简化问题描述或稍后重试。",
+                  "evidence": [], "engines": [], "structured": None,
+                  "no_basis": True, "confidence": "none", "kb": _kb}
+    except Exception as _e:
+        logger.warning("问答异常: %s", _e, exc_info=True)
+        from ask_service import no_basis_reply as _nb
+        _kb = req.kb or KB_NAME
+        result = {"ok": True, "mode": "miss",
+                  "answer": _nb(KBS.get(_kb, {}).get("name", "知识库")),
+                  "evidence": [], "engines": [], "structured": None,
+                  "no_basis": True, "confidence": "none", "kb": _kb}
     # 统一出口净化: 任何引擎的 LLM 出口都可能把推理独白当答案(见 _strip_reasoning_leak)。
     # 放在这里一次判完, 不必逐个引擎去堵。
     try:

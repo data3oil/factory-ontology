@@ -14,6 +14,17 @@ _ENTITY_WORDS = ("产品", "设备", "客户", "批次", "原料", "订单",
                  "班组", "供应商", "库存")
 _ANAPHORA = ("它", "该", "这个", "上述", "此", "其")
 
+# 含单字代词("此"/"其")的常见连词/多字词。若直接对单字做指代替换, 会把它们拆坏
+# (如 "因此"->"因<实体>"、 "其中"->"<实体>中")。替换前用占位符保护, 替换后还原。
+_ANAPHORA_PROTECT = (
+    # 含"此"
+    "因此", "如此", "彼此", "至此", "故此", "此外", "此时", "此后", "此前",
+    "此间", "此等", "此番", "此致", "据此", "由此", "特此",
+    # 含"其"
+    "其中", "其实", "其次", "其他", "其余", "其后", "其间", "尤其", "极其",
+    "与其", "惟其",
+)
+
 
 def _intent(q):
     for w in _ADVICE:
@@ -50,6 +61,14 @@ def _resolve(q, ctx):
         return q
     if not any(a in q for a in _ANAPHORA):
         return q
+    # 保护含单字代词的连词(因此/其中/其实...), 避免 "因此"->"因<实体>" 误替。
+    # 用占位符临时替换, 指代替换完成后再还原。占位符不含中文字, 不会被单字代词命中。
+    _protected = []
+    for _w in _ANAPHORA_PROTECT:
+        if _w in q:
+            _tok = "\x00%d\x00" % len(_protected)
+            q = q.replace(_w, _tok)
+            _protected.append(_w)
     # 取文本中出现位置最早的指代词(而非按 _ANAPHORA 元组声明顺序),
     # 修 "这个它的库存" 先替 "它" 的位置错乱(应按句中首现的指代词替换)。
     best_pos, best_a = -1, None
@@ -59,7 +78,11 @@ def _resolve(q, ctx):
             best_pos, best_a = p, a
     if best_a is None:
         return q
-    return q[:best_pos] + rep + q[best_pos + len(best_a):]
+    q = q[:best_pos] + rep + q[best_pos + len(best_a):]
+    # 还原被保护的连词
+    for i, _w in enumerate(_protected):
+        q = q.replace("\x00%d\x00" % i, _w)
+    return q
 
 
 def understand(q, D, ctx=None):
