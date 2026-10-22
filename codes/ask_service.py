@@ -98,9 +98,10 @@ def _polish_rule_answer(question, raw_answer):
             _gap_ok = len(_re.findall(_gap, polished)) <= len(_re.findall(_gap, str(raw_answer)))
             # 单位也必须原样保留。数字管住了还不够: "0.6MPa" 被润色成 "0.6 兆帕",
             # 数字还在、意思还对, 但用户要看的是原始单位, 且判分/引用都会对不上。
-            # 原文里的拉丁单位串(MPa/kW/℃/L…)必须原样出现在润色结果里。
-            _units = [u for u in _re.findall(r"[A-Za-z][A-Za-z0-9%°/]{1,7}", str(raw_answer))
-                      if not u.isascii() or len(u) >= 2]
+            # 数据问答里单位即含义, 尤其 L/V/A/W/m/g 等单字母单位。原正则
+            # [A-Za-z][A-Za-z0-9%°/]{1,7} 至少 2 字符, 单字母单位根本抓不到("200L桶"被改坏不报警)。
+            # 改为抓"紧贴数字后的拉丁字母串"(含单字母), 且用 (?<=\d) 限定紧贴数字, 避免把普通字母当单位。
+            _units = _re.findall(r"(?<=\d)[A-Za-z%°℃/][A-Za-z0-9%°℃/]*", str(raw_answer))
             _unit_ok = all(u in polished for u in _units)
             if _gap_ok and _unit_ok and all(_re.search(r"(?<!\d)" + _re.escape(n) + r"(?!\d)", polished) for n in _nums):
                 return polished.strip()

@@ -11,7 +11,10 @@ _ADVICE = ("注意事项", "注意", "建议", "如何", "怎么", "风险", "�
 _DATA = ("数量", "多少", "哪些", "几个", "几条", "最大", "最小", "最长",
          "最短", "分布", "统计", "平均", "合计", "列出", "排名")
 _ENTITY_WORDS = ("产品", "设备", "客户", "批次", "原料", "订单",
-                 "班组", "供应商", "库存")
+                 "班组", "供应商", "库存",
+                 # 与引擎层 ontology_qa_v3._MEASURE 对齐, 修查询理解层实体词表漂移:
+                 # 测线/炮点 是工厂本体明确支持的实体类; 项目/船/图书/质检 由 data profiling 登记。
+                 "测线", "炮点", "项目", "船", "图书", "质检")
 _ANAPHORA = ("它", "该", "这个", "上述", "此", "其")
 
 # 含单字代词("此"/"其")的常见连词/多字词。若直接对单字做指代替换, 会把它们拆坏
@@ -43,7 +46,14 @@ def _entities(q, D):
         m = D.get("entity_cn2en")
         if isinstance(m, dict):
             cn2en = m
-    for w in _ENTITY_WORDS:
+    # 静态基线实体类 ∪ KB profiling 动态实体类(建库时登记), 二者并集,
+    # 避免查询理解层与引擎层(ontology_qa_v3._MEASURE)实体词表漂移。
+    # 动态类(如 测线/炮点/船/项目/质检)覆盖静态表滞后, 保证指代/意图口径一致。
+    _seen = set()
+    for w in list(_ENTITY_WORDS) + list(cn2en.keys()):
+        if not w or w in _seen:
+            continue
+        _seen.add(w)
         if w in q:
             out.append({"mention": w, "class": cn2en.get(w)})
     return out
