@@ -17,6 +17,8 @@ api_server.py 保留: 路由 + 鉴权 + _ask_impl 编排 + 多租户 ctx 缓存 
 import os
 import re
 
+from qa_constants import MISS_MARKERS  # 未命中关键词表单一真相源(B3 收口)
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 _KB_ROOT = os.path.join(ROOT, "output", "kb_store")
 
@@ -81,7 +83,7 @@ def _polish_rule_answer(question, raw_answer):
             "请改写为简洁、自然的中文回答(可加'当前知识库中/根据设备台账'等轻量衔接), "
             "保持问答助手口吻, 不要文学化。\n"
             f"用户问题: {question}\n确定性查询结果: {raw_answer}\n"
-            "请只输出润色后的回答, 不要解释。"
+            "请只输出润色后的回答本身, 不要解释, 不要输出任何思考过程、推理步骤或'我先看…'式自我说明。"
         )
         polished = llm_generate(prompt, temperature=0.1, max_tokens=300)
         if polished and not polished.startswith("["):
@@ -98,9 +100,10 @@ def _polish_rule_answer(question, raw_answer):
             _gap_ok = len(_re.findall(_gap, polished)) <= len(_re.findall(_gap, str(raw_answer)))
             # 单位也必须原样保留。数字管住了还不够: "0.6MPa" 被润色成 "0.6 兆帕",
             # 数字还在、意思还对, 但用户要看的是原始单位, 且判分/引用都会对不上。
-            # 原文里的拉丁单位串(MPa/kW/℃/L…)必须原样出现在润色结果里。
-            _units = [u for u in _re.findall(r"[A-Za-z][A-Za-z0-9%°/]{1,7}", str(raw_answer))
-                      if not u.isascii() or len(u) >= 2]
+            # 数据问答里单位即含义, 尤其 L/V/A/W/m/g 等单字母单位。原正则
+            # [A-Za-z][A-Za-z0-9%°/]{1,7} 至少 2 字符, 单字母单位根本抓不到("200L桶"被改坏不报警)。
+            # 改为抓"紧贴数字后的拉丁字母串"(含单字母), 且用 (?<=\d) 限定紧贴数字, 避免把普通字母当单位。
+            _units = _re.findall(r"(?<=\d)[A-Za-z%°℃/][A-Za-z0-9%°℃/]*", str(raw_answer))
             _unit_ok = all(u in polished for u in _units)
             if _gap_ok and _unit_ok and all(_re.search(r"(?<!\d)" + _re.escape(n) + r"(?!\d)", polished) for n in _nums):
                 return polished.strip()
@@ -268,8 +271,7 @@ def _doc_rag_fallback(question, kb):
 
 # ── 统一问答信封(批 2)：把既有返回扩成 {answer, hit, reason, evidence[], advisory?} ──
 # 未命中/无据话术标记（与 ontology_qa_v3 口径一致）
-_ENV_MISS_MARKERS = ("暂不支持", "无相关数据", "未找到", "没有找到", "不含所问", "无法回答",
-                     "未收录", "无该", "不存在", "未找到与这个问题直接对应的数据")
+_ENV_MISS_MARKERS = MISS_MARKERS  # 单一真相源见 qa_constants.py(B3 收口)
 _ENV_KINDS = ("entity", "relation", "dict", "doc")
 
 

@@ -21,6 +21,8 @@ import json
 import os
 import importlib.util
 
+from qa_constants import MISS_ANSWER  # 未命中哨兵单一真相源(B3 收口)
+
 # ── 复用核心逻辑：加载 KB 数据（与 api_server 一致）──
 def _load_ontology():
     import ontology_qa_v3 as v3
@@ -111,7 +113,7 @@ def _ask(question: str) -> dict:
     """完整问答链路：规则 → 逻辑桥 → GraphRAG → BM25 混合 → miss。"""
     # 1 规则
     ans = v3.answer(question, QDATA, DICT)
-    if ans != "暂不支持该问题":
+    if ans != MISS_ANSWER:
         return {"mode": "rule", "answer": ans}
     # 2 逻辑桥
     try:

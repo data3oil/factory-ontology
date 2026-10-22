@@ -19,6 +19,9 @@ __version__ = "0.5.0"
 import importlib.util
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+from qa_constants import MISS_ANSWER  # noqa: E402  未命中哨兵单一真相源(B3 收口)
 OUT = os.path.join(ROOT, "output")
 CFG = os.path.join(ROOT, "config")
 STATE = os.path.join(ROOT, "current.json")
@@ -232,7 +235,7 @@ def ask(question, nt=None, lex=None):
     if not data:
         print("本体无实例"); return
     ans = v3.answer(question, data, D)
-    if ans == "暂不支持该问题":
+    if ans == MISS_ANSWER:
         # 图检索兜底(与 API 层一致): 开放式/关系问题走 GraphRAG
         from graph_rag import answer_graph, build_graph
         gans, _ = answer_graph(question, nt)

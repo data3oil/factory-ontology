@@ -28,6 +28,8 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 
+from qa_constants import MISS_ANSWER, is_miss_answer  # noqa: E402  未命中哨兵单一真相源(B3 收口)
+
 
 def _read_app_version():
     """版本单一事实源 = codes/run.py 的 __version__。
@@ -1782,7 +1784,7 @@ def _ask_impl(req: AskReq):
     _schema = {"namespace": f"http://factory.example/{ctx['kb']}#"}  # 证据 IRI 补全(按 kb 命名空间)
     # 1. 规则引擎(确定性, 结构化查询) + LLM 润色 + RAG+本体融合
     ans = v3.answer(q, QDATA, D)
-    if ans != "暂不支持该问题":
+    if not is_miss_answer(ans):
         try:
             import evidence
             raw_ev = evidence.extract_evidence(q, QDATA, D, ans)
@@ -1925,13 +1927,25 @@ def _ask_impl(req: AskReq):
         from bm25_retrieval import BM25Index, HYBRID_CFG, rrf_fuse
         from vector_retrieval import VectorIndex
         bm_key, vec_key = f"bm25_{ctx['kb']}", f"vec_{ctx['kb']}"
-        if bm_key not in _KB_INDEX_CACHE:
-            _KB_INDEX_CACHE[bm_key] = BM25Index.from_graph(graph)
-        if vec_key not in _KB_INDEX_CACHE:
-            _KB_INDEX_CACHE[vec_key] = VectorIndex.from_graph(graph, lexicon=D)
+        # 索引缓存自校验文件指纹(nt/词典 mtime+size), 不依赖 _invalidate_kb 钩子。
+        # 修"带外改图(如 evolve 节点/词典热改)不走 rebuild 时 BM25/向量索引 stale"的缺口:
+        # 旧逻辑仅按 kb 名 key 且只判 `not in 缓存`, 图变了但缓存键仍在就一直用旧索引。
+        _idx_fp = (_file_fingerprint(ctx.get("nt_file")), _file_fingerprint(ctx.get("lex_file")))
+        _bm_cached = _KB_INDEX_CACHE.get(bm_key)
+        if not (_bm_cached and _bm_cached[1] == _idx_fp):
+            _bm_idx = BM25Index.from_graph(graph)
+            _KB_INDEX_CACHE[bm_key] = (_bm_idx, _idx_fp)
+        else:
+            _bm_idx = _bm_cached[0]
+        _vec_cached = _KB_INDEX_CACHE.get(vec_key)
+        if not (_vec_cached and _vec_cached[1] == _idx_fp):
+            _vec_idx = VectorIndex.from_graph(graph, lexicon=D)
+            _KB_INDEX_CACHE[vec_key] = (_vec_idx, _idx_fp)
+        else:
+            _vec_idx = _vec_cached[0]
         _b, _v = HYBRID_CFG["bm25"], HYBRID_CFG["vector"]
-        bm_hits = _KB_INDEX_CACHE[bm_key].search(q, top_k=_b["top_k"], min_score=_b["min_score"])
-        vec_hits = _KB_INDEX_CACHE[vec_key].search(q, top_k=_v["top_k"], min_score=_v["min_score"])
+        bm_hits = _bm_idx.search(q, top_k=_b["top_k"], min_score=_b["min_score"])
+        vec_hits = _vec_idx.search(q, top_k=_v["top_k"], min_score=_v["min_score"])
         fused = rrf_fuse(bm_hits, vec_hits, HYBRID_CFG)
         if fused:
             # 记录实际命中的引擎: bm25 / vector
@@ -2037,20 +2051,31 @@ def _strip_reasoning_leak(ans):
       "先确认问题：…看子图，原料的库存是 decimal 类型，但图中没有直接给出…"
     这些是模型的思考过程，用户看到会困惑，且每处都要单独堵、说法还总在变。
 
-    所以不逐个堵引擎，在这个统一出口判一次：答案里出现**只可能来自内部实现**的词
-    (子图/知识图谱/decimal/属性类型/"没有给任何"…)，或呈现"先…再…"的自述结构，
-    就判定为泄漏，退化为确定性话术。
+    不逐个堵引擎，在这个统一出口判一次。判定分三层(任一命中即视为泄漏, 退化确定性话术):
+      1) 内部实现词: 只可能来自系统内部(子图/知识图谱/decimal/三元组/SPARQL/推理链…)
+      2) 自述/过程性起手式: "先…/让我…/我需要…" 或 第一人称+动作动词(换说法也能抓)
+      3) 元说明/能力声明: "我无法/我不能确定/作为一个模型/需要说明的是…"(不是答案本身)
+    注: 仍是启发式闸, 不能保证 100% 拦截所有换说法绕过(已知局限); 宁可误拒也不泄露独白。
     """
     s = str(ans or "").strip()
     if not s:
         return s
-    _INTERNAL = ("子图", "知识图谱", "decimal", "实体定义", "属性定义", "三元组",
+    # 1) 内部实现词(只可能来自系统内部, 用户不可能看到这些概念)
+    _INTERNAL = ("子图", "知识图谱", "三元组", "decimal", "实体定义", "属性定义",
                  "没有给任何", "没给具体数值", "先确认问题", "先问一句", "先数",
-                 "让我先", "我先看", "第一步", "思考过程", "knowledge graph")
+                 "让我先", "我先看", "第一步", "思考过程", "knowledge graph",
+                 "SPARQL", "推理链", "检索到的结果", "调用了", "接口返回",
+                 "根据我的检索", "图谱中", "本体中", "边(", "schema")
     if any(w in s for w in _INTERNAL):
         return None
-    # "先…看…" 开头的自述句（模型独白的典型起手式）
-    if re.match(r"^\s*(先|首先|让我|我需要|我来)", s) and len(s) > 40:
+    # 2) 自述/过程性起手式(模型独白典型起手, 保留原阈值)
+    if re.match(r"^\s*(先|首先|让我|我需要|我来|我们先)", s) and len(s) > 40:
+        return None
+    # 2b) 第一人称 + 动作动词(换说法也能抓: "我看了一下" / "我们检查了" / "我们分析了")
+    if re.search(r"(?:^|\s)(我|我们|作为\s*AI|作为一个?模型)\s*(先|先要|需要|来|看|检查|确认|认为|觉得|发现|理解|分析|尝试|总结|梳理)", s) and len(s) > 30:
+        return None
+    # 3) 元说明 / 能力声明(不是答案, 是模型的自我陈述)
+    if re.search(r"(我\s*(无法|不能|没有|不确定|不知道|不具备)|作为一个?模型|需要说明的是|需要注意的是，我|很抱歉，我)", s):
         return None
     return s
 
