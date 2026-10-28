@@ -217,9 +217,15 @@ export function me(token) {
 export function seedUsersIfEmpty() {
   const users = loadUsers();
   if (Object.keys(users).length > 0) return;
-// 预置两个企业账号：
-  //  - admin / admin123：已 onboard，绑定额外阀 kb=valve（复用现成 data_valve 示例，登录即见企业系统）
-//  - demo  / demo123：新企业未配置，用于新企业引导流程
-createUser({ username: 'admin', password: 'admin123', enterpriseName: '某某制造有限公司', logo: '🏭', industry: '阀门制造', kb: 'valve', onboarded: true });
-createUser({ username: 'demo', password: 'demo123', enterpriseName: '', logo: '🌱', industry: '', kb: 'ent_demo', onboarded: false });
+// 首次启动：只建一个管理员账号，口令取环境变量 FO_ADMIN_PASSWORD；
+  // 未设置则随机生成，并在控制台打印一次（默认口令 admin123 这类是明确的交付红线）。
+  const seedPwd = String(process.env.FO_ADMIN_PASSWORD || '').trim() || randomBytes(9).toString('base64url');
+  const r = createUser({ username: process.env.FO_ADMIN_USER || 'admin', password: seedPwd,
+    enterpriseName: '示例企业', industry: '', kb: 'ent_admin', onboarded: false, role: 'admin' });
+  if (r && r.ok) {
+    if (!process.env.FO_ADMIN_PASSWORD) {
+      console.log('[首次启动] 已生成管理员账号 %s，初始口令（仅本次打印，请登录后立即修改）：%s',
+        process.env.FO_ADMIN_USER || 'admin', seedPwd);
+    }
+  }
 }

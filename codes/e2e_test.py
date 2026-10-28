@@ -51,8 +51,11 @@ def _pin_kb_to_food():
                 prev = json.load(f)
         except Exception:
             prev = None
-    pin = {"nt": os.path.join("output", "food.nt"), "table": "food_products",
-           "data_dir": None, "source": "db", "lexicon": os.path.join("config", "lexicon_food.json")}
+    # 钉到演示本体对（food_products.nt + lexicon_food_products.json）：
+    # 这对文件是仓库自带的评测/端到端夹具，不会被界面上的"建本体"覆盖。
+    pin = {"nt": os.path.join("output", "food_products.nt"), "table": "food_products",
+           "data_dir": None, "source": "db",
+           "lexicon": os.path.join("config", "lexicon_food_products.json")}
     with open(active_file, "w", encoding="utf-8") as f:
         json.dump(pin, f, ensure_ascii=False)
     return prev

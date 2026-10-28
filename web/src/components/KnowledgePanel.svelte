@@ -237,7 +237,7 @@
 
 <div class="kp">
   {#if notice.text}
-    <div class="kp-notice {notice.type === 'ok' ? 'ok' : 'err'}">{notice.type === 'ok' ? '✅ ' : '⚠️ '}{notice.text}</div>
+    <div class="kp-notice {notice.type === 'ok' ? 'ok' : 'err'}">{notice.type === 'ok' ? ' ' : ' '}{notice.text}</div>
   {/if}
 
   <!-- 当前企业知识库标签 -->
@@ -249,7 +249,7 @@
   <!-- 上传区 -->
   <div class="upload-bar">
     <label class="file-pick">
-      <span class="btn-icon">📄</span>
+      <span class="btn-icon"></span>
       {fileName || '选择文件（.pdf/.doc/.docx/.txt）'}
       <input type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden onchange={onFilePick} />
     </label>
@@ -279,7 +279,7 @@
     </div>
   {:else if loaded && docs.length === 0}
     <div class="dash-empty dash-nodata">
-      <span class="empty-icon">🗂️</span>
+      <span class="empty-icon"></span>
       <span class="empty-text">暂无文档，可通过上方「选择文件 + 上传文档」添加</span>
     </div>
   {:else if loaded}

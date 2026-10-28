@@ -48,9 +48,9 @@
     ),
   );
 
-  let open = $state(settingsOpen);
-  $effect(() => { open = settingsOpen; });
-
+  // 设置区展开状态完全由父级 settingsOpen 驱动：
+  // 组件内再存一份本地副本会导致"点了设置，导航展开但右侧内容不变"，
+  // 也会让「返回问答」这条出口失效（父级不知道用户点过设置）。
   function pickArea(a) {
     onPick({ kind: 'area', area: a });
   }
@@ -81,14 +81,15 @@
   <button
     type="button"
     class="row settings-toggle"
-    class:active={open}
-    onclick={() => (open = !open)}
+    class:active={settingsOpen}
+    aria-expanded={settingsOpen}
+    onclick={() => onPick({ kind: 'settings', open: !settingsOpen })}
   >
     <span class="step">·</span>
     <span class="label">设置</span>
   </button>
 
-  {#if open}
+  {#if settingsOpen}
     <div class="groups">
       {#each VISIBLE_GROUPS as g (g.title)}
         <div class="group">

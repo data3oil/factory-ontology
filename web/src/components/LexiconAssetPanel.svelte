@@ -124,9 +124,9 @@
       <p class="la-desc">导出本企业的工厂词典；“整包”额外带上本体(.nt) 与建模架构(schema)，便于同行业新企业起手。</p>
       <div class="la-actions">
         <button class="la-btn" onclick={() => onExport(false)} disabled={!!busy || !kb}>
-          {busy === 'export' ? '⏳ 导出中…' : '⬇️ 导出词典 (JSON)'}
+          {busy === 'export' ? '⏳ 导出中…' : ' 导出词典 (JSON)'}
         </button>
-        <button class="la-btn la-btn-ghost" onclick={() => onExport(true)} disabled={!!busy || !kb}>📦 导出整包 (ZIP)</button>
+        <button class="la-btn la-btn-ghost" onclick={() => onExport(true)} disabled={!!busy || !kb}> 导出整包 (ZIP)</button>
       </div>
     </div>
 
@@ -159,7 +159,7 @@
         </table>
         <div class="la-actions">
           <button class="la-btn" onclick={doImport} disabled={!!busy}>
-            {busy === 'import' ? '⏳ 导入中…' : '✅ 确认导入'}
+            {busy === 'import' ? '⏳ 导入中…' : ' 确认导入'}
           </button>
         </div>
       {/if}
@@ -176,7 +176,7 @@
           {#each INDUSTRIES as i}<option value={i}>{i}</option>{/each}
         </select>
         <button class="la-btn" onclick={onAbsorb} disabled={!!busy || !kb}>
-          {busy === 'absorb' ? '⏳ 吸收中…' : '📥 吸收本企业词典'}
+          {busy === 'absorb' ? '⏳ 吸收中…' : ' 吸收本企业词典'}
         </button>
       </div>
       {#if absorbRes}

@@ -69,9 +69,9 @@
             <td>{a?.q ?? ''}</td>
             <td>
               {#if a?.hit}
-                <span class="ok">✓ 命中</span>
+                <span class="ok"> 命中</span>
               {:else}
-                <span class="no">✗ 未命中</span>
+                <span class="no"> 未命中</span>
               {/if}
             </td>
             <td>{brief(a?.answer)}</td>

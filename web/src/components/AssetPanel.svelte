@@ -29,9 +29,9 @@
 
   // 资产名 → 中文展示（与后端 assets 字典键对齐）
   const ASSET_LABELS = {
-    lexicon:   { cn: '词典',   icon: '📖' },
-    ontology:  { cn: '本体',   icon: '🧬' },
-    knowledge: { cn: '知识库', icon: '📚' },
+    lexicon: { cn: '词典', icon: '' },
+    ontology: { cn: '本体', icon: '' },
+    knowledge: { cn: '知识库', icon: '' },
   };
   // 固定展示顺序
   const ASSET_KEYS = ['lexicon', 'ontology', 'knowledge'];
@@ -93,14 +93,14 @@
       });
       const json = await res.json().catch(() => null);
       if (!json || !json.ok) {
-        opMsg = '❌ 快照失败：' + fmtError(json && json.error);
+        opMsg = ' 快照失败：' + fmtError(json && json.error);
       } else {
-        opMsg = '✅ 已创建快照 ' + (json.data && json.data.version ? json.data.version : '');
+        opMsg = ' 已创建快照 ' + (json.data && json.data.version ? json.data.version : '');
         changelog = ''; // 成功后清空说明
         await load();   // 刷新版本链（快照后端自动设为 active）
       }
     } catch (e) {
-      opMsg = '❌ 网络错误，快照失败';
+      opMsg = ' 网络错误，快照失败';
     } finally {
       opBusy = false;
     }
@@ -121,13 +121,13 @@
       });
       const json = await res.json().catch(() => null);
       if (!json || !json.ok) {
-        opMsg = '❌ 回滚失败：' + fmtError(json && json.error);
+        opMsg = ' 回滚失败：' + fmtError(json && json.error);
       } else {
-        opMsg = '✅ 已回滚到 ' + (json.data && json.data.active_version ? json.data.active_version : v.version);
+        opMsg = ' 已回滚到 ' + (json.data && json.data.active_version ? json.data.active_version : v.version);
         await load();
       }
     } catch (e) {
-      opMsg = '❌ 网络错误，回滚失败';
+      opMsg = ' 网络错误，回滚失败';
     } finally {
       opBusy = false;
     }
@@ -182,7 +182,7 @@
         onkeydown={(e) => { if (e.key === 'Enter') createSnapshot(); }}
       />
       <button class="btn-snap" onclick={createSnapshot} disabled={opBusy}>
-        {opBusy ? '⏳ 处理中…' : '📸 创建快照'}
+        {opBusy ? '⏳ 处理中…' : ' 创建快照'}
       </button>
     </div>
     {#if opMsg}
@@ -191,8 +191,8 @@
 
     {#if empty}
       <div class="asset-empty asset-nodata">
-        <span class="empty-icon">🧬</span>
-        <span class="empty-text">知识库「{curKb}」暂无资产版本，点击上方「📸 创建快照」生成首个版本（语义资产存档，用于版本回滚与交付）。</span>
+        <span class="empty-icon"></span>
+        <span class="empty-text">知识库「{curKb}」暂无资产版本，点击上方「 创建快照」生成首个版本（语义资产存档，用于版本回滚与交付）。</span>
       </div>
     {:else if loaded}
     <div class="asset-meta">
@@ -235,7 +235,7 @@
                     class:chip-on={hasAsset(v, key)}
                     class:chip-off={!hasAsset(v, key)}
                     title={hasAsset(v, key) ? `包含${ASSET_LABELS[key].cn}` : `不含${ASSET_LABELS[key].cn}`}
-                  >{ASSET_LABELS[key].icon} {ASSET_LABELS[key].cn}{hasAsset(v, key) ? '' : ' ✕'}</span>
+                  >{ASSET_LABELS[key].icon} {ASSET_LABELS[key].cn}{hasAsset(v, key) ? '' : ' '}</span>
                 {/each}
               </td>
               <td class="col-op">

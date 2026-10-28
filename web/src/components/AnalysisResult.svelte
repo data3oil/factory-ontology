@@ -172,7 +172,7 @@
   <!-- 分析报告 -->
   {#if report}
     <div class="report">
-      <div class="report-title">📊 分析报告</div>
+      <div class="report-title"> 分析报告</div>
       <div class="report-body">
         {#each blocks as b}
           {#if b.type === 'h'}

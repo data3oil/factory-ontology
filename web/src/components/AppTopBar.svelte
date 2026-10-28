@@ -31,7 +31,7 @@
 <div class="bar">
   <div class="left">
     {#if enterprise}
-      <span class="ent">🏢 {enterprise}</span>
+      <span class="ent"> {enterprise}</span>
     {/if}
     {#if kb}
       <button class="kb" type="button" onclick={onSwitchKb}>{kb} ▾</button>
@@ -57,7 +57,7 @@
       class:active={settingsActive}
       type="button"
       onclick={onOpenSettings}
-    >⚙️ 设置</button>
+    > 设置</button>
     <button class="txt-btn" type="button" onclick={onLogout}>退出</button>
   </div>
 </div>

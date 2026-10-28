@@ -14,7 +14,7 @@
     industries.find(i => i.name === industry) ||
     industries.find(i => i.kb === kb) ||
     industries[0] ||
-    { icon: '🔧', name: '阀门制造', dir: 'data_valve' }
+    { icon: '', name: '阀门制造', dir: 'data_valve' }
   );
   // 行业 → 欢迎语/说明
   const WELCOME = $derived(cur.name.endsWith('企业') ? cur.name : cur.name + '企业');
@@ -146,7 +146,7 @@
     <g class="wm-cta" onclick={() => onExample(cur.dir)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && onExample(cur.dir)} role="button" tabindex="0" style="cursor:pointer">
       <rect x="540" y="572" width="200" height="42" rx="21" fill="url(#wm-cta)" filter="url(#wm-glowbig)"/>
       <rect x="540" y="572" width="200" height="42" rx="21" fill="none" stroke="#a5f3fc" stroke-width="1" opacity="0.7"/>
-      <text x="640" y="599" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="15" font-weight="600" fill="#04142a" letter-spacing="3">⚡ 立即建模</text>
+      <text x="640" y="599" text-anchor="middle" font-family="'Microsoft YaHei','PingFang SC',sans-serif" font-size="15" font-weight="600" fill="#04142a" letter-spacing="3"> 立即建模</text>
     </g>
 
     <!-- 底部版本条 -->

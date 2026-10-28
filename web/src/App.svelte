@@ -169,7 +169,15 @@
         // 一企业一行业一数据：企业唯一 kb 用实际建成的行业 kb
         const builtKb = res.industry && res.industry.kb ? res.industry.kb : ind.kb;
         const ob = await onboardEnterprise({ name: (user && user.enterpriseName) || '', logo: (user && user.logo) || '', industry, kb: builtKb });
-        if (ob.ok && ob.data) user = ob.data; else user = { ...user, kb: builtKb, industry };
+        if (ob.ok && ob.data) {
+          user = ob.data;
+        } else {
+          // 保存失败必须说出来：原来静默降级成本地对象，界面上"完成"，刷新又回引导，
+          // 用户只会认为"点了没反应"。
+          const e = ob && ob.error;
+          onboardErr = '引导信息未能保存到服务端：' + (typeof e === 'string' ? e : '请确认当前账号有企业管理权限')
+            + '（本体已建好，可直接进入系统，但刷新后会回到引导页）';
+        }
         await setKb(builtKb);
         await loadKbs();
         onboardStep = 3;
@@ -516,6 +524,18 @@ let defaultBusy = $state(false);   // 默认数据建模中
       navArea = payload.area;
       settingsOpen = false;
       switchTab(NAV_MAP[payload.area]);
+      return;
+    }
+    if (payload.kind === 'settings') {
+      if (payload.open) {
+        settingsOpen = true;
+        // 进入设置必须落到一个具体条目，否则右侧内容不变，看起来像"点了没反应"
+        if (!visibleEntries.includes(settingsEntry)) settingsEntry = visibleEntries[0] ?? 'model';
+        if (settingsEntry === 'enterprise') { openEnterprise(); return; }
+        switchTab(settingsEntry);
+      } else {
+        backToAsk();
+      }
       return;
     }
     if (payload.kind === 'entry' && visibleEntries.includes(payload.entry)) {
@@ -1208,6 +1228,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       {#if settingsOpen}
         <div class="settings-bar">
           <span class="settings-crumb">设置 › {ENTRY_LABELS[settingsEntry] ?? settingsEntry}</span>
+          {#if visibleEntries.length <= 1}
+            <span class="settings-note">当前角色仅可管理 1 项</span>
+          {/if}
           <button class="settings-back" onclick={backToAsk}>← 返回问答</button>
           <span class="settings-spacer"></span>
           {#if isAdminUser}
@@ -2029,6 +2052,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .content-col { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
   .settings-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
     border-bottom: 1px solid var(--line); background: var(--bg-card); font-size: 13px; color: var(--txt-sub); }
+  .settings-note { font-size: 11px; color: var(--txt-muted); margin-left: 8px; }
   .settings-crumb { color: var(--txt); font-weight: 600; }
   .settings-back { border: 1px solid var(--line); background: var(--bg-card); color: var(--txt-sub);
     border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px; cursor: pointer;

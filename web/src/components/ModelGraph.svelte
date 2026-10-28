@@ -17,15 +17,15 @@
 
   // ── kb → 行业标题（icon + 名）──
   const INDUSTRY_META = {
-    valve:     { icon: '🔧', name: '阀门制造' },
-    chem:      { icon: '🧪', name: '化工企业' },
-    machining: { icon: '⚙️', name: '机械加工' },
-    precision: { icon: '🔩', name: '精密加工' },
-    bellows:   { icon: '🌀', name: '波纹管' },
-    eco:       { icon: '♻️', name: '环保工程' },
-    ship:      { icon: '🚢', name: '造船' },
-    seismic:   { icon: '🌍', name: '地震勘探' },
-    food_co:   { icon: '🥛', name: '食品溯源' },
+    valve: { icon: '', name: '阀门制造' },
+    chem: { icon: '', name: '化工企业' },
+    machining: { icon: '', name: '机械加工' },
+    precision: { icon: '', name: '精密加工' },
+    bellows: { icon: '', name: '波纹管' },
+    eco: { icon: '', name: '环保工程' },
+    ship: { icon: '', name: '造船' },
+    seismic: { icon: '', name: '地震勘探' },
+    food_co: { icon: '', name: '食品溯源' },
   };
   function industryTitle(k) {
     const m = INDUSTRY_META[k];

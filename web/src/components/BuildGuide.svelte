@@ -29,7 +29,7 @@
         class:active={n === cur}
         aria-current={n === cur ? 'step' : undefined}
         on:click={() => onGo(n)}
-      >{n < cur ? '✓ ' : ''}{n} {name}</button>
+      >{n < cur ? ' ' : ''}{n} {name}</button>
     {/each}
   </div>
   <p class="desc">{DESC[cur - 1]}</p>

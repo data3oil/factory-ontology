@@ -116,7 +116,10 @@ const server = createServer(async (req, res) => {
     try {
       const body = JSON.parse((await readBody(req)) || '{}');
       const { username, password, enterpriseName, logo, industry } = body;
-      const result = createUser({ username, password, enterpriseName, logo, industry });
+      // 自助注册 = 新建一个企业空间，注册人即该空间的管理员。
+      // 若沿用 roleForNewUser（机器上已有种子用户时会给 member），注册者会在引导最后一步
+      // 被 /api/enterprise/onboard 的权限检查挡住 403，界面显示完成、服务端没保存，刷新又回引导。
+      const result = createUser({ username, password, enterpriseName, logo, industry, role: 'admin' });
       if (!result.ok) { writeErr(400, { ok: false, error: result.error }); return; }
       // 注册成功后自动登录
       const loginResult = authLogin(username, password);

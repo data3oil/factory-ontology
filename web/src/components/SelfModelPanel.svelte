@@ -508,7 +508,7 @@
     {#if validation}
       <div class="val" class:val-bad={validation.blocked}>
         <div class="val-line">
-          <span class="chip" class:chip-bad={!validation.exists}>{validation.exists ? '✔ 存在' : '✘ 不存在'}</span>
+          <span class="chip" class:chip-bad={!validation.exists}>{validation.exists ? ' 存在' : ' 不存在'}</span>
           <span class="chip" class:chip-bad={!validation.readable}>可读：{validation.readable ? '是' : '否'}</span>
           <span class="chip" class:chip-bad={!validation.has_csv}>CSV：{validation.csv_count} 个</span>
           {#if validation.registered_by && validation.registered_by.length}

@@ -21,7 +21,8 @@ EMOJI = re.compile(
     "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\U00002B00-\U00002BFF]"
 )
 
-SRC_FILES = ["web/src/App.svelte", "codes/api_server.py"]
+SRC_FILES = ["codes/api_server.py"]
+WEB_SRC = "web/src"   # 界面源码全量扫，不只 App.svelte（emoji 常藏在子组件里）
 
 
 def read(p):
@@ -32,7 +33,14 @@ def main():
     fails = []
 
     # 1. emoji 清扫
-    for rel in SRC_FILES:
+    scanned = list(SRC_FILES)
+    for dp, dn, fn in os.walk(os.path.join(ROOT, WEB_SRC)):
+        dn[:] = [d for d in dn if d not in {"node_modules", "dist"}]
+        for f in fn:
+            if f.endswith((".svelte", ".js")):
+                scanned.append(os.path.relpath(os.path.join(dp, f), ROOT).replace("\\", "/"))
+
+    for rel in scanned:
         p = os.path.join(ROOT, rel)
         if not os.path.isfile(p):
             continue

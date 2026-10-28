@@ -70,7 +70,7 @@
         <ul class="ap-cond">
           {#each score().items as it}
             <li class:ok={it.ok}>
-              <span class="ap-mark">{it.ok ? '✓' : '✗'}</span>
+              <span class="ap-mark">{it.ok ? '' : ''}</span>
               <span>{it.text}</span>
             </li>
           {/each}

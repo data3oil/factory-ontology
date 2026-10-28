@@ -78,7 +78,7 @@
     </div>
   {:else if empty}
     <div class="dash-empty dash-nodata">
-      <span class="empty-icon">📊</span>
+      <span class="empty-icon"></span>
       <span class="empty-text">尚未建模，请先在「数据建模」页上传数据</span>
     </div>
   {:else if error}
@@ -90,7 +90,7 @@
     <!-- 异常告警横幅：突出异常而非埋在统计里 -->
     {#if faultAlert}
       <div class="alert-banner">
-        <span class="alert-ico">⚠</span>
+        <span class="alert-ico"></span>
         <span>检测到 <b>{anomalyCount}</b> 台设备异常/故障，占设备总数 <b>{anomalyPct}%</b>（故障率 {faultPct}%）。</span>
       </div>
     {/if}
