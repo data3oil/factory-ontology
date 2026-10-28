@@ -35,7 +35,41 @@ def ck(name, cond, detail=""):
         print(f"  ❌ {name} {detail}")
 
 
+def _pin_kb_to_food():
+    """把激活知识库临时切到 food：端到端测试必须自洽，不能依赖上一次谁切过 kb。
+
+    返回原激活态 dict，供结束时还原。active_ontology.json 由 api_server 启动时读取，
+    因此必须在 import api_server 之前写。
+    """
+    import json
+
+    active_file = os.path.join(codes, "config", "active_ontology.json")
+    prev = None
+    if os.path.isfile(active_file):
+        try:
+            with open(active_file, encoding="utf-8") as f:
+                prev = json.load(f)
+        except Exception:
+            prev = None
+    pin = {"nt": os.path.join("output", "food.nt"), "table": "food_products",
+           "data_dir": None, "source": "db", "lexicon": os.path.join("config", "lexicon_food.json")}
+    with open(active_file, "w", encoding="utf-8") as f:
+        json.dump(pin, f, ensure_ascii=False)
+    return prev
+
+
+def _restore_kb(prev):
+    import json
+
+    active_file = os.path.join(codes, "config", "active_ontology.json")
+    if prev is None:
+        return
+    with open(active_file, "w", encoding="utf-8") as f:
+        json.dump(prev, f, ensure_ascii=False)
+
+
 def main():
+    prev_active = _pin_kb_to_food()
     from fastapi.testclient import TestClient
     import api_server as api
 

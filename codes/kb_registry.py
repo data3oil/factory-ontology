@@ -1,3 +1,4 @@
+import safe_log
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """kb_registry.py — 多知识库/多行业统一注册表入口（纯标准库，不改问答引擎）。
@@ -186,8 +187,8 @@ def _industry_for(kb_id, entry):
     if _idl is not None:
         try:
             return _idl.industry_for_kb(kb_id) or "基础"
-        except Exception:
-            pass
+        except Exception as exc:
+            safe_log.swallow('kb_registry.industry', exc)
     return "基础"
 
 

@@ -123,7 +123,7 @@
 
   // 进入 onboarding 时预填当前用户企业信息
   function initOnboard() {
-    onboardForm = { name: (user && user.enterpriseName) || '', logo: (user && user.logo) || '🏭', industry: (user && user.industry) || '' };
+    onboardForm = { name: (user && user.enterpriseName) || '', logo: (user && user.logo) || '', industry: (user && user.industry) || '' };
     onboardStep = 1; onboardErr = '';
   }
 
@@ -323,14 +323,14 @@ let defaultBusy = $state(false);   // 默认数据建模中
   let entBusy = $state(false);
   let entErr = $state('');
   let entOk = $state('');
-  // 可选的 logo emoji 预设（企业 logo 快速选择）
+  // 可选的 logo 预设（企业 logo 快速选择；客户自选标识，非界面装饰）— ui-copy-allow
   const LOGO_EMOJIS = ['🏭', '🏢', '💼', '🔧', '🧪', '⚙️', '🔩', '🛠️', '🌍', '🌿', '🚢', '🌀', '🎯', '🤖', '⚡', '📚', '🥛', '🏗️'];
 
   // logo 是否图片（dataURL/URL/相对路径）→ 渲染 <img>；否则按 emoji 文本渲染
   const isImgLogo = (l) => !!l && /^(data:image\/|https?:\/\/|\/)/i.test(l);
   // 顶部品牌名/logo：来自登录企业用户（单企业唯一）
   const brandName = $derived(user && user.enterpriseName ? `${user.enterpriseName} · 本体问答` : '工厂智能体 · 本体问答');
-  const brandLogo = $derived((user && user.logo) || '🏭');
+  const brandLogo = $derived((user && user.logo) || '');
 
   // 从后端读取企业配置（onMount 时调用）—— 现在来自 /api/auth/me 的 user
   async function loadEnterprise() {
@@ -1041,20 +1041,34 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     <!-- ═══ 登录页 ═══ -->
     <div class="login-page">
       <div class="login-card">
-        <div class="login-logo">🏭</div>
-        <h1 class="login-title"><span class="acc">工厂智能体</span> · 本体问答</h1>
-        <p class="login-sub">企业专属知识库 · 数据本地处理不出厂</p>
+        <div class="login-logo" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="30" height="30">
+            <rect x="3" y="16" width="7" height="21" rx="1.5" fill="currentColor" opacity=".85"/>
+            <rect x="13" y="9" width="7" height="28" rx="1.5" fill="currentColor"/>
+            <rect x="23" y="20" width="7" height="17" rx="1.5" fill="currentColor" opacity=".7"/>
+            <rect x="33" y="25" width="4" height="12" rx="1.5" fill="currentColor" opacity=".5"/>
+          </svg>
+        </div>
+        <p class="login-brand">北京三油科技 · 工厂本体</p>
+        <h1 class="login-title">企业语义知识库</h1>
+        <p class="login-sub">台账进，答案出 · 数据本地处理不出厂</p>
+        <ul class="login-points">
+          <li>知识库按企业隔离，互不可见</li>
+          <li>每次判定留痕，可回放复算</li>
+          <li>关闭外网照常问答</li>
+        </ul>
         <div class="login-tabs">
           <button class="login-tab" class:on={loginMode === 'login'} onclick={() => { loginMode = 'login'; loginErr = ''; }}>登录</button>
           <button class="login-tab" class:on={loginMode === 'register'} onclick={() => { loginMode = 'register'; loginErr = ''; }}>注册企业</button>
         </div>
         <input class="login-input" type="text" placeholder="用户名" bind:value={loginUser} onkeydown={(e) => { if (e.key === 'Enter') loginMode === 'login' ? doLogin() : doRegister(); }} />
         <input class="login-input" type="password" placeholder="密码" bind:value={loginPass} onkeydown={(e) => { if (e.key === 'Enter') loginMode === 'login' ? doLogin() : doRegister(); }} />
-        {#if loginErr}<div class="login-err">✗ {loginErr}</div>{/if}
+        {#if loginErr}<div class="login-err">{loginErr}</div>{/if}
         <button class="login-btn" onclick={loginMode === 'login' ? doLogin : doRegister} disabled={loginBusy}>
           {loginBusy ? '请稍候…' : (loginMode === 'login' ? '登 录' : '注册并登录')}
         </button>
 <p class="login-hint">{loginMode === 'login' ? '登录后进入企业知识库' : '注册后自动创建企业空间，进入引导配置'}</p>
+        <p class="login-legal">Apache-2.0 · © 2026 北京三油科技有限责任公司 · data3oil.com</p>
       </div>
     </div>
   {:else if needsOnboard}
@@ -1070,20 +1084,20 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         </div>
 
         {#if onboardStep === 1}
-          <h2 class="onboard-title">🏢 确认企业信息</h2>
+          <h2 class="onboard-title">确认企业信息</h2>
           <p class="onboard-sub">填写企业名称、选择 Logo 与所属行业，用于品牌展示与本体建模。</p>
           <div class="ent-logo-row">
             {#if isImgLogo(onboardForm.logo)}
               <img class="ent-logo-preview" src={onboardForm.logo} alt="企业logo" />
             {:else}
-              <span class="ent-logo-preview ent-logo-emoji">{onboardForm.logo || '🏭'}</span>
+              <span class="ent-logo-preview ent-logo-emoji">{onboardForm.logo || '企'}</span>
             {/if}
             <div class="ent-logo-actions">
               <span class="form-label">企业 Logo</span>
               <div class="ent-logo-btns">
                 <label class="ent-upload">
                   <input type="file" accept="image/*" onchange={onOnboardLogoUpload} />
-                  📤 上传图片
+                   上传图片
                 </label>
                 <button class="ent-mini" onclick={() => (onboardForm.logo = '')}>清除</button>
               </div>
@@ -1110,12 +1124,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               {/each}
             </select>
           </div>
-          {#if onboardErr}<div class="login-err">✗ {onboardErr}</div>{/if}
+          {#if onboardErr}<div class="login-err">{onboardErr}</div>{/if}
           <button class="login-btn" onclick={onboardSaveEnterprise} disabled={onboardBusy}>
             {onboardBusy ? '保存中…' : '下一步：选择行业并建本体 →'}
           </button>
         {:else if onboardStep === 2}
-          <h2 class="onboard-title">🧪 为「{user && user.enterpriseName}」建本体</h2>
+          <h2 class="onboard-title">为「{user && user.enterpriseName}」建本体</h2>
 <p class="onboard-sub">行业「{onboardForm.industry}」已确定，系统将用该行业数据为您的企业建本体（唯一知识库，一企业一行业一数据）。</p>
           <div class="onboard-industries">
             <button class="ob-industry sel">
@@ -1123,12 +1137,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               <span class="ob-ind-name">{onboardForm.industry}</span>
             </button>
           </div>
-          {#if onboardErr}<div class="login-err">✗ {onboardErr}</div>{/if}
+          {#if onboardErr}<div class="login-err">{onboardErr}</div>{/if}
           <button class="login-btn" onclick={onboardBuild} disabled={onboardBusy}>
-            {onboardBusy ? '正在建本体…' : `为「${onboardForm.industry}」企业建本体 🚀`}
+            {onboardBusy ? '正在建本体…' : `为「${onboardForm.industry}」企业建本体 `}
           </button>
         {:else}
-          <h2 class="onboard-title">🎉 配置完成</h2>
+          <h2 class="onboard-title">配置完成</h2>
           <p class="onboard-sub">「{user && user.enterpriseName}」的本体已建好，问答 / 知识库 / 评测 / 资产 / 看板 / 模型图功能已解锁。</p>
           <button class="login-btn" onclick={onboardFinish}>进入系统 →</button>
         {/if}
@@ -1153,7 +1167,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         <!-- 一企业一行业一数据：顶部标签显示企业所属行业(industry)，而非专属kb名(ent_xxx)。
              企业绑专属kb，用kb名会显示下划线乱码；用企业行业属性定位行业图标/名称。 -->
         <span class="cur-kb-tag" title="当前企业知识库">
-          <span class="kb-tag-icon">{INDUSTRIES.find(i => i.name === (user && user.industry))?.icon || kbList.find(k => k.key === currentKb)?.icon || '🗂️'}</span>
+          <span class="kb-tag-icon">{INDUSTRIES.find(i => i.name === (user && user.industry))?.icon || kbList.find(k => k.key === currentKb)?.icon || ''}</span>
           {(user && user.industry) || kbList.find(k => k.key === currentKb)?.name || currentKb}
         </span>
       {/if}
@@ -1197,8 +1211,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           <button class="settings-back" onclick={backToAsk}>← 返回问答</button>
           <span class="settings-spacer"></span>
           {#if isAdminUser}
-          <button class="ent-btn" onclick={openEnterprise} title="企业设置">⚙️ 企业设置</button>
-          <button class="ent-btn ent-btn-danger" onclick={() => (resetOpen = true)} title="重置当前企业数据">🔄 重置企业</button>
+          <button class="ent-btn" onclick={openEnterprise} title="企业设置"> 企业设置</button>
+          <button class="ent-btn ent-btn-danger" onclick={() => (resetOpen = true)} title="重置当前企业数据"> 重置企业</button>
           {/if}
         </div>
       {/if}
@@ -1229,7 +1243,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <!-- ─── 卡片① 本地文件建模（折叠式，对齐模型配置管理）─── -->
       <div class="card">
         <button class="card-head card-head-btn" class:expanded={localModelOpen} onclick={() => (localModelOpen = !localModelOpen)}>
-          <span class="card-icon ic-file">📄</span>
+          <span class="card-icon ic-file"></span>
           <div class="card-titles">
             <div class="card-title">本地文件建模</div>
             <div class="card-desc">{localModelOpen ? '点击收起' : '点击展开'}上传 CSV / JSON 文件建模</div>
@@ -1241,7 +1255,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           <div class="file-upload-zone">
             <label class="file-input">
               <input type="file" multiple accept=".csv,.json" onchange={onPickFiles} />
-              <span class="file-upload-icon">📁</span>
+              <span class="file-upload-icon"></span>
               <span class="file-upload-main">
                 <span class="file-upload-title">{localFiles.length ? `已选 ${localFiles.length} 个文件` : '选择 CSV / JSON 文件'}</span>
                 <span class="file-upload-hint">可多选，支持 .csv / .json</span>
@@ -1253,12 +1267,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
                 <div class="file-selected-title">待建模文件</div>
                 <div class="file-selected-list">
                   {#each localFiles as f}
-                    <span class="file-selected-chip">📄 {f.name}</span>
+                    <span class="file-selected-chip"> {f.name}</span>
                   {/each}
                 </div>
               </div>
               <button class="btn-action" onclick={doLocalModel} disabled={localBusy}>
-                <span class="btn-icon">{localBusy ? '⏳' : '⚙'}</span>
+                <span class="btn-icon">{localBusy ? '⏳' : ''}</span>
                 {localBusy ? '建模进行中…' : `确认并建模（${localFiles.length} 个文件）`}
               </button>
             {/if}
@@ -1270,7 +1284,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       {#if modelResult}
         <div class="card">
           <div class="card-head">
-            <span class="card-icon">✅</span>
+            <span class="card-icon"></span>
             <div class="card-titles">
               <div class="card-title">建模结果</div>
               <div class="card-desc">知识库 {modelResult.table}</div>
@@ -1281,14 +1295,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               <span class="sum-tables">共 {modelResult.tables || localFiles.length || 1} 张表</span>
               <span class="sum-sep">·</span>
               <span class="sum-fields">{(modelResult.attrs || []).length} 个字段</span>
-              <span class="sum-ok">✓ 建模完成</span>
+              <span class="sum-ok"> 建模完成</span>
             </div>
             {#if localFiles.length > 0}
               <div class="model-files">
                 <div class="model-files-title">已建模文件</div>
                 <div class="model-files-list">
                   {#each localFiles as f}
-                    <span class="model-file-chip">📄 {f.name}</span>
+                    <span class="model-file-chip"> {f.name}</span>
                   {/each}
                 </div>
               </div>
@@ -1300,7 +1314,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
             </div>
             <div class="model-actions">
               <span class="model-hint">右栏已生成本体结构力导向图，可拖动缩放查看。</span>
-              <button class="btn-action btn-small" onclick={() => switchTab('query')}>💬 进入问答</button>
+              <button class="btn-action btn-small" onclick={() => switchTab('query')}> 进入问答</button>
             </div>
           </div>
         </div>
@@ -1309,7 +1323,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <!-- ─── 卡片③ 数据库接入（折叠式，对齐模型配置管理）─── -->
       <div class="card">
         <button class="card-head card-head-btn" class:expanded={dbOpen} onclick={() => (dbOpen = !dbOpen)}>
-          <span class="card-icon ic-db">🗄️</span>
+          <span class="card-icon ic-db"></span>
           <div class="card-titles">
             <div class="card-title">数据库接入</div>
             <div class="card-desc">{dbOpen ? '点击收起' : '点击展开'}连接 MES / ERP / 台账数据库</div>
@@ -1358,7 +1372,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           </div>
 
           <button class="btn-action" onclick={doDbSetup} disabled={dbBusy}>
-            <span class="btn-icon">{dbBusy ? '⏳' : '🔗'}</span>
+            <span class="btn-icon">{dbBusy ? '⏳' : ''}</span>
             {dbBusy ? '建模进行中…' : '确认并建模'}
           </button>
 
@@ -1367,10 +1381,10 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               {#if dbResult.ok}
                 <div class="model-head">
                   <span class="model-table">数据表：{dbResult.table}</span>
-                  <span class="model-count">✓ 建模完成</span>
+                  <span class="model-count"> 建模完成</span>
                 </div>
               {:else}
-                <div class="db-err-text">✗ {dbResult.error}</div>
+                <div class="db-err-text"> {dbResult.error}</div>
               {/if}
             </div>
           {/if}
@@ -1381,7 +1395,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <!-- ─── 卡片④ 模型配置管理（查看/编辑/增删/设 active，api_key 脱敏）─── -->
       <div class="card">
         <button class="card-head card-head-btn" class:expanded={modelOpen} onclick={() => (modelOpen = !modelOpen)}>
-          <span class="card-icon ic-model">⚙️</span>
+          <span class="card-icon ic-model"></span>
           <div class="card-titles">
             <div class="card-title">模型配置管理</div>
             <div class="card-desc">{modelOpen ? '点击收起' : '点击展开'}模型/向量配置</div>
@@ -1396,10 +1410,10 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
                 <div class="m-edit-head">
                   <label class="m-radio">
                     <input type="radio" checked={editActive === m.key} onclick={() => setEditActive(m.key)} />
-                    <span class="m-active-tag">{editActive === m.key ? '✓ 生效' : '设为生效'}</span>
+                    <span class="m-active-tag">{editActive === m.key ? ' 生效' : '设为生效'}</span>
                   </label>
                   <span class="m-key">key: {m.key}</span>
-                  <button class="file-remove" onclick={() => removeModel(i)} aria-label="删除">✕</button>
+                  <button class="file-remove" onclick={() => removeModel(i)} aria-label="删除"></button>
                 </div>
                 <div class="db-row">
                   <div class="form-group">
@@ -1431,7 +1445,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               </div>
             {/each}
             <div class="m-embed">
-              <div class="m-embed-title">🔎 向量检索模型（embedding，默认本地）</div>
+              <div class="m-embed-title"> 向量检索模型（embedding，默认本地）</div>
               <div class="db-row">
                 <div class="form-group">
                   <span class="form-label">Base URL</span>
@@ -1447,7 +1461,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
             <div class="m-actions">
               <button class="btn-action btn-default" onclick={addModel}>＋ 新增模型</button>
               <button class="btn-action" onclick={saveModelConfig} disabled={modelEditBusy}>
-                {modelEditBusy ? '保存中…' : '💾 保存配置'}
+                {modelEditBusy ? '保存中…' : ' 保存配置'}
               </button>
             </div>
           </div>
@@ -1518,7 +1532,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               {#each (alignReport.rows || []).slice(0, 8) as row}
                 <div class="std-issue">
                   {row.theirs
-                    ? `✓ 外部 ${String(row.theirs).split('#').pop()} ←→ 本库 ${String(row.ours).split('#').pop()}`
+                    ? ` 外部 ${String(row.theirs).split('#').pop()} ←→ 本库 ${String(row.ours).split('#').pop()}`
                     : `· 本库 ${String(row.ours).split('#').pop()}：外部无同名类`}
                 </div>
               {/each}
@@ -1615,7 +1629,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
             {#if evidence}
               <div class="evidence-wrap">
                 <button class="evidence-toggle" onclick={() => (evidenceOpen = !evidenceOpen)}>
-                  📎 证据溯源
+                   证据溯源
                   <span class="chevron">{evidenceOpen ? '▾' : '▸'}</span>
                 </button>
                 {#if evidenceOpen}
@@ -1748,23 +1762,23 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   <div class="ent-overlay" role="presentation" onclick={(e) => { if (e.target === e.currentTarget) closeEnterprise(); }}>
     <div class="ent-modal" role="dialog" aria-modal="true" aria-label="企业设置">
       <div class="ent-head">
-        <span class="card-icon">⚙️</span>
+        <span class="card-icon"></span>
         <span class="ent-title">企业设置</span>
-        <button class="ent-close" onclick={closeEnterprise} aria-label="关闭">✕</button>
+        <button class="ent-close" onclick={closeEnterprise} aria-label="关闭"></button>
       </div>
       <div class="ent-body">
         <div class="ent-logo-row">
           {#if isImgLogo(entForm.logo)}
             <img class="ent-logo-preview" src={entForm.logo} alt="企业logo" />
           {:else}
-            <span class="ent-logo-preview ent-logo-emoji">{entForm.logo || '🏭'}</span>
+            <span class="ent-logo-preview ent-logo-emoji">{entForm.logo || ''}</span>
           {/if}
           <div class="ent-logo-actions">
             <span class="form-label">企业 Logo</span>
             <div class="ent-logo-btns">
               <label class="ent-upload">
                 <input type="file" accept="image/*" onchange={onLogoUpload} />
-                📤 上传图片
+                 上传图片
               </label>
               <button class="ent-mini" onclick={clearLogo}>清除</button>
             </div>
@@ -1797,13 +1811,13 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
         {#if isAdminUser}
         <MemberAdmin users={members} me={user} busy={membersBusy} error={membersErr} onAdd={addMember} onSetRole={changeMemberRole} />
         {/if}
-        {#if entErr}<div class="ent-err">✗ {entErr}</div>{/if}
-        {#if entOk}<div class="ent-ok">✓ {entOk}</div>{/if}
+        {#if entErr}<div class="ent-err"> {entErr}</div>{/if}
+        {#if entOk}<div class="ent-ok"> {entOk}</div>{/if}
       </div>
       <div class="ent-foot">
         <button class="btn-action btn-default" onclick={closeEnterprise}>取消</button>
         <button class="btn-action" onclick={doSaveEnterprise} disabled={entBusy}>
-          {entBusy ? '保存中…' : '💾 保存设置'}
+          {entBusy ? '保存中…' : ' 保存设置'}
         </button>
       </div>
     </div>
@@ -1815,9 +1829,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   <div class="ent-overlay" role="presentation" onclick={(e) => { if (e.target === e.currentTarget) resetOpen = false; }}>
     <div class="ent-modal reset-modal" role="dialog" aria-modal="true" aria-label="重置企业">
       <div class="ent-head">
-        <span class="card-icon">🔄</span>
+        <span class="card-icon"></span>
         <span class="ent-title">重置企业数据</span>
-        <button class="ent-close" onclick={() => (resetOpen = false)} aria-label="关闭">✕</button>
+        <button class="ent-close" onclick={() => (resetOpen = false)} aria-label="关闭"></button>
       </div>
       <div class="ent-body">
         <p class="reset-warn">确认重置「{(user && user.enterpriseName) || '当前企业'}」的全部数据？</p>
@@ -1918,7 +1932,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 登录页（品牌落地页）─── */
   .login-page {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    padding: 24px; position: relative; overflow: hidden;
+    padding: 32px 24px; position: relative; overflow: auto;
     background: linear-gradient(160deg, #f0fdfa 0%, #e6f7f5 55%, #f3eefe 100%);
   }
   /* 品牌光斑装饰 */
@@ -1931,13 +1945,29 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     position: relative; z-index: 1; width: 100%; max-width: 400px;
     background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; box-shadow: 0 18px 50px rgba(15,23,42,.12);
-    padding: 32px 30px 26px; display: flex; flex-direction: column;
+    padding: 26px 30px 20px; display: flex; flex-direction: column;
     animation: fadeInUp .4s ease both;
   }
   .login-logo {
-    width: 56px; height: 56px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center;
-    font-size: 30px; background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
+    width: 56px; height: 56px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
     border-radius: 14px;
+  }
+  .login-brand { margin: 0 0 6px; text-align: center; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+  .login-points { margin: 0 0 14px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .login-points li { position: relative; padding-left: 16px; font-size: 12px; color: var(--txt-sub); line-height: 1.5; }
+  .login-points li::before { content: ''; position: absolute; left: 2px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--brand); opacity: .7; }
+  .login-legal { margin: 12px 0 0; text-align: center; font-size: 10px; color: var(--txt-muted); letter-spacing: .02em; }
+  /* 矮屏（笔记本 720p 及以下）收紧纵向节奏，保证整卡含版权行一屏可见 */
+  @media (max-height: 760px) {
+    .login-card { padding: 18px 26px 14px; }
+    .login-logo { width: 44px; height: 44px; margin-bottom: 6px; }
+    .login-logo svg { width: 24px; height: 24px; }
+    .login-title { font-size: 20px; }
+    .login-sub { margin-bottom: 12px; }
+    .login-points { margin-bottom: 10px; gap: 4px; }
+    .login-tabs { margin-bottom: 12px; }
+    .login-legal { margin-top: 10px; }
   }
   .login-title { margin: 8px 0 2px; text-align: center; font-size: 22px; font-weight: 800; color: var(--txt); letter-spacing: .3px; }
   .login-title .acc { color: var(--brand); }
@@ -2730,5 +2760,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       --shadow-hover: 0 2px 8px rgba(0,0,0,.5);
       --shadow-popover: 0 4px 16px rgba(0,0,0,.6);
     }
+    /* 登录页在深色模式下仍用浅色品牌卡：白卡+深字，避免半深半浅的输入框 */
+    .login-page { background: linear-gradient(160deg,#f0fdfa 0%,#e6f7f5 55%,#f3eefe 100%); }
+    .login-card { background:#FFFFFF; border-color:#E5E7EB; }
+    .login-title { color:#1F2937; }
+    .login-sub, .login-hint, .login-legal { color:#5B6779; }
+    .login-points li { color:#4B5563; }
+    .login-tabs { background:#F1F5F9; border-color:#E5E7EB; }
+    .login-tab { color:#5B6779; }
+    .login-input { background:#FFFFFF; color:#1F2937; border-color:#D9DEE7; }
   }
 </style>

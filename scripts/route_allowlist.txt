@@ -1,0 +1,11 @@
+# 断链 allowlist：后端有路由但没有前端入口、也不在测试/文档里的，逐条登记理由。
+# 格式：/api/path  理由（谁在用、为什么不做界面）
+# 目的不是永久放行，而是让"没入口"这件事被显式承认，新加的路由再这么干就红。
+#
+# —— 以下为运维/审计类：只给 CLI 与运维用，不上界面 ——
+/api/kb/{kb}/lexicon/export   词典导出（运维备份用，界面走 assets 导出）
+/api/kb/{kb}/lexicon/import   词典导入（实施期批量灌词，界面走 industry 闭环）
+/api/standard/export/{fname}  标准本体导出（交付包生成，由脚本调用）
+# —— 编排与示例：只给运维 / FDE 用，界面另有入口 ——
+/api/flows/{flow_id}/run      流程编排执行（编排页只读状态，执行走 CLI 与运维脚本）
+/api/kbs/{kb}/examples        知识库示例问题读写（前端问答页改用 /api/ontology/examples）

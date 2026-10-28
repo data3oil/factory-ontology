@@ -358,6 +358,59 @@ def execute_query(query, data, D):
 # ------------------------------------------------------------------ 组合入口
 
 
+_ATTR_SYNONYMS = {
+    "售价": "价格", "单价": "价格", "价钱": "价格", "零售价": "价格", "卖价": "价格",
+    "出厂价": "价格", "金额": "价格",
+}
+
+_COUNT_RE = re.compile(r"(有多少|多少个|多少种|几种|数量|总数|共多少|一共多少|一共有多少|总共多少)")
+_EXTREME_WORDS = {
+    "max": ("最贵", "最长", "最高", "最大", "最多", "最晚", "最重", "最贵的是"),
+    "min": ("最便宜", "最短", "最低", "最小", "最少", "最早", "最轻"),
+}
+
+
+def _deterministic_query(question, D):
+    """确定性解析「数量」与「最值」两类问题；解析不出返回 None。
+
+    与 _threshold_query 同一层：先于 nl_to_query，命中即不花 token、不走模型。
+    """
+    q = question or ""
+    cn2en = (D or {}).get("attr_cn2en", {}) or {}
+
+    # ---- 最值：属性名取问题里最长的词典中文名（避免「价格」被「价」截断）----
+    for direction, words in _EXTREME_WORDS.items():
+        if not any(w in q for w in words):
+            continue
+        best = None
+        for cn in cn2en:
+            if cn and cn in q and (best is None or len(cn) > len(best)):
+                best = cn
+        # 同义说法兜底：现场说「售价/单价」，词典里是「价格」
+        if not best:
+            for syn, canon in _ATTR_SYNONYMS.items():
+                if syn in q and canon in cn2en:
+                    best = canon
+                    break
+        if not best:
+            return None
+        return {"intent": "extreme", "attr": cn2en[best], "filter_cn": None,
+                "rel": None, "n": None, "extreme_dir": direction}
+
+    # ---- 数量：把问句里的限定名词当过滤条件（如「有多少种乳制品」→ 乳制品）----
+    if _COUNT_RE.search(q):
+        filter_cn = None
+        m = re.search(r"(?:有多少种|多少个|有几(?:种|个)?|多少)([一-龥]{2,6})", q)
+        if m:
+            cand = m.group(1)
+            generic = {"产品", "记录", "数据", "条目", "设备", "东西", "问题", "信息", "内容"}
+            if cand not in generic and not any(g in cand for g in ("多少", "几个")):
+                filter_cn = cand
+        return {"intent": "count", "attr": None, "filter_cn": filter_cn,
+                "rel": None, "n": None, "extreme_dir": None}
+    return None
+
+
 def answer(question, data, D):
     """组合 nl_to_query + execute_query。
 
@@ -371,6 +424,8 @@ def answer(question, data, D):
     if not _is_relevant(question, D):
         return None
     query = _threshold_query(question, D)  # 确定性数值阈值兜底(优先, 不依赖 LLM)
+    if query is None:
+        query = _deterministic_query(question, D)  # 数量/最值兜底，同样不依赖 LLM
     if query is None:
         query = nl_to_query(question, D)
     if query is None:

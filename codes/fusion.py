@@ -1,3 +1,4 @@
+import safe_log
 # codes/fusion.py
 """工厂本体问答 - 融合决策层。纯标准库。"""
 
@@ -105,8 +106,8 @@ def fuse(question, candidates, cross_domain=False, kb='', schema=None):
         try:
             import evidence_norm
             merged = evidence_norm.normalize_evidence(merged, schema)
-        except Exception:
-            pass
+        except Exception as exc:
+            safe_log.swallow('fusion.normalize', exc)
 
     answer = main.get('answer') or ''
     if not answer:

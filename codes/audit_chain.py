@@ -96,6 +96,7 @@ class AuditChain:
     def _conn(self):
         """短连接 + 显式 busy_timeout(默认 5s 忙等, 避免并发下立刻报锁)。"""
         c = sqlite3.connect(self.db_path, timeout=self._BUSY_TIMEOUT_MS / 1000.0)
+        # best-effort: 失败不影响主流程，这里显式忽略
         try:
             c.execute(f"PRAGMA busy_timeout={self._BUSY_TIMEOUT_MS}")
         except Exception:
@@ -161,6 +162,7 @@ class AuditChain:
             c.execute("COMMIT")
             return rid
         except Exception:
+        # best-effort: 失败不影响主流程，这里显式忽略
             try:
                 c.execute("ROLLBACK")
             except Exception:

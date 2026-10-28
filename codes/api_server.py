@@ -500,33 +500,72 @@ def _kb_class_list(nt_file, lb):
 
 @app.get("/", include_in_schema=False)
 def app_home():
-    """统一前端入口：优先跳转到新 Web 前端（3001）；否则动态渲染当前激活 kb 的落地页。
+    """统一入口页：展示当前激活知识库与示例问题，并给出新版界面与 API 文档入口。
 
-    不再硬绑 food_app（BP-6）：前端应反映当前激活/建模的本体——建了哪个模检索哪个。
+    设计口径：这一页是"服务已就绪"的确认页，不是产品主页——真正的界面在 Web 前端。
+    因此只用文字与色块，不用 emoji 图标，避免与企业品牌标识混淆。
     """
-    # 新 Web 前端地址（工厂本体问答 SPA，端口 3001）
     WEB_FRONT = os.environ.get("WEB_FRONT_URL", "http://localhost:3001/")
-    # 动态渲染当前激活 kb 的品牌/示例（去硬编码）
     kb_name = KB_NAME
-    name = _kb.get("name", "知识库助手")
-    icon = _kb.get("icon", "🏭")
-    examples = _kb.get("examples", [])
-    ex_html = "".join(f"<li>{e}</li>" for e in examples[:6])
+    name = _kb.get("name", "知识库")
+    examples = _kb.get("examples", [])[:6]
+    ex_html = "".join(f'<li><span class="chip">{e}</span></li>' for e in examples)
     return HTMLResponse(f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>{icon} {name} · 工厂智能体</title>
-<style>body{{font-family:'Segoe UI','Microsoft YaHei',sans-serif;background:#eef1f5;color:#2d3436;margin:0;padding:0}}
-.wrap{{max-width:680px;margin:60px auto;background:#fff;border:1px solid #d5dbe3;border-radius:8px;padding:32px;box-shadow:0 2px 10px rgba(0,0,0,.05)}}
-h1{{font-size:20px}} .kb{{color:#2563eb;font-weight:700}}
-.btn{{display:inline-block;margin-top:16px;background:#2563eb;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:600}}
-li{{margin:6px 0}} .foot{{color:#94a3b8;font-size:12px;margin-top:24px}}</style>
+<title>工厂本体 · 知识问答服务</title>
+<style>
+  :root {{ --brand:#0D9488; --brand-dark:#0B7C72; --ink:#1F2937; --ink-sub:#5B6779;
+           --line:#E5E7EB; --bg:#F6F8FA; --card:#FFFFFF; }}
+  * {{ box-sizing:border-box; }}
+  body {{ margin:0; background:var(--bg); color:var(--ink);
+          font:14px/1.7 -apple-system,'Segoe UI','Microsoft YaHei',sans-serif; }}
+  .wrap {{ max-width:720px; margin:56px auto; padding:0 20px; }}
+  .brand {{ font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--brand); font-weight:700; margin-bottom:8px; }}
+  h1 {{ font-size:22px; margin:0 0 6px; font-weight:800; letter-spacing:.2px; }}
+  .sub {{ margin:0 0 24px; color:var(--ink-sub); font-size:13px; }}
+  .card {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:20px 22px; margin-bottom:14px; }}
+  .kv {{ display:flex; gap:10px; align-items:baseline; margin:0 0 14px; font-size:13px; }}
+  .kv b {{ font-weight:600; color:var(--ink-sub); }}
+  .badge {{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px;
+            background:#E6F6F3; color:var(--brand-dark); border:1px solid #C9EAE4; font-weight:600; }}
+  .label {{ font-size:12px; color:var(--ink-sub); margin:0 0 8px; font-weight:600; }}
+  ul.chips {{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px; }}
+  .chip {{ display:inline-block; padding:5px 11px; border:1px solid var(--line); border-radius:8px;
+           background:#FBFCFD; font-size:12.5px; color:var(--ink); }}
+  .actions {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }}
+  .btn {{ display:inline-block; padding:9px 18px; border-radius:8px; text-decoration:none;
+          font-weight:600; font-size:13px; }}
+  .btn-primary {{ background:var(--brand); color:#fff; }}
+  .btn-primary:hover {{ background:var(--brand-dark); }}
+  .btn-ghost {{ border:1px solid var(--line); color:var(--ink); background:#fff; }}
+  .foot {{ margin-top:22px; font-size:11px; color:#8A94A6; line-height:1.8; }}
+</style>
 </head><body><div class="wrap">
-<h1>{icon} {name}</h1>
-<p>当前激活知识库：<span class="kb">{kb_name}</span>（跟随激活本体，非固定 food）</p>
-<p>示例问题：</p><ul>{ex_html}</ul>
-<a class="btn" href="{WEB_FRONT}">打开新版 Web 前端（3001）→</a>
-<p class="foot">统一前端入口 · 工厂本体问答套件</p>
+  <div class="brand">北京三油科技 · 工厂本体</div>
+  <h1>{name}</h1>
+  <p class="sub">台账进，答案出 · 数据本地处理不出厂</p>
+
+  <div class="card">
+    <div class="kv"><b>当前知识库</b><span class="badge">{kb_name}</span>
+      <span style="color:var(--ink-sub);font-size:12px">跟随激活本体，不是固定数据源</span></div>
+    <p class="label">试试这些问法</p>
+    <ul class="chips">{ex_html}</ul>
+  </div>
+
+  <div class="card">
+    <p class="label">入口</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{WEB_FRONT}">进入知识问答界面</a>
+      <a class="btn btn-ghost" href="/docs">API 文档</a>
+      <a class="btn btn-ghost" href="/openapi.json">接口定义</a>
+    </div>
+  </div>
+
+  <p class="foot">Apache-2.0 · © 2026 北京三油科技有限责任公司 · data3oil.com<br />
+     本页为服务就绪确认页；日常使用请走知识问答界面。</p>
 </div></body></html>""")
 
 
@@ -1751,10 +1790,9 @@ def app_config():
     return {
         "ok": True, "kb": KB_NAME,
         "name": _kb.get("name", "知识库助手"),
-        "icon": _kb.get("icon", "🏭"),
+        "icon": _kb.get("icon", ""),
         "examples": _kb.get("examples", []),
     }
-
 
 
 # ── 问答融合辅助逻辑已拆分至 ask_service.py(P2) ─────────────────────────
@@ -3185,8 +3223,6 @@ def _auto_evolve_after_sync():
     except Exception as e:
         logger.warning("自动本体自演进失败(不影响同步): %s", e)
         return {"ok": False, "error": str(e)}
-
-
 
 
 # 以 `python api_server.py` 启动时本模块的名字是 __main__，routes/*.py 里的

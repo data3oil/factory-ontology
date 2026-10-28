@@ -18,6 +18,7 @@ import os
 import re
 
 from qa_constants import MISS_MARKERS  # 未命中关键词表单一真相源(B3 收口)
+import safe_log
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 _KB_ROOT = os.path.join(ROOT, "output", "kb_store")
@@ -107,8 +108,8 @@ def _polish_rule_answer(question, raw_answer):
             _unit_ok = all(u in polished for u in _units)
             if _gap_ok and _unit_ok and all(_re.search(r"(?<!\d)" + _re.escape(n) + r"(?!\d)", polished) for n in _nums):
                 return polished.strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        safe_log.swallow('ask.polish', exc)
     return raw_answer
 
 

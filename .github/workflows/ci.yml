@@ -30,6 +30,13 @@ jobs:
           mkdir -p output
           python -c "import food_demo; food_demo._build_kb()"
           ls -l output/food.nt
+      - name: 工程门（去演示化 / 断链 / 静默吞异常）
+        run: |
+          python scripts/check_demo_assets.py
+          python scripts/check_route_reachability.py
+          python scripts/check_silent_except.py
+          python scripts/check_ui_copy.py
+
       - name: 运行单测(数据加载/本体生成/规则问答/GraphRAG)
         run: |
           python -m pytest tests/ -v --tb=short
