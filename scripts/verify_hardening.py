@@ -36,6 +36,7 @@ BASE = f"http://127.0.0.1:{PORT}"
 
 ADMIN_KEY = "vh-admin-key"
 READ_KEY = "vh-read-key"
+# 本机验收脚本用的固定测试密钥（非生产凭据，不连接任何线上环境）
 TOKEN_SECRET = "vh-token-secret"
 
 TMP = tempfile.mkdtemp(prefix="verify_hardening_")

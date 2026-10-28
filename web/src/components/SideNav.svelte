@@ -13,10 +13,13 @@
     entries = null,   // 可见的设置条目 key 列表（后端按角色给）；null/空 = 全部可见
   } = $props();
 
+  // 一级区按落地流程排序：先建本体，再问答，再看板，最后交付。
+  // 用文字编号代替 emoji：工厂现场多是投影与投影笔操作，emoji 在小屏与灰度投影下糊成一团。
   const AREAS = [
-    { area: 'ask', icon: '💬', label: '知识问答' },
-    { area: 'dashboard', icon: '📈', label: '数据看板' },
-    { area: 'delivery', icon: '📦', label: '交付与迁移' },
+    { area: 'build', step: '1', label: '建本体' },
+    { area: 'ask', step: '2', label: '知识问答' },
+    { area: 'dashboard', step: '3', label: '数据看板' },
+    { area: 'delivery', step: '4', label: '交付与迁移' },
   ];
 
   const GROUPS = [
@@ -66,7 +69,7 @@
           class:active={area === it.area}
           onclick={() => pickArea(it.area)}
         >
-          <span class="icon">{it.icon}</span>
+          <span class="step">{it.step}</span>
           <span class="label">{it.label}</span>
         </button>
       </li>
@@ -81,7 +84,7 @@
     class:active={open}
     onclick={() => (open = !open)}
   >
-    <span class="icon">⚙️</span>
+    <span class="step">·</span>
     <span class="label">设置</span>
   </button>
 
@@ -158,6 +161,8 @@
     color: var(--brand);
   }
 
+  .step { display: inline-flex; width: 18px; justify-content: center;
+    font-size: 12px; color: inherit; opacity: .65; }
   .icon {
     width: 16px;
     text-align: center;

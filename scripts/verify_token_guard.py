@@ -39,6 +39,7 @@ PORT = int(os.environ.get("VERIFY_TG_PORT", "8951"))
 
 ADMIN_KEY = "vtg-admin-key"
 READ_KEY = "vtg-read-key"
+# 本机验收脚本用的固定测试密钥（非生产凭据，不连接任何线上环境）
 TOKEN_SECRET = "vtg-token-secret"
 # 限速测试用小阈值/短封禁，便于快速观察到封禁与自动解除；同时核验"可配"。
 THRESHOLD = 3

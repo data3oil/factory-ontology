@@ -4,7 +4,7 @@
 
 对齐 Semantica 的 verify_chain 思路, 但保持工厂本体的零依赖/轻量纪律:
 - 不引图数据库, 不引推理机, 纯 sqlite3 + hashlib。
-- 服务卖点: "审核专家 + 企业内训可审计 + 决策可追责"。
+- 服务卖点: "审核留痕 + 过程可审计 + 决策可追责"。
 
 能力:
 1. 溯源/决策记录 append(record): 每条落 sequence_id + checksum + prev_checksum。

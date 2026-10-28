@@ -43,6 +43,7 @@ ON_PORT = int(os.environ.get("VERIFY_SA_ON_PORT", "8923"))
 
 ADMIN_KEY = "sa-admin-key"
 READ_KEY = "sa-read-key"
+# 本机验收脚本用的固定测试密钥（非生产凭据，不连接任何线上环境）
 TOKEN_SECRET = "sa-token-secret"
 
 TMP = tempfile.mkdtemp(prefix="verify_strict_auth_")

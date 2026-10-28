@@ -38,6 +38,7 @@ OLD_PORT = int(os.environ.get("VERIFY_TENANT_OLD_PORT", "8913"))
 
 ADMIN_KEY = "vt-admin-key"
 READ_KEY = "vt-read-key"
+# 本机验收脚本用的固定测试密钥（非生产凭据，不连接任何线上环境）
 TOKEN_SECRET = "vt-token-secret"
 # 租户自带凭据（配置在临时租户注册表里；凭据→租户声明）
 KEY_A = "vt-key-a"

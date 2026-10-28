@@ -207,7 +207,8 @@
   let activeTab = $state('query');   // 默认落地页=知识问答（原为 model）；model | selfmodel | query | dashboard | eval | knowledge | assets
                                     // | lexasset | evolve | orch
   // ─── 导航分区（3 主区 + 设置区）；activeTab 仍是内部真相源，十个分支一律不动 ───
-  const NAV_MAP = { ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
+  // 一级区 → 页签：「建本体」落在数据建模页，建模三步仍走设置区的自助建模与本体演进
+  const NAV_MAP = { build: 'model', ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
   // 交付与迁移是一级区，内部两个页签（版本与交付 / 词典），两条都可达
   const DELIVERY_TABS = { delivery: 'assets', lexicon: 'lexasset' };
   const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
@@ -219,8 +220,12 @@
   );
   const isAdminUser = $derived(!!(user && user.can && user.can.enterprise));
   // 建本体三步向导：这三个设置页各自对应一步（数据建模→自助建模→本体演进）
-  const buildStep = $derived(activeTab === 'model' ? 1 : activeTab === 'selfmodel' ? 2 : 3);
-  const goBuildStep = (n) => switchTab(n === 1 ? 'model' : n === 2 ? 'selfmodel' : 'evolve');
+  const buildStep = $derived(
+    activeTab === 'model' ? 1
+      : (activeTab === 'selfmodel' || activeTab === 'evolve') ? 2
+        : activeTab === 'query' ? 3 : 4);
+  const goBuildStep = (n) => switchTab(
+    n === 1 ? 'model' : n === 2 ? 'selfmodel' : n === 3 ? 'query' : 'dashboard');
   // 登录后先看（本机偏好，只影响首次落地分区；不动后端）
   const LANDING_KEY = 'fo_landing_pref';
   let landingPref = $state(
@@ -232,7 +237,14 @@
   }
   const NAV_LABELS = { ask: '知识问答', dashboard: '数据看板', delivery: '交付与迁移' };
   const ENTRY_LABELS = { model: '数据建模', selfmodel: '自助建模', evolve: '本体演进（人确认）', knowledge: '知识库管理', eval: '评测基线', orch: '本体编排', enterprise: '企业与账号' };
-  let navArea = $state('ask');         // ask | dashboard | delivery
+  let navArea = $state('ask');         // build | ask | dashboard | delivery
+  // 高亮跟着页签走：从设置区直接进「数据建模」时，左侧也应显示在「1 建本体」
+  const AREA_OF_TAB = { model: 'build', selfmodel: 'build', evolve: 'build',
+    query: 'ask', dashboard: 'dashboard', assets: 'delivery', lexasset: 'delivery' };
+  $effect(() => {
+    const a = AREA_OF_TAB[activeTab];
+    if (a && a !== navArea) navArea = a;
+  });
   let settingsOpen = $state(false);    // 是否处于设置区
   let settingsEntry = $state('model'); // 设置条目：见 SETTINGS_ENTRIES
   // 顶部条上显示的知识库名（与原有 cur-kb-tag 同一口径，不新造真相源）

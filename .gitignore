@@ -128,3 +128,12 @@ docs/research/竞品/
 
 # 前端文案扫描工作记录
 web/scripts/*wording_sweep*.json
+
+# 2026-10 去演示化：本地运行残留与测试注册表，不进仓库
+.dispatch/
+_run_logs/
+_branch_backup/
+*.log
+codes/config/kbs.dev.json
+.codegraph/
+_dispatch/

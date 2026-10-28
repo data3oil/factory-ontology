@@ -46,6 +46,7 @@ PORT_BASE = PORT + 1          # 「未配置 SSO」基线服务用另一个临�
 
 ADMIN_KEY = "vss-admin-key"
 READ_KEY = "vss-read-key"
+# 本机验收脚本用的固定测试密钥（非生产凭据，不连接任何线上环境）
 TOKEN_SECRET = "vss-token-secret"
 SSO_SECRET = "vss-sso-shared-secret"
 ISS = "https://sso.example.com/realms/factory"

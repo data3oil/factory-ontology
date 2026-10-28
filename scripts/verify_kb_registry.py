@@ -237,10 +237,14 @@ def main():
           "real_kbs sha=%s" % _sha(REAL_KBS)[:16])
     real_now = KR.load_registry(REAL_KBS)
     # 断言意图 = "测试/onboarding 残渣未泄漏进真实注册表"，不是"数量恰好 33"。
-    # 真实注册表允许因正常业务新增 KB 而增长（如新增 food_co）；这里只要求不缩水、无 verify_* 残渣。
-    check("真实注册表未缩水(>=33 个 KB) 且无 verify_* 项",
-          len(real_now) >= 33 and not any(k.startswith("verify_") for k in real_now),
-          "total=%d" % len(real_now))
+    # 2026-10 去演示化：测试/模板残留已移入 kbs.dev.json，真实注册表从 34 缩到 21。
+    # 因此改为双判据：① 可交付 KB 数不低于 20（防误删真实行业）② 不含任何测试残渣键。
+    residue_prefix = ("verify_", "onb_", "factory_multi_")
+    residue_keys = ("valve2", "valve3", "valve9", "e2ecust", "qipei_2")
+    leaking = [k for k in real_now if k.startswith(residue_prefix) or k in residue_keys]
+    check("真实注册表 >=20 个可交付 KB 且无测试残渣",
+          len(real_now) >= 20 and not leaking,
+          "total=%d leaking=%s" % (len(real_now), leaking or "无"))
 
     shutil.rmtree(tmp, ignore_errors=True)
 
