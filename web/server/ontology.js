@@ -171,12 +171,23 @@ async function apiFetch(path, { method = 'GET', body, timeout = 15000 } = {}) {
       const raw = data.detail != null ? data.detail : data.error;
       const detail = String(typeof raw === 'string' ? raw : (raw ? JSON.stringify(raw) : '')).trim();
       const auth = resp.status === 401 || resp.status === 403;
-      return {
-        ok: false, status: resp.status, auth_error: auth,
-        error: resp.status === 401
-          ? '未登录或会话已过期，请重新登录（后端返回 401）'
-          : (detail || `后端返回 HTTP ${resp.status}`),
-      };
+      // 401 有三种来源，别一律推给"你的登录过期"：
+      //   1) BFF 没配 API_KEY → 后端 fail-closed 拒绝，跟用户登录无关；
+      //   2) BFF 的 API_KEY 与后端 FOOD_*_KEY 不一致；
+      //   3) 真是前端的会话令牌失效（detail 里会提到 token/session）。
+      let msg;
+      if (auth && !API_KEY) {
+        msg = '后端鉴权失败：本机未配置 API Key（后端要求 X-API-Key）。'
+            + '在 web/server/apiserver.config.json 填 apiKey（与后端 FOOD_READ_KEY 一致）'
+            + '或设置环境变量 API_KEY，然后重启 BFF（3001）。这不是登录过期。';
+      } else if (auth && API_KEY && !/token|session|jwt/i.test(detail)) {
+        msg = `后端拒绝了本机的 API Key（HTTP ${resp.status}）：请确认 API_KEY 与后端 FOOD_READ_KEY / FOOD_ADMIN_KEY 一致。这不是登录过期。`;
+      } else if (resp.status === 401) {
+        msg = '未登录或会话已过期，请重新登录';
+      } else {
+        msg = detail || `后端返回 HTTP ${resp.status}`;
+      }
+      return { ok: false, status: resp.status, auth_error: auth, error: msg };
     }
     return data;
   } catch (e) {

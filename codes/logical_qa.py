@@ -297,10 +297,12 @@ def execute_query(query, data, D):
     def disp(n):
         """实体名解析为可读名(产品名/名称回退, 兼容驼峰/下划线)。"""
         d = data.get(n, {})
-        for k in ("productName", "product_name", "name", "deviceName", "device_name", "rawName", "raw_name"):
+        for k in ("productName", "product_name", "name", "deviceName", "device_name",
+                  "rawName", "raw_name", "lineName", "line_name", "teamName", "team_name",
+                  "sectionName", "section_name", "batchNo", "batch_no", "title", "label"):
             if d.get(k):
                 return str(d[k])
-        return str(n)
+        return str(n).split("_")[-1] or str(n)
 
     # ---- extreme: 求最值 ----
     if intent == "extreme":

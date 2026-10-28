@@ -1864,6 +1864,15 @@ def _ask_impl(req: AskReq):
                 if doc_payload:
                     doc_payload.setdefault("confidence", "low")
                     return doc_payload
+            # 规则引擎对"计数/列表/最值"这类问题是从本体聚合出答案的，本身不产出行级证据。
+            # 原来只要 evidence 为空就判 no_basis=True，导致「有 6 台设备」这种正确答案
+            # 被标成"未命中：无可靠依据"，前端据此显示低置信度——是明确的错标。
+            # 判据改为看答案文本本身：不含"无记录/未找到"类措辞的，就是有效规则答案。
+            _NOMATCH = ("无记录", "无相关数据", "未找到", "没有找到", "暂无", "无匹配", "查不到")
+            if polished and not any(m in polished for m in _NOMATCH):
+                return {"ok": True, "mode": "rule", "answer": polished,
+                        "evidence": [], "engines": ["rule"], "structured": None,
+                        "no_basis": False, "confidence": "medium", "kb": ctx["kb"]}
             return {"ok": True, "mode": "rule", "answer": polished,
                     "evidence": [], "engines": ["rule"], "structured": None,
                     "no_basis": True, "confidence": "none", "kb": ctx["kb"]}

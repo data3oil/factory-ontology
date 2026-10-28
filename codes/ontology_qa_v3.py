@@ -370,7 +370,10 @@ def _display_name(rec, aliases, default=""):
     # 兜底: 尝试常见主键字段 (含驼峰)
     for key in ("id", "udi", "UDI", "device_id", "serial_no", "code", "name",
                 "product_name", "productName", "raw_name", "rawName",
-                "unit_name", "unitName", "equipment_name", "equipmentName"):
+                "unit_name", "unitName", "equipment_name", "equipmentName",
+                "line_name", "lineName", "team_name", "teamName",
+                "section_name", "sectionName", "batch_no", "batchNo",
+                "title", "label"):
         if key in rec:
             return rec[key]
     return default
