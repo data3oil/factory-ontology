@@ -30,7 +30,8 @@ jobs:
           mkdir -p output
           python -c "import food_demo; food_demo._build_kb()"
           ls -l output/food.nt
-      - name: 工程门（去演示化 / 断链 / 静默吞异常）
+      - name: 工程门（去演示化 / 断链 / 静默吞异常 / 界面文案）
+        working-directory: ${{ github.workspace }}
         run: |
           python scripts/check_demo_assets.py
           python scripts/check_route_reachability.py
