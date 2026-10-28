@@ -8,16 +8,19 @@ import re
 import subprocess
 import sys
 
-ROOT = "D:/factory-ontology"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 仓库根，不写死本机路径
 PATTERNS = [
     ("本机绝对路径", re.compile(r"[A-Za-z]:[\\/](?:Users|workspace|factory-ontology\\|HR|获客|组织主体)")),
     ("用户名 zjjem", re.compile(r"zjjem", re.I)),
     ("内部项目名", re.compile(r"获客飞轮|组织主体舆情|企业人才系统|企业内训|客讯引擎")),
     ("疑似密钥", re.compile(r"(?i)(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})")),
     ("硬编码口令", re.compile(r"(?i)(password|passwd|secret)\s*=\s*['\"][^'\"]{6,}['\"]")),
+    ("手机号", re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")),
+    ("本机盘符路径", re.compile(r"[A-Za-z]:[\/](?:Users|workspace|Desktop|factory-ontology)")),
 ]
 
-SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".zip", ".whl"}
+SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".zip", ".whl",
+            ".db", ".sqlite3", ".nt", ".pdf", ".xlsx", ".docx"}   # 二进制里"像手机号的字节"不是泄露
 
 
 def sh(*args):
