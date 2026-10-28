@@ -283,9 +283,14 @@ let defaultBusy = $state(false);   // 默认数据建模中
   const INDUSTRIES = $derived(industries);
   let defaultIndustry = $state('data_valve'); // 当前选中的行业示例
   // 本地文件建模折叠区（默认收起，保持左侧干净大功能卡排队）
-  let localModelOpen = $state(false);
+  // 数据建模中栏统一手风琴：同一时刻只展开一块，剩下都是一行标题。
+  // 平铺 5 张卡在 240px 宽的中栏里会挤成一片，现场投影上更难认。
+  let openCard = $state('local');      // local | result | db | model | std | ''
+  const toggleCard = (id) => { openCard = openCard === id ? '' : id; };
+  const localModelOpen = $derived(openCard === 'local');
+  const resultOpen = $derived(openCard === 'result');
+  const stdOpen = $derived(openCard === 'std');
   // 数据库接入
-  let dbOpen = $state(false);
   let dbBusy = $state(false);
   let dbResult = $state(null);      // {ok, table?, output?, error?}
   let dbForm = $state({ db_type: 'mysql', host: '127.0.0.1', port: '3306', user: '', password: '', database: '', tables: '' });
@@ -311,7 +316,8 @@ let defaultBusy = $state(false);   // 默认数据建模中
   let analysis = $state(null);       // {report, stats} 智能分析结果
   let modelList = $state([]);        // 可用模型
   let activeModel = $state('');      // 当前生效模型 key
-  let modelOpen = $state(false);     // 模型管理折叠区
+  const dbOpen = $derived(openCard === 'db');
+  const modelOpen = $derived(openCard === 'model');   // 模型管理折叠区
   let modelEditBusy = $state(false);
   let editModels = $state([]);       // 可编辑模型配置 [{key,name,type,base_url,model,api_key}]
   let editActive = $state('');       // 编辑态 active
@@ -1265,7 +1271,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
       <!-- ─── 卡片① 本地文件建模（折叠式，对齐模型配置管理）─── -->
       <div class="card">
-        <button class="card-head card-head-btn" class:expanded={localModelOpen} onclick={() => (localModelOpen = !localModelOpen)}>
+        <button class="card-head card-head-btn" class:expanded={localModelOpen} onclick={() => toggleCard('local')}>
           <span class="card-icon ic-file"></span>
           <div class="card-titles">
             <div class="card-title">本地文件建模</div>
@@ -1306,13 +1312,15 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
       {#if modelResult}
         <div class="card">
-          <div class="card-head">
+          <button class="card-head card-head-btn" class:expanded={resultOpen} onclick={() => toggleCard('result')}>
             <span class="card-icon"></span>
             <div class="card-titles">
               <div class="card-title">建模结果</div>
-              <div class="card-desc">知识库 {modelResult.table}</div>
+              <div class="card-desc">知识库 {modelResult.table} · 共 {modelResult.tables || localFiles.length || 1} 张表 · {(modelResult.attrs || []).length} 个字段</div>
             </div>
-          </div>
+            <span class="chevron">{resultOpen ? '▾' : '▸'}</span>
+          </button>
+          {#if resultOpen}
           <div class="card-body">
             <div class="model-summary">
               <span class="sum-tables">共 {modelResult.tables || localFiles.length || 1} 张表</span>
@@ -1340,12 +1348,13 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               <button class="btn-action btn-small" onclick={() => switchTab('query')}> 进入问答</button>
             </div>
           </div>
+          {/if}
         </div>
       {/if}
 
       <!-- ─── 卡片③ 数据库接入（折叠式，对齐模型配置管理）─── -->
       <div class="card">
-        <button class="card-head card-head-btn" class:expanded={dbOpen} onclick={() => (dbOpen = !dbOpen)}>
+        <button class="card-head card-head-btn" class:expanded={dbOpen} onclick={() => toggleCard('db')}>
           <span class="card-icon ic-db"></span>
           <div class="card-titles">
             <div class="card-title">数据库接入</div>
@@ -1417,7 +1426,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
       <!-- ─── 卡片④ 模型配置管理（查看/编辑/增删/设 active，api_key 脱敏）─── -->
       <div class="card">
-        <button class="card-head card-head-btn" class:expanded={modelOpen} onclick={() => (modelOpen = !modelOpen)}>
+        <button class="card-head card-head-btn" class:expanded={modelOpen} onclick={() => toggleCard('model')}>
           <span class="card-icon ic-model"></span>
           <div class="card-titles">
             <div class="card-title">模型配置管理</div>
@@ -1492,12 +1501,15 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       </div>
       <!-- ─── 本体标准合规（GB/T 48000.3 描述项 + 命名空间 + SHACL + 类层次 + 导出物）─── -->
       <div class="std-card">
-        <div class="std-head">
+        <button class="std-head std-head-btn" onclick={() => toggleCard('std')} aria-expanded={stdOpen}>
           <span class="std-title">本体标准合规</span>
+          <span class="std-sub">GB/T 48000.3 · 描述项 / 命名空间 / SHACL / 类层次 / 导出物</span>
           <span class="std-badge" class:ok={(compliance && compliance.standard_rate != null) ? compliance.standard_rate >= 90 : false}>
             {compliance && compliance.standard_rate != null ? compliance.standard_rate + ' / 100' : '—'}
           </span>
-        </div>
+          <span class="chevron">{stdOpen ? '▾' : '▸'}</span>
+        </button>
+        {#if stdOpen}
         {#if complianceLoading}
           <div class="std-hint">检查中…</div>
         {:else if compliance && compliance.ok !== false}
@@ -1566,6 +1578,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           {/if}
         {:else}
           <div class="std-hint">合规度不可用（后端未就绪或 schema 缺失）</div>
+        {/if}
         {/if}
       </div>
     </section>
@@ -2123,6 +2136,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     padding: 12px 14px; background: var(--bg-elevated);
     border-bottom: 1px solid var(--bg-hover);
   }
+  .card-head-btn .card-title { white-space: nowrap; }
+  .card-head-btn .card-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-head-btn {
     width: 100%; border: none; text-align: left; cursor: pointer;
     background: var(--bg-elevated); font: inherit;
@@ -2192,7 +2207,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 主区域 ─── */
   .workspace {
     flex: 1; display: grid;
-    grid-template-columns: minmax(200px, 240px) 1fr;
+    grid-template-columns: minmax(300px, 360px) 1fr;   /* 中栏放建模表单，240px 会把提示文字折成竖排 */
     gap: 14px; padding: 14px 18px;
     min-height: 0;
   }
@@ -2532,6 +2547,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .std-btn:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
   .std-btn.ghost { background: var(--bg-card); color: var(--brand); border-color: var(--brand-line); }
   .std-hint { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  .std-head-btn { width: 100%; background: none; border: 0; cursor: pointer; text-align: left; }
+  .std-head-btn:hover .std-title { color: var(--brand); }
+  .std-sub { font-size: 10px; color: var(--txt-muted); margin-left: 8px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .std-file { display: none; }
   .std-align { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
   .std-align-head { font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
