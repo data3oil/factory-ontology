@@ -32,7 +32,9 @@
   // 是否已登录
   const isAuthed = $derived(!!user);
   // 是否已引导配置（未配置 → 引导 onboarding）
-  const needsOnboard = $derived(!!user && !user.onboarded);
+  // 引导判定与后端同口径：已有行业 + 已绑定 kb 的企业直接进系统，
+  // 不再因为一个历史 onboarded 标记把用户反复拉回"建本体"。
+  const needsOnboard = $derived(!!user && !user.onboarded && !(user.industry && user.kb));
   // 单企业收敛：当前企业唯一 kb = 登录用户的 kb
   const currentKb = $derived((user && user.kb) || '');
   // 本地文件建模的目标 kb: currentKb 优先; 为空(如重置后/未绑定)则用用户 industry 对应 kb
@@ -1225,6 +1227,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     settingsActive={settingsOpen}
     onSwitchKb={() => switchTab('knowledge')}
     onLogout={doLogout}
+    userName={(user && user.username) || ''}
+    roleLabel={(user && (user.roleLabel || user.role)) || ''}
   />
 
   <!-- ═══ 左侧导航 + 内容区（208px 导航 + 内容自适应）═══ -->
@@ -2137,6 +2141,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     border-bottom: 1px solid var(--bg-hover);
   }
   .card-head-btn .card-title { white-space: nowrap; }
+  .workspace > .pane:first-child .card-head { padding-left: 12px; padding-right: 10px; }
   .card-head-btn .card-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-head-btn {
     width: 100%; border: none; text-align: left; cursor: pointer;
@@ -2207,7 +2212,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 主区域 ─── */
   .workspace {
     flex: 1; display: grid;
-    grid-template-columns: minmax(300px, 360px) 1fr;   /* 中栏放建模表单，240px 会把提示文字折成竖排 */
+    grid-template-columns: minmax(260px, 288px) 1fr;   /* 中栏只放标题与表单：宽了浪费横向空间，窄了提示会折行 */
     gap: 14px; padding: 14px 18px;
     min-height: 0;
   }
@@ -2380,9 +2385,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .file-icon { font-size: 16px; }
 
   /* ─── 本地文件建模：上传区（对齐成熟商业软件的上传体验） ─── */
+  /* 中栏 288px：上传卡里的两行说明必须单行省略，折行会把 258px 宽度读成竖排 */
+  .file-upload-title, .file-upload-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-upload-hint { font-size: 11px; }
   .file-upload-zone { display: flex; flex-direction: column; gap: 10px; }
   .file-input {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;   /* 中栏窄时按钮换行，不裁切 */
     border: 1.5px dashed #cbd5e1; border-radius: 8px;
     padding: 14px 16px; cursor: pointer; background: #f8fafc;
     transition: border-color 0.15s, background 0.15s;
@@ -2390,12 +2398,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .file-input:hover { border-color: var(--brand); background: var(--brand-soft); }
   .file-input input[type="file"] { display: none; }
   .file-upload-icon { font-size: 24px; flex-shrink: 0; }
-  .file-upload-main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .file-upload-main { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .file-upload-title { font-size: 13px; font-weight: 600; color: #1e293b; }
   .file-upload-hint { font-size: 11px; color: #64748b; }
   .file-upload-btn {
-    font-size: 12px; font-weight: 600; color: var(--brand);
-    border: 1px solid var(--brand); border-radius: 4px; padding: 5px 12px;
+    font-size: 11.5px; font-weight: 600; color: var(--brand);
+    border: 1px solid var(--brand); border-radius: 4px; padding: 4px 10px; margin-left: auto;
     white-space: nowrap; transition: background 0.15s;
   }
   .file-input:hover .file-upload-btn { background: var(--brand); color: #fff; }

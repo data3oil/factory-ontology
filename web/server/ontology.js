@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // 本仓库 codes/ 套件目录（相对本文件：web/server -> ../codes）
 const KIT = join(__dirname, '..', '..', 'codes');
+export const KIT_DIR = KIT;   // BFF 判定本体新鲜度要用（避免各写一份路径）
 const PY = 'python';
 // Web 应用自己的状态文件（不依赖套件全局 current.json，避免被测试/其他调用覆盖）
 const WEB_STATE = join(__dirname, '..', 'web_state.json');

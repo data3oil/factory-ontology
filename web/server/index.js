@@ -1,10 +1,11 @@
 // index.js — 工厂本体问答 Web 应用服务器
 // 静态服务 public/ + API（/api/ontology/setup, /api/ontology/ask）+ health
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
+import { join as pathJoin } from 'path';
 import { extname, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger } from './ontology.js';
+import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger, KIT_DIR } from './ontology.js';
 import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions } from './auth.js';
 // 角色判定与权限矩阵的单一真相源（不在这里另写一套）
 import { isAdmin, canManageEnterprise, canResetEnterprise } from './roles.js';
@@ -97,7 +98,27 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify(obj));
   };
 
-  // ── API: 用户登录 ──
+  // ── 建模幂等：本体已生成且比数据新，就不重建 ──
+// 现场动作是"建一次、确认、之后一直用"，刷新或重复保存不该再花十几秒重跑建模。
+function ontologyFresh(dir, kb) {
+  try {
+    const meta = (listKbs() || {})[kb] || {};
+    const ntRel = meta.nt || `output/${kb}.nt`;
+    const ntAbs = pathJoin(KIT_DIR, ntRel);
+    if (!existsSync(ntAbs)) return false;
+    const ntTime = statSync(ntAbs).mtimeMs;
+    if (!dir) return true;
+    const dirAbs = pathJoin(KIT_DIR, dir);
+    if (!existsSync(dirAbs)) return true;               // 数据目录不在本机: 以本体为准
+    const newest = readdirSync(dirAbs)
+      .filter((f) => /\.csv$/i.test(f))
+      .map((f) => { try { return statSync(pathJoin(dirAbs, f)).mtimeMs; } catch (e) { return 0; } })
+      .reduce((a, b) => Math.max(a, b), 0);
+    return ntTime >= newest;
+  } catch (e) { return false; }
+}
+
+// ── API: 用户登录 ──
   if (req.method === 'POST' && url === '/api/auth/login') {
     try {
       const body = JSON.parse((await readBody(req)) || '{}');
@@ -131,7 +152,19 @@ const server = createServer(async (req, res) => {
 
   // ── API: 会话信息（me）/ 退出登录 ──
   if (req.method === 'GET' && url === '/api/auth/me') {
-    const user = requireAuth(); if (!user) return;
+    let user = requireAuth(); if (!user) return;
+    // 自愈：账号已有行业、对应本体也已存在，却还挂着 onboarded=false
+    // （历史数据或上次保存失败留下的），这里直接补标记，避免每次刷新都被拉回引导页重建。
+    if (user && !user.onboarded && user.industry && user.kb) {
+      try {
+        const all = listIndustries();
+        const ind = all.find((i) => i.name === user.industry) || all.find((i) => i.kb === user.kb);
+        if (ind && ontologyFresh(ind.dir, ind.kb)) {
+          const upd = updateUser(user.username, { onboarded: true });
+          if (upd.ok) user = upd.user;
+        }
+      } catch (e) { /* 自愈失败不影响登录 */ }
+    }
     res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
     res.end(JSON.stringify({ ok: true, user }));
     return;
@@ -609,11 +642,15 @@ const server = createServer(async (req, res) => {
       // 改行业 → 自动建模（事件驱动）：用新行业数据目录重建该行业 kb 的本体/词典，
       // 使界面显示的"已就绪"是新行业的真实模型，而非旧行业残留。
       if (ind && ind.dir && body.industry !== (user && user.industry)) {
+        if (ontologyFresh(ind.dir, ind.kb)) {
+          // 该行业本体已建好且比数据新：沿用，不重建
+        } else {
         const built = await buildIndustry(ind.dir, ind.kb);
         if (!built.ok) {
           // 建模失败不放行保存（否则界面"已就绪"但模型是旧的，属死角）
           writeErr(500, { ok: false, error: `行业「${ind.name}」自动建模失败：${built.error || ''}` });
           return;
+        }
         }
       }
       const result = updateUser(user.username, patch);
@@ -646,14 +683,20 @@ const server = createServer(async (req, res) => {
       const all = listIndustries();
       const ind = all.find(i => i.name === industry) || all.find(i => i.kb === industry);
       if (!ind) { writeErr(400, { ok: false, error: `未知行业：${industry}` }); return; }
-      const built = await buildIndustry(ind.dir, ind.kb);
-      if (!built.ok) { writeErr(500, { ok: false, error: `行业「${ind.name}」自动建模失败：${built.error || ''}` }); return; }
+      let built = { ok: true, skipped: true };
+      if (!ontologyFresh(ind.dir, ind.kb)) {
+        built = await buildIndustry(ind.dir, ind.kb);
+        if (!built.ok) { writeErr(500, { ok: false, error: `行业「${ind.name}」自动建模失败：${built.error || ''}` }); return; }
+      }
       // 联动：企业唯一 kb + 行业 + 前端激活 kb 全部更新到新行业
       const upd = updateUser(user.username, { industry: ind.name, kb: ind.kb });
       if (!upd.ok) { writeErr(500, upd); return; }
       try { setCurrentKb(ind.kb); } catch (e) { /* 忽略 */ }
       res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
-      res.end(JSON.stringify({ ok: true, data: { ...upd.user, industry: ind.name, kb: ind.kb }, industry: { kb: ind.kb, name: ind.name, icon: ind.icon, dir: ind.dir }, table: built.table, attrs: built.attrs || [] }));
+      res.end(JSON.stringify({ ok: true, data: { ...upd.user, industry: ind.name, kb: ind.kb },
+        rebuilt: !built.skipped,   // 让运维一眼看出这次是"已建好沿用"还是"真重建"
+        industry: { kb: ind.kb, name: ind.name, icon: ind.icon, dir: ind.dir },
+        table: built.table, attrs: built.attrs || [] }));
     } catch (err) { writeErr(500, { ok: false, error: String(err.message || err) }); }
     return;
   }
