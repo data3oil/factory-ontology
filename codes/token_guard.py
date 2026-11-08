@@ -184,6 +184,8 @@ class TokenGuard(object):
             return
         try:
             c._c.close()
+        # 纯清理路径：重复 close 或解释器退出阶段关闭失败都不影响正确性，日志也无处可写
+        # best-effort: 清理失败可忽略
         except Exception:
             pass
         self._local.conn = None
