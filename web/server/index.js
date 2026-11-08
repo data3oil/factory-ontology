@@ -106,6 +106,43 @@ const server = createServer(async (req, res) => {
     return String(req.headers['x-auth-token'] || '').trim();
   }
   // 校验会话，返回公开用户；未登录/失效返回 null 并写 401
+  // 企业上下文层：按实体 IRI 取这个实体在别的系统里的记录
+  async function baseContext(iri) {
+    if (!iri) return { reason: 'bad_request', why: '缺 iri 参数' };
+    let cfg = {};
+    try { cfg = JSON.parse(readFileSync('D:/factory-ontology/config/base.json', 'utf8')); }
+    catch (e) { return { reason: 'disabled', why: 'config/base.json 不存在' }; }
+    if (!cfg.enabled || !cfg.token) return { reason: 'disabled' };
+    const base = (cfg.base_url || 'http://127.0.0.1:8790').replace(/\/+$/, '');
+    const r = await fetch(base + '/cap/base.context_pack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.token },
+      body: JSON.stringify({ subject_iri: iri, task: '查看这个实体的企业上下文',
+                             budget_tokens: 1200, domain: 'ontology' }),
+    });
+    const j = await r.json();
+    if (!j || !j.ok) {
+      const err = String((j && j.error) || '');
+      return err.includes('主体不存在')
+        ? { reason: 'not_registered', subject_iri: iri, why: '这个实体还没登记到企业上下文层' }
+        : { reason: 'unreachable', why: err.slice(0, 160) };
+    }
+    const d = j.data || {};
+    return {
+      reason: 'ok',
+      subject_iri: d.subject || iri,
+      certified: !!d.certified,
+      certified_why: d.certified_why || '',
+      tokens: d.tokens || 0,
+      doc_hash: d.doc_hash || '',
+      items: (d.items || []).slice(0, 10).map((it) => ({
+        kind: it.kind, text: (it.text || '').slice(0, 160),
+        source: it.source, as_of: it.as_of,
+      })),
+      merged_note: ((d.excluded || []).find((x) => x.kind === 'merged') || {}).why || '',
+    };
+  }
+
   function requireAuth() {
     const user = authMe(getToken());
     if (!user.ok) {
@@ -184,6 +221,25 @@ function ontologyFresh(dir, kb) {
   }
 
   // ── API: 会话信息（me）/ 退出登录 ──
+  if (req.method === 'GET' && url.startsWith('/api/context')) {
+    const user = requireAuth(); if (!user) return;
+    const u = new URL(req.url, 'http://localhost');
+    const iri = u.searchParams.get('iri') || '';
+    return baseContext(iri).then((d) => {
+      const body = JSON.stringify(d);
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+        'Cache-Control': 'no-store',
+      });
+      res.end(body);
+    }).catch((e) => {
+      const body = JSON.stringify({ reason: 'unreachable', why: String(e && e.message || e) });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(body);
+    });
+  }
+
   if (req.method === 'GET' && url === '/api/auth/me') {
     let user = requireAuth(); if (!user) return;
     // 自愈：账号已有行业、对应本体也已存在，却还挂着 onboarded=false

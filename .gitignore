@@ -144,3 +144,6 @@ web/server/sso_map.json
 # 评测中间产物(修复前后对照, 本地留档即可; 正式基线是 scripts/eval_qa_baseline.json)
 scripts/_before.json
 scripts/_after.json
+
+# 运行时配置：含基座签发的令牌，永不入库
+config/base.json

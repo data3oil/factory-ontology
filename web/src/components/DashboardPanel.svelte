@@ -3,7 +3,7 @@
   // 纯 CSS 条形图，零图表依赖
   // 单企业收敛：kb 由父级（App.svelte）注入 currentKb（当前登录企业唯一 kb），
   // kb prop 变化时 $effect 自动重新加载（看板跟随当前企业）。
-  import { fetchStats } from '../lib/api.js';
+  import { fetchStats, getToken } from '../lib/api.js';
 
   let { kb = '' } = $props();    // 当前企业唯一 kb（只读 prop，跟随登录企业）
 
@@ -11,6 +11,28 @@
   let loading = $state(true);
   let error = $state('');
   let empty = $state(false);   // 未建模空态（stats 为 null 且 empty=true，非报错）
+
+  // 企业上下文：这个设备/实体在别的系统里（获客/atp/HR）是什么状况。
+  // 本系统没有"单个设备详情页"，所以做成按 IRI 查——知道 IRI 就能查，不硬造一个详情页。
+  let ctxIri = $state('');
+  let ctxData = $state(null);
+  let ctxErr = $state('');
+  let ctxLoading = $state(false);
+
+  async function loadCtx() {
+    const iri = ctxIri.trim();
+    if (!iri) { ctxData = null; ctxErr = ''; return; }
+    ctxLoading = true; ctxErr = ''; ctxData = null;
+    try {
+      const r = await fetch('/api/context?iri=' + encodeURIComponent(iri),
+                            { headers: { 'x-auth-token': getToken() } });
+      ctxData = await r.json();
+    } catch (e) {
+      ctxErr = (e && e.message) || String(e);
+    } finally {
+      ctxLoading = false;
+    }
+  }
 
   // 图表配色
   const TYPE_COLORS = ['#0D9488', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
@@ -164,6 +186,48 @@
       </table>
     </div>
   {/if}
+
+  <div class="ctx-query">
+    <div class="ctx-q-head">
+      <b>企业上下文</b>
+      <span class="ctx-q-sub">输入实体 IRI，查它在别的系统里的记录（获客/atp/HR）</span>
+    </div>
+    <div class="ctx-q-row">
+      <input class="ctx-q-in" bind:value={ctxIri} placeholder="ent:Asset/onto-eq-m001"
+             onkeydown={(e) => e.key === 'Enter' && loadCtx()} />
+      <button class="ctx-q-btn" onclick={loadCtx} disabled={ctxLoading}>
+        {ctxLoading ? '查询中…' : '查询'}
+      </button>
+    </div>
+    {#if ctxErr}
+      <div class="ctx-q-err">读取失败：{ctxErr}</div>
+    {:else if ctxData}
+      {#if ctxData.reason === 'disabled'}
+        <div class="ctx-q-sub">企业上下文层未启用</div>
+      {:else if ctxData.reason === 'not_registered'}
+        <div class="ctx-q-sub">{ctxData.why || '这个实体还没登记到企业上下文层'}</div>
+      {:else if ctxData.reason === 'unreachable'}
+        <div class="ctx-q-err">基座不可达：{ctxData.why || ''}</div>
+      {:else if ctxData.reason === 'bad_request'}
+        <div class="ctx-q-sub">请输入实体 IRI</div>
+      {:else}
+        <div class="ctx-q-meta">
+          <span class="ctx-badge" class:ok={ctxData.certified}>{ctxData.certified ? '已认证' : '未认证'}</span>
+          <span class="ctx-q-sub">{ctxData.tokens || 0} tokens · {(ctxData.items || []).length} 条</span>
+          {#if ctxData.merged_note}<span class="ctx-q-sub">{ctxData.merged_note}</span>{/if}
+        </div>
+        {#each (ctxData.items || []) as it}
+          <div class="ctx-q-item">
+            <span class="ctx-q-kind">{it.kind}</span>
+            <span class="ctx-q-text">{it.text}</span>
+          </div>
+        {/each}
+        {#if !(ctxData.items || []).length}
+          <div class="ctx-q-sub">暂无上下文条目</div>
+        {/if}
+      {/if}
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -258,4 +322,35 @@
     .kpi-row { grid-template-columns: repeat(2, 1fr); }
     .skel-row { grid-template-columns: 1fr; }
   }
+  /* 企业上下文查询：用站点既有变量，不引新色 */
+  .ctx-query {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px 14px;
+  }
+  .ctx-q-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  .ctx-q-sub { color: var(--text-muted); font-size: 12px; }
+  .ctx-q-row { display: flex; gap: 8px; }
+  .ctx-q-in {
+    flex: 1; padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 12px; background: var(--bg-input, #fff);
+  }
+  .ctx-q-btn {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--accent-bg, #e6f6f3); color: var(--accent-fg, #0d9488);
+    font-size: 12px; cursor: pointer;
+  }
+  .ctx-q-btn:disabled { opacity: .6; cursor: default; }
+  .ctx-q-err { color: var(--danger-fg); font-size: 12px; margin-top: 6px; }
+  .ctx-q-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .ctx-badge {
+    display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px;
+    background: #fdf3e6; color: #b45309;
+  }
+  .ctx-badge.ok { background: #e6f6f3; color: #0d9488; }
+  .ctx-q-item {
+    display: flex; gap: 8px; padding: 5px 0; margin-top: 4px;
+    border-top: 1px dashed var(--border); font-size: 12px;
+  }
+  .ctx-q-kind { flex: 0 0 64px; color: #0d9488; font-size: 11px; }
+  .ctx-q-text { flex: 1; color: var(--text-primary); word-break: break-all; }
 </style>
