@@ -429,7 +429,12 @@ def part_c_load(read_key):
         t.join()
     wall = time.perf_counter() - t0
     ok_n = sum(1 for c in codes if c == 200)
-    ck(f"并发压测全部 200(240/240)", ok_n == threads * rounds * per, f"200={ok_n}, 其它={len(codes)-ok_n}")
+    hist = {}
+    for c in codes:
+        hist[c] = hist.get(c, 0) + 1
+    # 只写"其它=103"看不出是限流(429)、服务端错(5xx)还是连不上(-1)，得给状态码分布
+    ck(f"并发压测全部 200(240/240)", ok_n == threads * rounds * per,
+       f"200={ok_n}, 其它={len(codes)-ok_n}, 分布={sorted(hist.items())}")
     print(f"  HTTP: n={len(lat)} 200={ok_n} wall={wall:.2f}s "
           f"qps={len(lat)/wall:.1f} | p50={pct(lat,50):.1f}ms p95={pct(lat,95):.1f}ms "
           f"p99={pct(lat,99):.1f}ms max={max(lat):.1f}ms")

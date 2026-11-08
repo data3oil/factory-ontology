@@ -266,6 +266,98 @@ def _nt_dangling(triples):
     return sorted(dangling)
 
 
+def _value_conflicts(triples):
+    """同一实体、同一语义存在两套取值（关系边 vs 台账字段）且互不一致。
+
+    真实工厂里这种并存极常见：批次表有一列 rawParts="R001;R004"（开单时手填），
+    同时又有批次-原料关联表建成 usesRawMaterial R005/R007（MES 回写）。
+    两者说的都是“这批用了哪些原料”，值却完全不同。本体把它们并排放进图里，
+    却不告诉任何人不一致——用户问“B001 用了哪些原料”，答案取决于先读到哪一条。
+
+    判定（确定性，不需要领域配置）：
+    1. 按 rdfs:range 找到对象属性的目标类，取出该类的实例；
+    2. 对同一主语，收集指向该类实例的关系边；
+    3. 收集该主语的数据属性字面量，按分隔符拆词，若每个词都能落到该类实例上，
+       得到台账集合；
+    4. 两边都非空且不相等 -> 冲突。
+
+    返回 [(主语, 关系谓词, 数据属性谓词, 边集合, 台账集合, 目标类)]。
+    """
+    RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    RDFS_RANGE = "http://www.w3.org/2000/01/rdf-schema#range"
+    OWL_DATAPROP = "http://www.w3.org/2002/07/owl#DatatypeProperty"
+
+    inst_cls, ranges, dataprops = {}, {}, set()
+    for s, p, o in triples:
+        if p == RDF_TYPE and _is_entity_object(o):
+            oc = o.strip("<>")
+            local = oc.rsplit("#", 1)[-1]
+            if local == "DatatypeProperty":
+                dataprops.add(s)
+                continue
+            if local in ("Class", "ObjectProperty", "Ontology"):
+                continue
+            inst_cls[s] = oc
+        elif p == RDFS_RANGE and _is_entity_object(o):
+            ranges[s] = o.strip("<>")
+    if not inst_cls:
+        return []
+
+    # (类, 末段编号) -> 实例 URI。实例名形如 Valve_raw_materials_R005，
+    # 台账字段里写的是 R005，两者只差类名前缀，按末段对齐。
+    by_suffix = {}
+    for inst, cls in inst_cls.items():
+        suffix = inst.rsplit("#", 1)[-1].rsplit("_", 1)[-1]
+        by_suffix.setdefault((cls, suffix), inst)
+
+    edge_props = {}   # (主语, 目标类) -> {关系谓词: {目标实例}}
+    for s, p, o in triples:
+        if p in ranges and _is_entity_object(o):
+            tgt = o.strip("<>")
+            if inst_cls.get(tgt) == ranges[p]:
+                edge_props.setdefault((s, ranges[p]), {}).setdefault(p, set()).add(tgt)
+
+    lits = {}         # 主语 -> [(数据属性, 字面量原文)]
+    for s, p, o in triples:
+        if p in dataprops and not _is_entity_object(o):
+            m = re.match(r'^"(.*?)"(?:\^\^|@|$)', o)
+            if m and m.group(1).strip():
+                lits.setdefault(s, []).append((p, m.group(1)))
+
+    def _id_prefix(name):
+        m = re.match(r"^([A-Za-z]+)\d+$", name)
+        return m.group(1) if m else None
+
+    out, seen = [], set()
+    for (s, cls), props in edge_props.items():
+        eset = set().union(*props.values())
+        # 边目标的编号风格（R005 -> 前缀 R），用于判断台账里的词是不是同一套编号
+        prefixes = {_id_prefix(x.rsplit("_", 1)[-1]) for x in eset} - {None}
+        for p, txt in lits.get(s, []):
+            toks = [t for t in re.split(r"[;,，；|/\s]+", txt) if t]
+            if not toks:
+                continue
+            mapped, ok = set(), True
+            for t in toks:
+                hit = by_suffix.get((cls, t))
+                if hit:
+                    mapped.add(hit)
+                    continue
+                # 台账里写了不存在的编号（悬空引用）：只要编号风格对得上，仍算同一语义
+                if prefixes and _id_prefix(t) in prefixes:
+                    mapped.add("?" + t)
+                    continue
+                ok = False      # 这句不是编号清单（自由文本），不参与比较
+                break
+            if not ok or not mapped:
+                continue
+            if mapped == eset or (s, cls) in seen:
+                continue
+            seen.add((s, cls))
+            out.append((s, next(iter(props)), p, eset, mapped, cls))
+    return out
+
+
 def _check_nt(codes_dir, smoke_dangling, tracked=None):
     issues = []
     stats = Counter()
@@ -290,6 +382,19 @@ def _check_nt(codes_dir, smoke_dangling, tracked=None):
             issues.append(("major", f"[NT] {name}: {len(dang)} 个悬空实体引用 {dang[:4]}..."))
             stats["dangling_files"] += 1
             stats["dangling_refs"] += len(dang)
+        conf = _value_conflicts(triples)
+        if conf:
+            _sub, _rel, _lit, _eset, _lset, _cls = conf[0]
+            _nm = lambda u: str(u).rsplit("#", 1)[-1]
+            issues.append((
+                "critical",
+                f"[NT] {name}: {len(conf)} 个实体同一语义存了两套取值且互不一致。"
+                f"例：{_nm(_sub)} 的边 {_nm(_rel)} -> {sorted(_nm(x) for x in _eset)}，"
+                f"而字段 {_nm(_lit)} = {sorted(_nm(x) for x in _lset)}。"
+                f"两者说的都是同一件事（目标类 {_nm(_cls)}），必须先定哪一个为准"
+            ))
+            stats["value_conflict_files"] += 1
+            stats["value_conflict_entities"] += len(conf)
     stats["files"] = len(nt_files)
     # 2) 构建冒烟产物的悬空引用(若产生)
     if smoke_dangling:
@@ -584,7 +689,10 @@ def run_check(codes_dir=None, skip_build=False, threshold=None):
                 (l for l in chain["links"] if l["rel"] == "data_*"), {}).get("ok"),
         },
         "issues": all_issues,
-        "verdict": ("通过" if critical == 0 and score >= _DEFAULT_THRESHOLD
+        # 判定口径必须同源于入参 threshold：曾用 _DEFAULT_THRESHOLD 导致
+        # `--threshold 40` 时 ok=True 而 verdict 仍说"低于通过阈值"，
+        # 一份报告里两套标准，看报告的人没法相信哪个。
+        "verdict": ("通过" if critical == 0 and score >= threshold
                     else ("存在致命问题" if critical else "低于通过阈值")),
         "tool": "ontology_check", "version": VERSION,
     }

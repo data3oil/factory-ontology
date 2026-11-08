@@ -109,6 +109,14 @@ class LexiconAgent(BaseAgent):
 
         # 4. 组装完整词典
         lexicon = self._build_full_lexicon(field_info, attr_map, enum_map, task)
+        # 旧词典里有人的劳动（人工确认的中文名、待复核清单），生成结果不能直接盖上去
+        old = task.get("merge_into")
+        if isinstance(old, dict) and old:
+            try:
+                from lexicon import merge_lexicon
+                lexicon = merge_lexicon(old, lexicon)
+            except Exception:  # noqa: BLE001  合并失败也不能挡住建库
+                pass
         out = task.get("out_lexicon") or os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "..", "config", "lexicon.json")
         with open(out, "w", encoding="utf-8") as f:
@@ -460,6 +468,11 @@ class LexiconAgent(BaseAgent):
         if not cn:
             for f in field_info:
                 fl = f.lower()
+                # 标识列不算证据：`product_id` 是指向产品的外键，不是"这张表就是产品"。
+                # ai4i 台账里有 Product ID 列（其实是型号变体码），按字段名把整表认成
+                # "产品"后，「有多少个产品」答成 10000 台机器 —— 编造，而不是拒答。
+                if fl == "id" or fl.endswith("_id") or fl.endswith("id"):
+                    continue
                 for kw, cnw in [("device", "设备"), ("customer", "客户"), ("product", "产品"),
                                 ("book", "书"), ("machine", "机器"), ("name", "记录")]:
                     if kw in fl:

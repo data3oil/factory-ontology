@@ -31,10 +31,129 @@ import sys
 import os
 import re
 import json
+import threading
 from collections import defaultdict
 
 # 词典数据收敛到 lexicon.py 唯一数据源（P1-7），仅持有只读引用，消除跨文件重复漂移。
-from lexicon import get_attr_cn_aliases, get_common_zh_status, get_entity_cn2uri
+from lexicon import (get_attr_cn_aliases, get_common_zh_status, get_entity_cn2uri,
+                     get_field_words)
+
+_FIELD_WORDS = get_field_words()
+
+
+# ── 计算过程回传（证据不再事后重扫）────────────────────────────────
+# 老做法：answer() 给出字符串，evidence.build_trace 拿着问题再"猜"一遍是谁算出来的，
+# 于是规则表和引擎各写一套（deviceType 硬编码在猜的那一边），猜漏了就得出"命中但没证据"。
+# 现在反过来：answer() 在真正选中记录的瞬间把它记下来，信封直接用这份记录。
+_TRACE_LOCAL = threading.local()
+_TRACE_LIMIT = 200      # 单次问答最多记 200 条：够溯源，又不至于把信封撑爆
+
+
+def _trace_begin():
+    _TRACE_LOCAL.sink = {"rows": [], "total": 0, "truncated": False}
+
+
+def _trace_take():
+    """取出本次计算的记录并关闭 sink（取完即清，避免跨请求串味）。"""
+    sink = getattr(_TRACE_LOCAL, "sink", None)
+    _TRACE_LOCAL.sink = None
+    return sink
+
+
+def _note_rows(rows, prop_cn, value_of=None):
+    """记录"本次答案用到了哪些记录"，原样返回 rows，调用点仍是一行。
+
+    rows 支持两种形态：[(名, 记录)] 与 [(记录, 数值)]。
+    只记前 _TRACE_LIMIT 条，超出部分计入 total 并置 truncated —— 不做静默截断。
+    """
+    sink = getattr(_TRACE_LOCAL, "sink", None)
+    if sink is None:
+        return rows
+    try:
+        n = len(rows)
+    except TypeError:
+        return rows
+    sink["total"] += n
+    if n > _TRACE_LIMIT or len(sink["rows"]) + n > _TRACE_LIMIT:
+        sink["truncated"] = True
+    for item in rows:
+        if len(sink["rows"]) >= _TRACE_LIMIT:
+            break
+        try:
+            a, b = item[0], item[1]
+        except (TypeError, IndexError, KeyError):
+            continue
+        if isinstance(a, dict):
+            rec, val = a, b
+            name = _display_name(rec, {}, default="")
+        else:
+            name, rec = a, b
+            val = value_of(rec) if callable(value_of) and isinstance(rec, dict) else None
+        sink["rows"].append({
+            "kind": "entity", "id": str(name),
+            "label": "%s=%s" % (prop_cn, "" if val is None else val),
+            "source": "rule",
+        })
+    return rows
+
+
+def answer_traced(q, data, D):
+    """答一次问题，同时带回"算的时候用到的记录"。返回 (答案, trace 或 None)。"""
+    _trace_begin()
+    try:
+        text = answer(q, data, D)
+    finally:
+        sink = _trace_take()
+    return text, sink
+
+
+def _cn_of_field(field):
+    """把英文列名还原成中文：device_type→设备类型、publisher→出版社、power_kw→功率。
+
+    只做词素拼接，认不出的词素直接跳过（power_kw 只拼出"功率"，仍能对上"功率最大"）。
+    用于词典缺中文名时的兜底——food 的设备表整张没有中文名，
+    library 的 publisher 中文名就是 "publisher"。
+    """
+    parts = re.split(r"[_\-]|(?<=[a-z0-9])(?=[A-Z])", str(field or ""))
+    out = []
+    for p in parts:
+        w = p.strip().lower()
+        if w and w in _FIELD_WORDS:
+            out.append(_FIELD_WORDS[w])
+    return "".join(out)
+
+
+# 同一字段的多种中文说法：词素翻译只能给出一个名字（location→"位置"），
+# 用户嘴里常是另一个（"所在地""地址"）。少数常用字段补上口语同义词。
+_FIELD_CN_EXTRA = {
+    "location": ("所在地", "地址", "国家", "地区"),
+    "workshop": ("厂房", "工厂"),
+    "zone": ("厂区", "分区"),
+    "storage": ("存储条件", "储存条件"),
+    "supplier": ("厂商", "供货商"),
+    "customer": ("客户名", "客户名称"),
+    # category 的词素翻译是"类别"，用户嘴里更常是"品类/分类/种类"（chem 实测）
+    "category": ("品类", "分类", "种类"),
+    "borrowed": ("借阅量", "借阅次数", "借出量"),
+    "puritypct": ("纯度", "纯度值", "含量"),
+    "capacityl": ("容量", "产能"),
+    # 字段名是复合词，用户只问后半截："EQ007 的类型是什么"（字段 deviceType）、
+    # "E1 在哪个产线"（对象属性 equipment_line_id）。
+    "devicetype": ("类型", "设备类别", "设备分类"),
+    "producttype": ("类型", "产品类别"),
+    "equipmentlineid": ("所属产线", "所在产线"),
+}
+
+
+def _field_cn_names(field):
+    """字段名 → 可能的中文说法列表（词素翻译 + 口语同义词），长的在前。"""
+    cn = _cn_of_field(field)
+    names = [cn] if cn else []
+    key = re.sub(r"[_\-]", "", str(field or "")).lower()
+    for syn in _FIELD_CN_EXTRA.get(key, ()):  # 补充说法
+        if syn not in names:
+            names.append(syn)
+    return sorted(names, key=len, reverse=True)
 
 # 未命中哨兵/关键词表的单一真相源(B3 收口): 不再在本文件写字面量。
 from qa_constants import MISS_ANSWER, MISS_MARKERS
@@ -100,12 +219,74 @@ def build_data(triples, dict_data):
     for s, p, o in triples:
         if tail(p) == "type" and tail(o) in classes:
             individuals.add(s)
-    data = {tail(i): {} for i in individuals}
+    # data 的键顺序必须确定：individuals 是 set，遍历顺序随 PYTHONHASHSEED 变，
+    # 而下游有一批"取第一个/取最大"的选择（类名消歧、_class_prefixes 的插入序）。
+    # 排序一次，换来同一份本体在任何进程里答案一致。
+    data = {tail(i): {} for i in sorted(individuals)}
     for s, p, o in triples:
         sn = tail(s)
         # 只跳过 RDF 命名空间的 rdf:type，保留本体数据属性 type（产品类型等）
         if sn in data and not p.rstrip(">").endswith("rdf-syntax-ns#type"):
             data[sn][tail(p)] = o
+    # 类的中文 label → 类名。词典里的 entity_cn2en 是建库时推断的，会串库
+    # （chem 写成 mach_products）、会写成中文占位（"原料"→"原料"）。
+    # 本体自己带着每个类的中文 label，这是最可靠的一条映射，存进该库的词典对象里，
+    # 跟着 D 走，不跨库串台。
+    if isinstance(dict_data, dict):
+        _labels = {}
+        _plabels = {}
+        for s, p, o in triples:
+            if tail(p) == "label":
+                _sn = tail(s)
+                _lv = str(o).split("^^")[0].strip().strip('"')
+                if not _lv:
+                    continue
+                if _sn in classes:
+                    _labels[_lv] = _sn
+                else:
+                    # 属性的中文 label：本体建库时写进来的，比词典 attr_cn2en 更可靠。
+                    # 词典里常常缺"设备类型""车间""出版社"这类词，缺了就答成实例罗列。
+                    _plabels[_lv] = _sn
+        dict_data["_class_labels"] = _labels
+        dict_data["_prop_labels"] = _plabels
+        # 对象属性的 domain / range / 中文名。
+        # 有了这三项，"Q001 检测的是哪个批次"不必依赖问题里写没写字段名：
+        # 源实例属于 Valve_qc，问的是"批次"(Valve_batches)，本体里 domain=Valve_qc、
+        # range=Valve_batches 的那条对象属性就是 checkedBy。
+        _objprops = {tail(s) for s, p, o in triples
+                     if tail(p) == "type" and tail(o) == "ObjectProperty"}
+        _rel_schema = {}
+        for s, p, o in triples:
+            sn = tail(s)
+            if sn not in _objprops:
+                continue
+            pn = tail(p)
+            if pn in ("domain", "range"):
+                _rel_schema.setdefault(sn, {})[pn] = tail(o)
+            elif pn == "label":
+                _rel_schema.setdefault(sn, {})["label"] = str(o).split("^^")[0].strip().strip('"')
+        dict_data["_rel_schema"] = _rel_schema
+        # 对象属性的**多值**边。build_data 的 data[s][p]=o 是赋值，一个主语同一关系
+        # 有多条边时只留最后一条（B001 用了 R005、R007，压平后只剩 R007）。
+        # 数据属性一行只有一个值，不受影响；关系边单独存一份多值，不动 data 结构。
+        _rel_multi = {}
+        for s, p, o in triples:
+            sn, pn = tail(s), tail(p)
+            if sn in data and pn in _objprops:
+                tgt = tail(o)
+                if tgt and tgt not in _rel_multi.setdefault((sn, pn), []):
+                    _rel_multi[(sn, pn)].append(tgt)
+        dict_data["_rel_multi"] = _rel_multi
+        # 本体里**实际存在的属性名**（所有实例 dict 键的并集）。
+        # 为什么需要：_find_attr 的字段反译只从词典的 attr_en2cn / field_aliases 里取
+        # 候选字段，词典漏收的列就永远解析不出中文名 —— food 的设备表没有"车间"
+        # 这一条，manufacturing 的供应商表没有"所在地"，问句"设备的车间有哪些"
+        # 于是退化成一串设备名（实测误答）。本体里字段明明在，只是词典没登记。
+        _all_fields = set()
+        for _rec in data.values():
+            if isinstance(_rec, dict):
+                _all_fields.update(_rec.keys())
+        dict_data["_all_fields"] = sorted(_all_fields)
     return data
 
 
@@ -132,6 +313,13 @@ def _field(rec, canonical, aliases):
     rn = {k.replace("_", "").lower(): v for k, v in rec.items()}
     if canon_norm in rn:
         return rn[canon_norm]
+    # 唯一前缀兜底：内置别名把"功率"映射成泛化字段 power，而实际列是 powerKw。
+    # 只在"本记录里恰好有一个字段以它开头"时采用，且要求长度≥4，
+    # 避免 status→statusCode 这类多义前缀被误配。
+    if len(canon_norm) >= 4:
+        pref = [k for k in rec if k.replace("_", "").lower().startswith(canon_norm)]
+        if len(pref) == 1:
+            return rec[pref[0]]
     return rec.get(canonical, "")
 
 
@@ -187,6 +375,12 @@ def _status_matches(d, st_en, aliases, dict_data=None):
     # st_en 若是中文取值，反向归一化比较
     _rev = {e: c for c, e in _zh_status.items() if c != e}
     if st_en in _rev and val_s == _rev[st_en]:
+        return True
+    # st_en 本身是中文词、数据里存的却是英文（manufacturing 的 status_cn2en 是
+    # 恒等映射 '运行中'→'运行中'，_find_enum 就把它原样当成了 st_en）。
+    # 此时用归一化表把 st_en 也翻成英文规范值再比，否则"有多少台运行中的设备"答 0。
+    _canon_st = _zh_status.get(str(st_en))
+    if _canon_st and str(_canon_st).lower() == val_s.lower():
         return True
     # 英文值之间大小写不敏感比较
     if val_s.lower() == str(st_en).lower():
@@ -326,6 +520,14 @@ def _find_attr(dict_data, q):
     (如'功率'→'power')。词典未命中时兜底 _ATTR_CN_ALIASES / numeric_fields / 极值推断。
     """
     cand = []  # (min_len, 中文匹配词, 英文字段); min_len 防单字别名误命中
+    # 本体自带属性中文 label 优先：建库时写进本体的，跟着这份数据走，不会串库。
+    # 词典 attr_cn2en 常缺词（"设备类型""车间""出版社"），缺了就落到"列出实例"，
+    # 用户问类型、拿到一串设备名。先把本体里的 label 用掉。
+    _ent_names0 = set(dict_data.get("entity_cn2en", {}) or {})
+    for cn, en in sorted((dict_data.get("_prop_labels") or {}).items(),
+                         key=lambda x: len(x[0]), reverse=True):
+        if cn and len(cn) >= 2 and cn not in _ent_names0 and cn in q:
+            return en, cn
     # 词典里可能混入实体名（valve 的 attr_cn2en 就同时收了 '原料' 和 '库存'），
     # 于是"原料中库存最大是多少"里同长的"原料"按插入序先命中，属性被解析成 raw_parts，
     # 极值/聚合整条链随之失效。实体名不是属性，这里先剔除。
@@ -337,6 +539,36 @@ def _find_attr(dict_data, q):
         base = _strip_unit(cn)
         if base and base != cn:
             cand.append((1, base, en))
+    # 字段名反译：词典没给中文名的字段，把英文列名翻回中文再参与匹配。
+    # 现场：food 的设备表整张没有中文名，library 的 publisher 中文名就是 "publisher"，
+    # 于是"设备的设备类型有哪些""图书的出版社有多少种"找不到字段，退化成罗列实例名。
+    _fields = set()
+    for _en in (dict_data.get("attr_en2cn") or {}):
+        _fields.add(_en)
+    # field_aliases 的键是规范字段名（deviceType/location），值才是实际列名（category）。
+    # 两边都要收：键给出"设备类型"，值给出真实列名。
+    for _k, _v in (dict_data.get("field_aliases") or {}).items():
+        if isinstance(_k, str):
+            _fields.add(_k)
+        for _x in (_v if isinstance(_v, list) else [_v]):
+            if isinstance(_x, str):
+                _fields.add(_x)
+    for _en in (dict_data.get("numeric_fields") or {}).values():
+        if isinstance(_en, str):
+            _fields.add(_en)
+    # 本体里真实存在的字段（见 build_data 的 _all_fields）。词典漏登记时靠它兜底。
+    for _en in (dict_data.get("_all_fields") or []):
+        _fields.add(_en)
+    for _en in sorted(_fields, key=len, reverse=True):
+        # 对象属性（hasCategory / hasBatch…）是关系边，不是字面字段：
+        # 它和真正的 category 会被反译成同一个中文（"类别"），而名字更长，
+        # 排序后先命中 → 「图书的类别有哪些」答成一串
+        # Library_inventoryCategory_历史 这样的 URI。字面量明明就在 category 里。
+        if re.match(r"^has[A-Z]", str(_en)):
+            continue
+        for _cn in _field_cn_names(_en):
+            if len(_cn) >= 2 and _cn not in _ent_names and _cn in q:
+                cand.append((2, _cn, _en))
     for cn, en in _ATTR_CN_ALIASES.items():
         cand.append((2, cn, en))
     nf = dict_data.get("numeric_fields", {}) or {}
@@ -376,6 +608,12 @@ def _display_name(rec, aliases, default=""):
                 "title", "label"):
         if key in rec:
             return rec[key]
+    # 任意 *Name 字段兜底：名字清单没法穷举，library 的 bookName、manufacturing 的
+    # supplierName / lineName 都不在上面那条表里，取不到就返回空串 ——
+    # 极值回答于是变成"最大借阅量的记录:  (借阅量=10.0)"，主语是空的。
+    for k, v in rec.items():
+        if str(k).lower().endswith("name") and v not in (None, ""):
+            return v
     return default
 
 
@@ -384,7 +622,7 @@ def _display_name(rec, aliases, default=""):
 _COMMON_ZH_STATUS = get_common_zh_status()
 
 
-def _find_enum(dict_data, q, which):
+def _find_enum(dict_data, q, which, data=None):
     """从词典找问题里出现的枚举词 -> 值。which in (status/type/zone)。
     增强：status 词在词典缺中文映射时，用内置中文→英文兜底。
     增强：LLM 语义聚类 synonym_map 展开——问题含同义词/别名时命中规范词（乳制品→奶制品）。
@@ -431,6 +669,19 @@ def _find_enum(dict_data, q, which):
         for cn, en in sorted(_COMMON_ZH_STATUS.items(), key=lambda x: len(x[0]), reverse=True):
             if cn in q:
                 return en, cn
+        # 最后一道：问句里直接写了数据中的状态原值（"idle的设备有哪些"）。
+        # 词典 status_cn2en 是中文→英文（待机→idle），用户照着台账问英文时
+        # 中文键一个都不在问句里，_find_enum 返回空 → 整句拒答。
+        if data:
+            _vals = set()
+            for _d in data.values():
+                _v = str(_field(_d, "status", {}) or "").strip()
+                if _v and 2 <= len(_v) <= 12:
+                    _vals.add(_v)
+            _ql = q.lower()
+            for _v in sorted(_vals, key=len, reverse=True):
+                if re.search(r"(?<![a-z])%s(?![a-z])" % re.escape(_v.lower()), _ql):
+                    return _v, _v
     return None, None
 
 
@@ -577,24 +828,163 @@ def is_cross_domain_data_query(q, D):
     return True
 
 
+def _stem_en(word: str) -> str:
+    """英文词形归一（只用于把词典表名和实际类名对上，不改原值）。
+
+    以前 multi_table 用 `w[:-1]` 去复数，batches→batche、classes→classe，
+    于是 qc.batch_id 匹配不上 batches 表，外键退化成字符串属性。
+    这里按英语规则处理 -ies/-ses/-xes/-ches/-shes/-s。
+    """
+    w = str(word or "").strip().lower()
+    if len(w) > 4 and w.endswith("ies"):
+        return w[:-3] + "y"
+    if w.endswith(("ses", "xes", "zes", "ches", "shes")):
+        return w[:-2]
+    if w.endswith("s") and not w.endswith("ss"):
+        return w[:-1]
+    return w
+
+
+def _class_prefixes(data):
+    """从实例 key 反推本库真实的类名前缀 {小写类名: 实例数}。
+
+    build_data 的 key 形如 `Chem_products_P001` / `Valve_qc_Q001`。
+    去掉最后一段（实例号）得到类名。实例号自带下划线时仍以真实类名为前缀，
+    下游统一用 `前缀 in key.lower()` 判定，不受影响。
+    """
+    out = {}
+    for k in data:
+        p = str(k).rsplit("_", 1)[0].lower()
+        out[p] = out.get(p, 0) + 1
+    return out
+
+
+def _class_cn_aliases(cls_name, data, D):
+    """一个实体类可能被用户叫成什么中文名（类名反译 + 代表字段反译）。
+
+    为什么要这层：本体的类 label 不一定有中文 —— manufacturing 的 label 直接是
+    `Line` / `Supplier`，library 的类叫 `Library_inventory`（装的却是书）。
+    词典又常是通用模板（设备/产品/客户…），跟这份数据没关系，
+    于是「有多少条产线」「有多少本图书」解析不到实体，一路掉到"暂不支持"。
+    类名反译得「产线」「库存」，代表字段（bookName）反译得「图书」，两者都算别名。
+    """
+    names = []
+    tail = str(cls_name or "").rsplit("_", 1)[-1]
+    cn = _cn_of_field(tail)
+    if len(cn) >= 2:
+        names.append(cn)
+    # 该类第一个实例的 *Name 字段：bookName → 图书名称 → 去掉"名称"剩「图书」
+    for key, rec in data.items():
+        if not str(key).lower().startswith(str(cls_name).lower()):
+            continue
+        if not isinstance(rec, dict):
+            continue
+        for f in rec:
+            if not str(f).lower().endswith("name"):
+                continue
+            base = _cn_of_field(f)
+            for suf in ("名称", "名字"):
+                if base.endswith(suf):
+                    base = base[: -len(suf)]
+                    break
+            if len(base) >= 2:
+                names.append(base)
+            break
+        break
+    return [n for n in names if len(n) >= 2]
+
+
+def _resolve_entity_map(D, data):
+    """中文实体名 → **本库真实存在的类名前缀**（词典值先验证，验不过再按词干回退）。
+
+    病因（实测）：chem 库的 NT 类名是 `Chem_products`，而词典 entity_cn2en 里写的是
+    `mach_products`（建词典时串了别的库）。问答按 `mach_products in key` 过滤，
+    一条也匹配不上 → 「有多少个产品」答 0，而库里明明有 7 个。
+    同一个错误值还被 _entity_subset / _agg_distribution 复用，导致枚举、分组一起崩。
+
+    修法：先把词典值拿到本库的类名清单里核一遍；核不上就取末段词干比对
+    （products↔product），仍核不上才保留原值（下游可能只是用它做展示）。
+    """
+    raw = dict(get_entity_cn2uri())
+    raw.update(D.get("entity_cn2en", {}) or {}) if isinstance(D, dict) else None
+    # 本体自带的中文类名优先：它是建库时从类 label 读出来的，不会串库。
+    labels = (D.get("_class_labels") or {}) if isinstance(D, dict) else {}
+    cls = _class_prefixes(data)
+    out = {}
+    for cn, uri in raw.items():
+        if cn in labels and labels[cn].lower() in cls:
+            out[cn] = labels[cn].lower()
+            continue
+        u = str(uri or "").strip().lower()
+        if not u:
+            continue
+        # 先按"末段词干相等"找，再退回子串。顺序很重要：food 的批次表叫
+        # food_batches（9 条），投料表叫 food_batch_ingredient（9 条），"batch"
+        # 子串同时命中两者，取"实例多的那个"在平局时随手挑 —— 而 data 的键来自
+        # set（individuals），遍历顺序随 PYTHONHASHSEED 变，于是**同一个问题在不同
+        # 进程里一个答 9 一个答 24**。词干相等是语义正确的那个，且没有平局。
+        stem = _stem_en(u.rsplit("_", 1)[-1])
+        hit = [c for c in cls if _stem_en(str(c).rsplit("_", 1)[-1]) == stem]
+        if not hit:
+            hit = [c for c in cls if u in c]
+        if hit:
+            # 排序键必须全序：平局时按名字定，不能靠 dict 插入顺序。
+            out[cn] = max(hit, key=lambda c: (cls[c], -len(c), c))
+        else:
+            out[cn] = u
+    # 补充别名：label 没给中文、词典又没收的类，用类名/代表字段反译兜一层。
+    # 只补不改 —— 已有映射（含词典验过的那条）优先，避免把"设备"换成别的类。
+    for c in cls:
+        for alias in _class_cn_aliases(c, data, D):
+            # 别名可以**覆盖验证失败的旧值**：energy 库只有一个类 Energy_station，
+            # 词典却把"设备"映射到 equipment（本库没有这个类）。deviceName 反译出的
+            # "设备"才是对的。只补不改会把这个错值一直留着，"有多少台设备"永远拒答。
+            if alias not in out or out[alias] not in cls:
+                out[alias] = c
+    return out
+
+
+def _inst_rows(data, prefix):
+    """按类名前缀取实例，**精确到"类"这一层**，不做子串匹配。
+
+    现场（food 实测）：「批次总数」答 24，真值 9。因为 `food_batches`（9 条批次）
+    与 `food_batch_ingredient`（15 条投料记录）都含子串 "batch"，子串匹配把两张表
+    并成一张数了。前缀式判定（等于，或以 `前缀_` 开头）才分得开。
+
+    前缀匹配一条都没有时退回子串匹配：有些库的实例名不带类前缀，
+    宁可宽一点也不要直接返回空。
+    """
+    p = str(prefix or "").strip().lower()
+    if not p:
+        return []
+    rows = [(k, d) for k, d in data.items()
+            if str(k).lower() == p or str(k).lower().startswith(p + "_")]
+    if rows:
+        return rows
+    return [(k, d) for k, d in data.items() if p in str(k).lower()]
+
+
 def _entity_subset(q, D, data):
     """实体消歧: 若问题含 entity_cn2en 的实体词(如"机组"), 返回该实体类的实例子集;
-    否则返回全部。解决"运行中的机组"误匹配到设备(锅炉/发电机)而非机组。"""
-    emap = dict(get_entity_cn2uri())
-    emap.update(D.get("entity_cn2en", {}) or {})
+    否则返回全部。解决"运行中的机组"误匹配到设备(锅炉/发电机)而非机组。
+
+    实体名到类名的映射统一走 _resolve_entity_map（先验证，再回退），
+    不再直接信词典里的表名 —— 词典串库时这里会把整库当子集返回。
+    """
+    emap = _resolve_entity_map(D, data)
     # 先认"X中/里"结构：中文"订单中客户编号为C003"里，X(订单)才是限定的表，
     # 而 Y(客户编号)只是要过滤的属性。若只按长度降序，同长时"客户"会按插入序抢赢
     # "订单"，选错了表 → 属性在该表取不到 → 答 0。
     for cn in sorted(emap, key=len, reverse=True):
         if cn and cn in q and re.search(re.escape(cn) + r"\s*(中|里|内的|之内)", q):
             uri_sub = emap[cn].lower()
-            sub = {k: d for k, d in data.items() if uri_sub in k.lower()}
+            sub = dict(_inst_rows(data, uri_sub))
             if sub:
                 return sub
     for cn in sorted(emap, key=len, reverse=True):
         if cn and cn in q:
             uri_sub = emap[cn].lower()
-            sub = {k: d for k, d in data.items() if uri_sub in k.lower()}
+            sub = dict(_inst_rows(data, uri_sub))
             if sub:
                 return sub
     return data
@@ -622,6 +1012,27 @@ def _agg_field_value(d, en, aliases):
                 return v
         return _field(d, en, aliases) or "未知"
     return _field(d, en, aliases) or "未知"
+
+
+def _enum_value_in_data(q, data, aliases):
+    """问句里直接出现了某个类型值，而词典没收录它时，从数据本身认出来。
+
+    现场："H类机器有多少台" —— type 列的值是 H/L/M，词典 type_cn2en 是空的，
+    _find_enum 找不到，问句被当成"实体总数"，答 10000 台（全部机器）。
+    这里改成看数据：类型列里哪个取值原样出现在问句里，就是它。
+    纯数字取值不参与（"1" 会命中任何带数字的问句）。
+    """
+    cands = set()
+    for d in data.values():
+        for f in ("deviceType", "device_type", "type", "Type", "category", "kind"):
+            v = _field(d, f, aliases)
+            v = str(v or "").strip()
+            if v and v != "未知" and len(v) <= 8 and not re.fullmatch(r"[\d.]+", v):
+                cands.add(v)
+    for v in sorted(cands, key=len, reverse=True):
+        if v in q:
+            return v, v
+    return None, None
 
 
 def _find_agg_attr(D, q):
@@ -717,6 +1128,39 @@ def _filter_value_in_q(q, ents, data, entity_cn):
     return best
 
 
+def _instance_by_name_value(q, data, D):
+    """问句里写的是实例的"名字"，不是编号（"供应商 Siemens 的所在地"）。
+
+    台账里 Siemens 是 supplierName 这个**字段的值**，实例名却叫 Supplier_S1。
+    按编号找永远找不到，于是整句拒答。这里在该实体类的实例里找"某个字段的值
+    原样出现在问句里"的那一条，并且只在唯一命中时才认 —— 匹配到多条就不是指认，
+    硬猜会答成另一个人的资料。
+    """
+    emap = _resolve_entity_map(D, data)
+    cls_set = {str(c).lower() for c in _class_prefixes(data)}
+    for cn in sorted(emap, key=len, reverse=True):
+        c = str(emap[cn]).lower()
+        if not (cn and _class_in_q(cn, q) and c in cls_set):
+            continue
+        hits = []
+        for k, d in _inst_rows(data, c):
+            if not isinstance(d, dict):
+                continue
+            for f, v in d.items():
+                sv = str(v or "").strip()
+                # 纯数值不参与指认："价格大于10.06"里 10.06 就是某条记录的价格，
+                # 拿它当"点名"会答成"苹果汁的价格：10.0"。
+                if (len(sv) >= 2 and not re.fullmatch(r"[\d.,%+\-]+", sv)
+                        and sv in q):
+                    hits.append(k)
+                    break
+        if len(hits) == 1:
+            return hits[0]
+        if hits:
+            return None  # 指认不唯一，不猜
+    return None
+
+
 def _device_attr_lookup(q, data, D, aliases):
     """M15-8：「某设备的某属性是多少」的直查。答不出就返回 None。
 
@@ -732,23 +1176,48 @@ def _device_attr_lookup(q, data, D, aliases):
     ③ 属性节点是「一属性一个实例」，值在 `value` 键上、列名在 `idShort` 上，
        而 `_attr_val` 认的是列名 → 表格视图与引擎视图取法不同，两条路都得试。
     """
+    # 编号两种写法都要认：台账里既有 AC-01（连字符），也有 EQ007 / R005（字母+数字连写）。
     m = re.search(r"([A-Za-z]{2,4})-(\d{1,4})", q)
-    if not m:
-        return None
-    dev = "%s-%s" % (m.group(1), m.group(2))
-    # 只处理「…是多少 / 多大 / 几」这类取值问句，不抢极值与计数
-    if not re.search(r"(是多少|多大|值为|数值)", q):
-        return None
+    _named = None
+    if m:
+        dev = "%s-%s" % (m.group(1), m.group(2))
+    else:
+        m = re.search(r"(?<![A-Za-z])([A-Za-z]{1,4}\d{1,4})(?![0-9A-Za-z])", q)
+        if m:
+            dev = m.group(1)
+        else:
+            # 没编号，也可能是点了名（"供应商 Siemens 的所在地"）
+            _named = _instance_by_name_value(q, data, D)
+            if not _named:
+                return None
+            dev = str(_named).rsplit("_", 1)[-1]
+    # 只处理「取值 / 归属」这类单点问句，不抢极值与计数。
+    # "在哪个车间""属于哪个产线"也要接：那是属性直查，不是关系边。
+    # "…的所在地"这种名词短语结尾同样是直查（没有动词，问的就是那条记录的某个字段）。
+    if not re.search(r"(是多少|多大|值为|数值|在哪个|属于哪个|是哪个|是什么|叫什么)", q):
+        # "…的所在地"这类名词短语结尾也算直查，但必须**不含疑问量词**——
+        # "价格大于10.06的产品有多少"同样以"的产品有多少"结尾，把它当直查就答成单条记录了。
+        if not re.search(r"的[\u4e00-\u9fff]{2,8}[?？]?$", q) or re.search(r"(多少|几|哪些|什么)", q):
+            return None
     token = None
+    # 属性词先走 _find_attr：它认词典、认本体属性 label、认字段名反译，
+    # 比只查 attr_cn2en 宽（food 的"车间"就不在 attr_cn2en 里，会在下面漏掉）。
+    _da_en, _da_cn = _find_attr(D, q)
+    if _da_en and _da_cn:
+        token, attr_en = _da_cn, _da_en
     for cn in sorted((D.get("attr_cn2en") or {}), key=len, reverse=True):
+        if token:
+            break
         if cn and len(cn) >= 2 and cn in q:
             token = cn
             break
     if not token:
         return None
-    attr_en = (D.get("attr_cn2en") or {})[token]
-    pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev.replace("-", "_")))
-    cands = [k for k in data if pat.search(str(k))]
+    if not _da_en:
+        attr_en = (D.get("attr_cn2en") or {})[token]
+    pat = re.compile(r"(^|_)%s(?=_|$)" % re.escape(dev.replace("-", "_")), re.I)
+    # 点名定位时直接用那一条；编号定位才按 pattern 全库找（同一编号可能挂在多张表上）。
+    cands = [_named] if _named else [k for k in data if pat.search(str(k))]
     if not cands:
         return None
     up = attr_en.split("_")[0]
@@ -767,12 +1236,241 @@ def _device_attr_lookup(q, data, D, aliases):
         # 表格视图：属性名就是列名
         return _attr_val(rec, attr_en, aliases, data)
 
+    # 输出用台账里的名字，不用内部编号：问"供应商 Siemens"答"S2的所在地"
+    # 等于把用户指认过的东西又换了个不认识的说法。
+    _label = dev
+    if cands:
+        _label = _display_name(data.get(cands[0]) or {}, aliases, default=dev) or dev
     for k in cands:
         val = _node_val(data[k])
         if val not in (None, ""):
-            return "%s的%s：%s" % (dev, token, val)
+            return "%s的%s：%s" % (_label, token, val)
     # 点名了设备但该设备没有这一列 → 如实说没有，**不回退到全库统计**
-    return "%s没有属性「%s」（该设备台账里没有这一列的取值）" % (dev, token)
+    return "%s没有属性「%s」（该设备台账里没有这一列的取值）" % (_label, token)
+
+
+def _class_in_q(cn, q):
+    """问句是否提到了这个类的中文名。
+
+    类 label 常比口语多一个字：本体写"原材料"，人问"原料"（省的是中间那个"材"）。
+    所以在类名里删掉任意一个字后若能在问句里找到，就算提到。
+    只对 3 字以上的类名放宽；"批次原料"删任一字都不成词，不会被"批次"误命中。
+    """
+    if not cn:
+        return False
+    if cn in q:
+        return True
+    if len(cn) >= 3:
+        for i in range(len(cn)):
+            if cn[:i] + cn[i + 1:] in q:
+                return True
+    return False
+
+
+def _pick_src_instance(q, data, D):
+    """问句里点名的那个实例。
+
+    三种排序都错过一次，最后定下这个规则：
+      ① 按名字长短降序（越精确越好）—— 错。B001 既是 Food_batches_B001 也是
+         Food_batch_ingredient_B001，取长的那个会挑到投料记录，然后按"批次→产品"
+         去找边，一条都对不上。
+      ② 只取第一个匹配 —— 错。取决于 dict 顺序，换个进程结果就变。
+      ③ 现在：**先看问句提到的实体类**（类前缀对得上优先），再在同一档里取名字短的。
+    短的那个就是用户嘴里的主记录，中间表的名字总是更长。
+    """
+    emap = _resolve_entity_map(D, data)
+    pref_rank = [str(emap[c]).lower() for c in sorted(emap, key=len, reverse=True)
+                 if c and _class_in_q(c, q)]
+    cand = []
+    for k in data:
+        seg = str(k).rsplit("_", 1)[-1]
+        if not (re.search(r"\d", seg) and seg in q):
+            continue
+        # 编号长度：原来的 >=3 会漏掉 E1 / L1 / S1 这种短编号（manufacturing 全是这种），
+        # 而"设备 E1 在哪个产线"正是这一类。短编号要求"字母开头+数字结尾"，
+        # 免得纯数字（"有多少台 2"）被当成实例。
+        if len(seg) >= 3 or re.fullmatch(r"[A-Za-z]{1,4}\d{1,4}", seg):
+            cand.append(k)
+    if not cand:
+        return None
+
+    def rank(k):
+        kl = str(k).lower()
+        for i, p in enumerate(pref_rank):
+            if p and (kl == p or kl.startswith(p + "_")):
+                return (0, i, len(kl))
+        return (1, 0, len(kl))
+
+    return sorted(cand, key=rank)[0]
+
+
+def _rel_list_lookup(q, data, D):
+    """按本体 schema 走多条对象属性边，回答"X 用了哪些 Y"。
+
+    与 _schema_rel_lookup 同一套依据（domain/range + 类中文名），区别是取多值：
+    一个主语同一关系可能有多条边，压平后的 dict 只留最后一条，所以走 _rel_multi。
+    """
+    # "多少种/几种/多少个"也要接：问的是同一条关系边上有几个目标，
+    # 「B001 批次用了多少种原料」= 这条边有几条（实测答案 2）。不收这种问法，
+    # 它会落到"多少种"的类型计数分支，被当成类型值去数 → 拒答。
+    if not re.search(r"哪些|列出|都有什么|有什么|用了|用了哪些|多少种|几种|多少个|多少条", q):
+        return None
+    cls_labels = D.get("_class_labels") or {}
+    rel_schema = D.get("_rel_schema") or {}
+    multi = D.get("_rel_multi") or {}
+    if not cls_labels or not rel_schema or not multi:
+        return None
+    # 源实例：末段编号出现在问句里的实例。挑选规则见 _pick_src_instance——
+    # B001 同时是批次和投料记录的编号，挑错就整条关系链断掉。
+    _src = _pick_src_instance(q, data, D)
+    if not _src:
+        return None
+    src = _src
+    src_cls = str(src).rsplit("_", 1)[0]
+    _emap = _resolve_entity_map(D, data)
+    # 目标类：本体的类 label 常常就是类名本身（food 的 _class_labels 键值相同），
+    # 拿它跟问句对不上。中文名只信 _resolve_entity_map —— 它验过本库的类。
+    _cls_set = {str(c).lower() for c in _class_prefixes(data)}
+    tgt = None
+    tgt_cn = None
+    for cn in sorted(_emap, key=len, reverse=True):
+        _c = str(_emap[cn]).lower()
+        if cn and _class_in_q(cn, q) and _c != src_cls.lower() and _c in _cls_set:
+            tgt, tgt_cn = _c, cn
+            break
+    if not tgt:
+        return None
+    prop = None
+    for pname, meta in rel_schema.items():
+        if (str(meta.get("domain") or "").lower() == src_cls.lower()
+                and str(meta.get("range") or "").lower() == tgt.lower()):
+            prop = pname
+            break
+    tgts = list(multi.get((src, prop)) or []) if prop else []
+    if not tgts:
+        # 两跳：源 --[p1]--> 中间类 --[p2]--> 目标。
+        # food 的「批次用了哪些原料」就是这样：批次与原料之间没有直连边，
+        # 中间隔着一层投料记录（Food_batch_ingredient，domain 指向它、
+        # 它自己再用 belongsToBatch 指回批次）。只认一跳永远答不出这题。
+        for p1, m1 in rel_schema.items():
+            if str(m1.get("range") or "").lower() != src_cls.lower():
+                continue
+            mid = str(m1.get("domain") or "").lower()
+            for p2, m2 in rel_schema.items():
+                if str(m2.get("domain") or "").lower() != mid:
+                    continue
+                if str(m2.get("range") or "").lower() != tgt.lower():
+                    continue
+                for (s2, pn), vs in multi.items():
+                    if pn != p1 or src not in vs:
+                        continue
+                    for t in (multi.get((s2, p2)) or []):
+                        if t not in tgts:
+                            tgts.append(t)
+                if tgts:
+                    break
+            if tgts:
+                break
+    if not tgts:
+        return None
+    aliases = D.get("field_aliases") or {}
+    names = []
+    for t in tgts:
+        d = data.get(t) or {}
+        names.append(_display_name(d, aliases, default=str(t).rsplit("_", 1)[-1]))
+    rid = str(src).rsplit("_", 1)[-1]
+    _note_rows([(t, data.get(t) or {}) for t in tgts], tgt_cn, lambda d: rid)
+    if re.search(r"多少种|几种|多少个|多少条", q):
+        return "%s 的%s 共 %d 种（%s）" % (rid, tgt_cn, len(names), "、".join(names))
+    return "%s 的%s（%d 条）：%s" % (rid, tgt_cn, len(names), "、".join(names))
+
+
+def _schema_rel_lookup(q, data, D):
+    """按本体 schema 走一条对象属性，回答"X 的 Y 是哪个 Z"。
+
+    依据的全部是本体里已经建好的三样东西：对象属性的 domain / range、类的中文 label、
+    实例之间的边。不依赖问句里写不写字段名。
+
+    现场：`Valve_qc_Q001 checkedBy Valve_batches_B007` 这条边在 nt 里，
+    `checkedBy` 的 domain=Valve_qc、range=Valve_batches、label="质检批次"。
+    问"Q001 检测的是哪个批次"时，源实例属于 Valve_qc，问的"批次"是 Valve_batches，
+    两条一夹，就是 checkedBy。
+
+    只在单值问句上触发（哪个/哪一/是哪/是什么/属于），计数和列表问句不进来。
+    """
+    if not re.search(r"哪个|哪一个|是哪|是什么|属于|对应哪", q):
+        return None
+    cls_labels = D.get("_class_labels") or {}
+    rel_schema = D.get("_rel_schema") or {}
+    if not rel_schema:
+        return None
+    # 1) 源实例：问句里出现的实例 ID（Q001 / B007 / R005）。选法见 _pick_src_instance。
+    _src = _pick_src_instance(q, data, D)
+    if not _src:
+        return None
+    src = _src
+    src_cls = str(src).rsplit("_", 1)[0]
+    # 2) 目标类：问句里出现的中文类名，取最长、且不等于源类。
+    # 中文名不信 _class_labels —— food 的 label 就是类名本身（Food_products），
+    # 拿它跟问句里的"产品"对不上，整条单跳关系查询就废了。
+    # 走 _resolve_entity_map：它把中文名映到本库真实存在的类，已验过一遍。
+    _cls_set = {str(c).lower() for c in _class_prefixes(data)}
+    _emap = _resolve_entity_map(D, data)
+    tgt = None
+    tgt_cn = None
+    for cn in sorted(_emap, key=len, reverse=True):
+        _c = str(_emap[cn]).lower()
+        if cn and _class_in_q(cn, q) and _c != src_cls.lower() and _c in _cls_set:
+            tgt, tgt_cn = _c, cn
+            break
+    if not tgt:
+        return None
+    # 3) 找 domain→range 对得上的对象属性；没有就把方向反过来找
+    prop, reverse = None, False
+    for pname, meta in rel_schema.items():
+        if (str(meta.get("domain") or "").lower() == src_cls.lower()
+                and str(meta.get("range") or "").lower() == tgt.lower()):
+            prop = pname
+            break
+    if not prop:
+        for pname, meta in rel_schema.items():
+            if (str(meta.get("domain") or "").lower() == tgt.lower()
+                    and str(meta.get("range") or "").lower() == src_cls.lower()):
+                prop, reverse = pname, True
+                break
+    if not prop:
+        return None
+    aliases = D.get("field_aliases") or {}
+    rid = str(src).rsplit("_", 1)[-1]
+
+    def _disp(k):
+        d = data.get(k) or {}
+        return _display_name(d, aliases, default=str(k).rsplit("_", 1)[-1])
+
+    plabel = rel_schema.get(prop, {}).get("label") or prop
+    # 本体里属性 label 可能是"关联line"这种中英混写（建库时自动拼的）。
+    # 问句里用户说的是中文类名，回答就用类名 —— "E1 的产线是 产线A" 比
+    # "E1 的关联line是 产线A" 像人话。
+    if tgt_cn and re.search(r"[A-Za-z]", str(plabel)):
+        plabel = tgt_cn
+    if not reverse:
+        v = _attr_val(data.get(src) or {}, prop, aliases, data)
+        if not v:
+            return None
+        hit = [k for k in data if str(k).endswith("_" + str(v))]
+        _note_rows([(rid, data.get(src) or {})], plabel, lambda d: v)
+        return "%s 的%s是 %s" % (rid, plabel, _disp(hit[0]) if hit else v)
+    # 反向：目标类的实例里，谁的这条边指向源实例
+    got = []
+    for k, d in data.items():
+        if not str(k).lower().startswith(tgt.lower()):
+            continue
+        if str(_attr_val(d, prop, aliases, data) or "") == rid:
+            got.append(k)
+    if not got:
+        return None
+    _note_rows([(k, data[k]) for k in got], plabel, lambda d: rid)
+    return "%s 对应的%s是 %s" % (rid, tgt_cn, "、".join(_disp(k) for k in got[:20]))
 
 
 def _relation_lookup(q, data, D):
@@ -900,6 +1598,13 @@ def answer(q, data, D):
     cn2cn = D.get("attr_en2cn", {})
 
     # M15-9 关系类：与直查同层，理由同上——必须在任何兜底之前。
+    # 先按本体 schema 走（domain/range 对得上就用那条边），再走旧的编号式关系问句。
+    _srel = _schema_rel_lookup(q, data, D)
+    if _srel:
+        return _srel
+    _lrel = _rel_list_lookup(q, data, D)
+    if _lrel:
+        return _lrel
     _rel = _relation_lookup(q, data, D)
     if _rel:
         return _rel
@@ -976,11 +1681,13 @@ def answer(q, data, D):
                     _display_name(_best[0], aliases, default=""), _bf_cname, _best[1])
 
     # ---- 组合: [状态]的[类型] (报警的焊接机器人) ----
-    st_en, st_cn = _find_enum(D, q, "status")
+    st_en, st_cn = _find_enum(D, q, "status", data)
     ty_en, ty_cn = _find_enum(D, q, "type")
     if st_en and ty_en:
-        matched = [(n, d) for n, d in data.items()
-                   if _status_matches(d, st_en, aliases, D) and _type_matches(d, ty_en, aliases)]
+        matched = _note_rows(
+            [(n, d) for n, d in data.items()
+             if _status_matches(d, st_en, aliases, D) and _type_matches(d, ty_en, aliases)],
+            "%s+%s" % (st_cn, ty_cn), lambda d: "%s/%s" % (st_en, ty_en))
         nm = names(matched)
         if "多少" in q:
             return "有 %d %s%s的%s" % (len(nm), _measure_for(q), st_cn, ty_cn)
@@ -996,7 +1703,8 @@ def answer(q, data, D):
                 if _field(d, f, aliases) == zo_en:
                     return True
             return False
-        matched = [(n, d) for n, d in data.items() if _zmatch(d)]
+        matched = _note_rows([(n, d) for n, d in data.items() if _zmatch(d)],
+                             zo_cn, lambda d: zo_en)
         nm = names(matched)
         if "多少" in q:
             return "%s区域有 %d" % (zo_cn, len(nm))
@@ -1036,15 +1744,18 @@ def answer(q, data, D):
     # 优先用建库时 data profiling 生成的 entity_cn2en {中文实体名: 表名}（测线/炮点/项目/船…），
     # 兜底保留原硬编码映射（兼容旧词典）。
     # 数据来源 lexicon.get_entity_cn2uri()（与原 _ENTITY_CN2URI 键值逐一一致）。
-    _ENTITY_CN2URI = get_entity_cn2uri()
-    _entity_map = dict(_ENTITY_CN2URI)
-    _entity_map.update(D.get("entity_cn2en", {}) or {})
+    # 实体类中文名 -> 本库真实类名前缀。词典里的表名先在本库核对一遍再使用：
+    # 词典串库（chem 的 entity_cn2en 写成 mach_products）会让计数恒为 0。
+    _entity_map = _resolve_entity_map(D, data)
     # 计数量词 _MEASURE / _measure_for 已在 answer 函数头定义, 此处不再重复。
     # 跨行业泛化守卫：若问题含 状态/类型/区域 枚举词，则这是"过滤计数"而非"实体总数"，
     # 不得在此返回实体总数（否则"有多少台设备在运行"会被误答成"有 6 台设备"），
     # 须落空继续走到下方的状态/类型计数分支。
+    # 问句里直接点了类型值（"H类机器有多少台"）时，这句是**类型过滤计数**，
+    # 不是实体总数。不先认出来，会被下面的"机器有多少"当成"全部机器"答 10000。
+    _dv_ty, _dv_cn = _enum_value_in_data(q, data, aliases)
     for cn in sorted(_entity_map, key=len, reverse=True):
-        if (re.search(r'多少[台个条艘本]?' + cn, q)          # 有多少台设备 / 有多少本书
+        if (re.search(r'多少[台个条艘本家位名间张份套批辆只头棵户门]?' + cn, q)  # 有多少台设备 / 有多少家供应商
                 or re.search(cn + r'(总数|共有多少|有多少|共多少)', q)  # 设备总数 / 炮点总数
                 or re.search(r'共\s*多少\s*' + cn, q)):   # 共多少设备
             # 跨行业泛化守卫：被状态/类型/区域词修饰时跳过实体总数（走下方过滤计数）。
@@ -1075,15 +1786,24 @@ def answer(q, data, D):
             if (_eq_attr_guard and _eq_guard
                     and _eq_guard.group(1).strip() not in _eq_stop):
                 continue
+            if _dv_ty:
+                continue
             _t_en, _t_cn = _find_enum(D, q, "type")
-            _s_en, _s_cn = _find_enum(D, q, "status")
+            _s_en, _s_cn = _find_enum(D, q, "status", data)
             _z_en, _z_cn = _find_enum(D, q, "zone")
             if ((_t_en and _t_cn != cn)
                     or (_s_en and _s_cn != cn)
                     or (_z_en and _z_cn != cn)):
                 continue
             uri_sub = _entity_map[cn]
-            n = sum(1 for k in data if uri_sub.lower() in k.lower())
+            _hit = _note_rows(_inst_rows(data, uri_sub),
+                              "计数", lambda d: 1)
+            n = len(_hit)
+            if n == 0:
+                # 这一类在本库里一个实例都没有 —— 说明词典里的这条只是通用词表带来的，
+                # 这个库根本没有这种东西。答"有 0 个产品"是把"我不知道"说成了"没有"，
+                # 落到下面的分支去拒答更诚实（ai4i 台账被答"有 0 个产品"就是这样来的）。
+                continue
             if "总数" in q:
                 return "%s总数 %d" % (cn, n)
             return "有 %d %s%s" % (n, _MEASURE.get(cn, "个"), cn)
@@ -1093,7 +1813,30 @@ def answer(q, data, D):
     # （\"一共有多少种产品\" → 产品类型的去重个数，而非产品记录总数）
     if re.search(r'(多少|几)(种|类)', q):
         _sub = _entity_subset(q, D, data)
-        _ty_cols = [a for a in aliases.get("deviceType", [])] + ["category", "type", "kind"]
+        # 问句点名了某个属性（"产品的压力等级有多少种"）时，统计那个属性的去重取值。
+        # 旧版无脑数 type 列，于是压力等级的 4 种被答成产品类型的 6 种 —— 答的是另一个字段。
+        _qa_en, _qa_cn = _find_attr(D, q)
+        if _qa_en and _qa_en.lower() not in ("type", "category", "kind", "devicetype"):
+            _qa_vals = {str(_attr_val(d, _qa_en, aliases, _sub) or "").strip() for d in _sub.values()}
+            _qa_vals = {v for v in _qa_vals if v}
+            if _qa_vals:
+                _note_rows([(k, d) for k, d in _sub.items()
+                            if str(_attr_val(d, _qa_en, aliases, _sub) or "").strip()],
+                           _qa_cn, lambda d: _attr_val(d, _qa_en, aliases, _sub))
+                return "共有 %d 种%s" % (len(_qa_vals), _qa_cn)
+        # 问句问的是"X 的 Y 有多少种"，但 Y 在本库解析不出属性（food 的"车间"、
+        # manufacturing 的"区域"）——此时不能拿类型列去顶上，那是在答另一个字段。
+        # 宁可拒答。问句本身问的就是类型（含"类型/类别/品类/品种/种类"）时不拦。
+        _named_attr = re.search(r"的([\u4e00-\u9fff]{2,6}?)(?:有|是)?(?:多少|几)", q)
+        if _named_attr and not _qa_en:
+            _tok = _named_attr.group(1)
+            if not any(w in _tok for w in ("类型", "类别", "品类", "品种", "种类")):
+                return MISS_ANSWER
+        # 别名表常常只给出"另一列也叫这个"（food 的 deviceType→category），
+        # 漏掉字面列名 deviceType 本身，于是"设备的设备类型有多少种"数不出值。
+        _ty_cols = list(dict.fromkeys(
+            [a for a in (aliases.get("deviceType") or [])]
+            + ["deviceType", "category", "type", "kind"]))
         _ty_vals = set()
         for _d in _sub.values():
             for _c in _ty_cols:
@@ -1102,8 +1845,12 @@ def answer(q, data, D):
                     _ty_vals.add(_v)
                     break
         if _ty_vals:
+            _note_rows([(k, d) for k, d in _sub.items()
+                        if any(str(d.get(_c) or "").strip() for _c in _ty_cols)],
+                       "类型", lambda d: next((str(d.get(_c) or "").strip()
+                                             for _c in _ty_cols if str(d.get(_c) or "").strip()), ""))
             return "共有 %d 种%s" % (len(_ty_vals), "类型")
-    st_en, st_cn = _find_enum(D, q, "status")
+    st_en, st_cn = _find_enum(D, q, "status", data)
     # "合格"这类词可能同时是别的属性的值（原料的 qc_result），被 status 值表误收。
     # 于是"原料中质检结果为合格的有多少条"在这里被 status 分支抢走 → 在原料表上找
     # status=合格 → 答 0（正确答案 9）。问句里点名了别的属性时，让给下面的通用过滤分支。
@@ -1142,7 +1889,7 @@ def answer(q, data, D):
                 if _cn not in q:
                     continue
                 _uri = str((D.get("entity_cn2en") or {})[_cn]).lower()
-                _cand = {k: d for k, d in data.items() if _uri in k.lower()}
+                _cand = dict(_inst_rows(data, _uri))
                 _vals = _af_vals_of(_cand)
                 if any(_vals):
                     _af_sub, _af_present = _cand, _vals
@@ -1176,7 +1923,9 @@ def answer(q, data, D):
             _af_cn_name = _af_cn or cn2cn.get(_af_attr, _af_attr)
             return "有 %d 条（%s为%s）" % (_af_n, _af_cn_name, _af_target)
     ty_en, ty_cn = _find_enum(D, q, "type")
-    # 2026-09-15 修（与枚举分支同源）：
+    if not ty_en:
+        # 词典没收录这个类型值时，从数据的类型列里认（"H类机器" → H）。
+        ty_en, ty_cn = _enum_value_in_data(q, data, aliases)
     #  ① 实体名会被 _find_enum 当类型取值（"设备的功率最大是多少" → ty_en="设备"）
     #     → n 恒为 0 → 错答"有 0 台设备"。
     #  ② 极值问句（最X）应归下方 TopN/极值分支，不能被类型计数抢答。
@@ -1185,8 +1934,15 @@ def answer(q, data, D):
                         for v in _emap_t.values())
     if ty_en and ("多少" in q or "数量" in q) and not _ty_is_entity and not _EXTREME.search(q):
         sub = _entity_subset(q, D, data)
-        n = sum(1 for d in sub.values() if _type_matches(d, ty_en, aliases))
-        return "有 %d %s%s" % (n, _measure_for(q), ty_cn)
+        _tm = _note_rows([(k, d) for k, d in sub.items() if _type_matches(d, ty_en, aliases)],
+                         ty_cn, lambda d: ty_en)
+        if not _tm:
+            # 一条都没有。type_cn2en 里塞满了通用模板词（锅炉/空压机/离心泵…），
+            # 本库没有这类设备时，答"有 0 个锅炉"是把"我不知道"说成"没有"
+            # （manufacturing / valve / auto_parts 各中一题，判 empty_zero）。
+            # 没有证据就拒答，与实体计数分支同一条纪律。
+            return MISS_ANSWER
+        return "有 %d %s%s" % (len(_tm), _measure_for(q), ty_cn)
     # 类型词 + 的：按类型过滤计数/列出（"大气治理的项目" / "油轮的" 等，非"多少"式）
     # 极值消歧(P1): "容量最大的发电机组"里"发电机"是 type_cn2en 子串会误命中此处,
     # 而问题实为"最X的Y"极值查询(attr_en 已解析 + 极值词)。极值应优先于类型列举,
@@ -1198,7 +1954,8 @@ def answer(q, data, D):
         # 两者被同一条件吞掉 → 枚举问句被误判为过滤 → matched 空 → 错答"无设备"。
         # 故排除枚举型问句，交给下方 L768 的"列出/有哪些"分支处理。
         sub = _entity_subset(q, D, data)
-        matched = [(n, d) for n, d in sub.items() if _type_matches(d, ty_en, aliases)]
+        matched = _note_rows([(n, d) for n, d in sub.items() if _type_matches(d, ty_en, aliases)],
+                             ty_cn, lambda d: ty_en)
         nm = names(matched)
         return "%s(%d):\n%s" % (ty_cn, len(nm), _fmt_names(nm)) if nm else "无%s" % ty_cn
 
@@ -1231,21 +1988,36 @@ def answer(q, data, D):
             _seg = ["%s类型有：%s" % (_en2cn.get(c, c), "、".join(sorted(_cvals[c])))
                     for c in sorted(_cvals)]
             if _seg:
+                _note_rows([(k, d) for k, d in data.items()
+                            if (not _restrict or k in _scoped)
+                            and _agg_field_value(d, "type", aliases) not in (None, "", "未知")],
+                           "类型", lambda d: _agg_field_value(d, "type", aliases))
                 return "；".join(_seg)
             # 退化兜底: 无法按实体类归类(无实体类词表)时沿用原全量去重枚举
             ty_vals = sorted({str(d.get("deviceType") or d.get("category") or "") for d in data.values()} - {""})
             if ty_vals:
+                _note_rows([(k, d) for k, d in data.items()
+                            if str(d.get("deviceType") or d.get("category") or "")],
+                           "类型", lambda d: d.get("deviceType") or d.get("category"))
                 return "类型有：%s" % "、".join(ty_vals)
         # ── 2026-09-15 补：带实体限定的属性取值枚举 ──
         # "设备的设备类型有哪些" / "产品的压力等级有哪些" 这类最主流的中文问法，
         # 旧版没有实现（L770 的枚举分支要求"哪些"/"的"都不出现 → 只能处理裸问句），
         # 且问句里的实体名会被 _find_enum 误当类型值 → 落到下面 L812 返回"无设备"。
         # 这里在 status/type 分支之前，按"问题里的属性词"枚举该属性的去重取值。
-        _attr_token = None
-        for _a_cn in sorted((D.get("attr_cn2en") or {}), key=len, reverse=True):
-            if _a_cn and len(_a_cn) >= 2 and _a_cn in q:
-                _attr_token = _a_cn
-                break
+        # 属性词统一走 _find_attr：它认词典、认本体属性 label、认字段名反译，
+        # 比只查 attr_cn2en 宽。food 的设备表在 attr_cn2en 里一个词都没有，
+        # 旧代码在这里拿不到 _attr_token，直接落到下面罗列设备名。
+        _attr_token, _attr_en_tok = None, None
+        _fa_en, _fa_cn = _find_attr(D, q)
+        if _fa_en and _fa_cn and len(_fa_cn) >= 2 and _fa_cn in q:
+            _attr_token, _attr_en_tok = _fa_cn, _fa_en
+        else:
+            for _a_cn in sorted((D.get("attr_cn2en") or {}), key=len, reverse=True):
+                if _a_cn and len(_a_cn) >= 2 and _a_cn in q:
+                    _attr_token = _a_cn
+                    _attr_en_tok = (D.get("attr_cn2en") or {})[_a_cn]
+                    break
         # M15-2：属性被「为/是/= 值」约束时，问的是**符合条件的实例**，不是属性的取值集合。
         # 实测「厂商名为 NorthAir 的设备有哪些」被本分支当成"厂商名有哪些取值"→
         # 答成六个厂商名的罗列。无约束的「设备的厂商名有哪些」不受影响（q 里没有 为/是/=）。
@@ -1258,12 +2030,25 @@ def answer(q, data, D):
         #    改了四版都没生效就是因为位置错了，不是逻辑错。教训：**改引擎先确认缩进层级**。
 
         if _attr_token and ("哪些" in q or "有哪" in q or "列出" in q) and not _attr_constrained:
-            _attr_en = (D.get("attr_cn2en") or {})[_attr_token]
+            _attr_en = _attr_en_tok or (D.get("attr_cn2en") or {})[_attr_token]
             _sub = _entity_subset(q, D, data)
+            # 类型/类别类字段名各库不一（type / category / deviceType / productType），
+            # 取不到时按同族字段兜一遍，避免"图书的类型有哪些"返回空。
+            _TYPEISH = {"type", "category", "kind", "class", "devicetype",
+                        "device_type", "producttype", "product_type"}
+            def _av(_d):
+                v = _attr_val(_d, _attr_en, aliases, data)
+                if not v and str(_attr_en).lower() in _TYPEISH:
+                    for _f in ("deviceType", "category", "type", "kind",
+                               "productType", "product_type"):
+                        v = _field(_d, _f, aliases)
+                        if v:
+                            break
+                return v
             # 取值统一走 _attr_val：兜 camelCase（多词列名）与对象属性（关系表外键，
             # 值是指向目标实例的 URI，需剥末段取 ID —— 如 R001/P003）。
             def _collect(_s):
-                vals = {v for v in (_attr_val(_d, _attr_en, aliases, data) for _d in _s.values()) if v}
+                vals = {v for v in (_av(_d) for _d in _s.values()) if v}
                 if not vals and _attr_en in ("id",):
                     # 主键常被编码进实例名（Customers_C001 / Valve_batches_B009），
                     # 实例 dict 里就没有 id 字段 —— 此时从实例名取末段。
@@ -1281,7 +2066,7 @@ def answer(q, data, D):
                     if _cn not in q:
                         continue
                     _uri = str((D.get("entity_cn2en") or {})[_cn]).lower()
-                    _cand = {k: d for k, d in data.items() if _uri in k.lower()}
+                    _cand = dict(_inst_rows(data, _uri))
                     _cv = _collect(_cand)
                     if _cv:
                         _sub, _vals = _cand, _cv
@@ -1292,7 +2077,7 @@ def answer(q, data, D):
             if not _vals:
                 _owners = []
                 for _cn2, _uri2 in (D.get("entity_cn2en") or {}).items():
-                    _cand2 = {k: d for k, d in data.items() if str(_uri2).lower() in k.lower()}
+                    _cand2 = dict(_inst_rows(data, _uri2))
                     if _collect(_cand2):
                         _owners.append(_cand2)
                 if len(_owners) == 1:
@@ -1302,11 +2087,15 @@ def answer(q, data, D):
                 _owner = next((c for c in sorted((D.get("entity_cn2en") or {}), key=len, reverse=True)
                                if c and c in q), "")
                 _prefix = f"{_owner}的{_attr_token}" if _owner else _attr_token
+                _note_rows([(k, d) for k, d in _sub.items() if _av(d)],
+                           _attr_token, _av)
                 return "%s有：%s" % (_prefix, "、".join(_vals))
-        st_en, st_cn = _find_enum(D, q, "status")
+        st_en, st_cn = _find_enum(D, q, "status", data)
         if st_en:
             sub = _entity_subset(q, D, data)  # 实体消歧
-            matched = [(n, d) for n, d in sub.items() if _status_matches(d, st_en, aliases, D)]
+            matched = _note_rows([(n, d) for n, d in sub.items()
+                                  if _status_matches(d, st_en, aliases, D)],
+                                 st_cn, lambda d: st_en)
             return "列出所有%s:\n%s" % (st_cn, _fmt_names(names(matched))) if matched else "无%s" % st_cn
         ty_en, ty_cn = _find_enum(D, q, "type")
         if ty_en:
@@ -1315,15 +2104,21 @@ def answer(q, data, D):
             _is_entity = any(str(v).lower() in data and str(v).lower() in str(ty_en).lower()
                              for v in _emap_all.values())
             if not _is_entity:
-                matched = [(n, d) for n, d in data.items() if _type_matches(d, ty_en, aliases)]
+                matched = _note_rows([(n, d) for n, d in data.items()
+                                      if _type_matches(d, ty_en, aliases)],
+                                     ty_cn, lambda d: ty_en)
                 return "列出所有%s:\n%s" % (ty_cn, _fmt_names(names(matched))) if matched else "无%s" % ty_cn
         # 实体实例列表: "项目有哪些/订单有哪些/有哪些船" → 枚举 entity_cn2en 对应类的实例
-        if ("有哪些" in q or "哪些" in q) and not st_en and not ty_en:
+        # 🔴 这里不能再卡 `not ty_en`：上面「类型枚举」分支发现 ty_en 其实是问句里的
+        # 实体名（"产品的品类有哪些"→ type 值表把"产品"当成了类型值）时会跳过且不返回，
+        # 若此处仍要求 ty_en 为空，两边都不接，最后落到"暂不支持"（chem 实测 11 道空答）。
+        # 能走到这里说明真正的类型枚举已经答完了，剩下的"哪些"就是问实例。
+        if "哪些" in q:
             emap = dict(get_entity_cn2uri()); emap.update(D.get("entity_cn2en", {}) or {})
             for cn in sorted(emap, key=len, reverse=True):
                 if cn in q:
                     uri_sub = emap[cn].lower()
-                    ents = sorted({k for k in data if uri_sub in k.lower()})
+                    ents = sorted({k for k, _d in _inst_rows(data, uri_sub)})
                     # M15-2：问句里点名了某个属性值就按它过滤，别枚举全部。
                     _fv = _filter_value_in_q(q, ents, data, cn)
                     if _fv:
@@ -1332,6 +2127,7 @@ def answer(q, data, D):
                                        and v.strip().lower() == _fv.lower()
                                        for v in (data.get(e) or {}).values())]
                     if ents:
+                        _note_rows([(e, data.get(e) or {}) for e in ents], cn)
                         names_list = [(_display_name(data[e], aliases, default=e.split('#')[-1])) for e in ents]
                         names_list = [n for n in names_list if n]
                         if names_list:
@@ -1372,6 +2168,7 @@ def answer(q, data, D):
             bestv = (max if is_max else min)(x[1] for x in items)
             best = [d for d, v in items if v == bestv]
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            _note_rows([(d, bestv) for d in best], cname)
             _names = "、".join(_display_name(d, aliases, default="") for d in best)
             return "%s的记录: %s (%s=%s)" % (("最大" if is_max else "最小") + cname, _names, cname, bestv)
 
@@ -1382,6 +2179,9 @@ def answer(q, data, D):
         vals = [v for v in vals if v is not None]
         if vals:
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            _note_rows([(d, _num(_field(d, attr_en, aliases))) for d in sub.values()
+                        if _num(_field(d, attr_en, aliases)) is not None],
+                       cname, lambda d: _num(_field(d, attr_en, aliases)))
             return "%s平均值 %.2f (%d条)" % (cname, sum(vals)/len(vals), len(vals))
 
     # ---- 总和 ----
@@ -1391,6 +2191,9 @@ def answer(q, data, D):
         vals = [v for v in vals if v is not None]
         if vals:
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            _note_rows([(d, _num(_field(d, attr_en, aliases))) for d in sub.values()
+                        if _num(_field(d, attr_en, aliases)) is not None],
+                       cname, lambda d: _num(_field(d, attr_en, aliases)))
             return "%s总和 %.2f" % (cname, sum(vals))
 
     # ---- 范围 (属性>N / <N / 在A到B) ----
@@ -1401,20 +2204,21 @@ def answer(q, data, D):
         if ("到" in q or "之间" in q) and len(nums) >= 2:
             lo, hi = nums[0], nums[1]
             matched = [(d, _num(_field(d, attr_en, aliases))) for d in data.values()]
-            matched = [(d, v) for d, v in matched if v is not None and lo <= v <= hi]
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            matched = _note_rows([(d, v) for d, v in matched if v is not None and lo <= v <= hi],
+                                 cname)
             return "%s在%s到%s之间的(%d):\n%s" % (cname, lo, hi, len(matched), _fmt_names([_display_name(d, aliases, default="") for d, _ in matched]))
         elif has_gt and nums:
             n = nums[0]
             matched = [(d, _num(_field(d, attr_en, aliases))) for d in data.values()]
-            matched = [(d, v) for d, v in matched if v is not None and v > n]
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            matched = _note_rows([(d, v) for d, v in matched if v is not None and v > n], cname)
             return "%s大于%s的(%d):\n%s" % (cname, n, len(matched), _fmt_names([_display_name(d, aliases, default="") for d, _ in matched]))
         elif has_lt and nums:
             n = nums[0]
             matched = [(d, _num(_field(d, attr_en, aliases))) for d in data.values()]
-            matched = [(d, v) for d, v in matched if v is not None and v < n]
             cname = attr_cn or cn2cn.get(attr_en, attr_en)
+            matched = _note_rows([(d, v) for d, v in matched if v is not None and v < n], cname)
             return "%s小于%s的(%d):\n%s" % (cname, n, len(matched), _fmt_names([_display_name(d, aliases, default="") for d, _ in matched]))
 
     # ---- 分组统计 ----
@@ -1443,8 +2247,9 @@ def answer(q, data, D):
 
     # ---- 反查: 哪些[属性]=值 ----
     if attr_en and ("哪些" in q or "是什么" in q):
-        matched = [(d, _field(d, attr_en, aliases)) for d in data.values() if _field(d, attr_en, aliases)]
         cname = attr_cn or cn2cn.get(attr_en, attr_en)
+        matched = _note_rows([(d, _field(d, attr_en, aliases)) for d in data.values()
+                              if _field(d, attr_en, aliases)], cname)
         return "%s信息:\n%s" % (cname, "\n".join(f"  {_display_name(d, aliases, default='')}: {v}" for d, v in matched[:20]))
 
     # ---- 属性值过滤计数 (泛化): "不锈钢波纹管的数量" / "船坞的数量" ----
@@ -1502,8 +2307,10 @@ def answer(q, data, D):
                 break
     if not _named_entity and not _EXTREME.search(q) \
             and not (is_cross_domain_data_query(q, D) and _bare_entity_count):
-        _vc = _value_filter_count(q, data)
+        _vc = _value_filter_count(q, data, with_names=True)
         if _vc:
+            _names_vc = _vc[2] if len(_vc) > 2 else []
+            _note_rows([(nm, data.get(nm)) for nm in _names_vc if nm in data], "取值匹配")
             return "符合条件共 %d 条" % _vc[0]
 
     # ---- 总数: 一共有多少条记录 ----
@@ -1514,6 +2321,7 @@ def answer(q, data, D):
         # 但"记录/数据"这类对本库全体记录的元查询(如"一共有多少条记录")仍答总数, 不误伤。
         if is_cross_domain_data_query(q, D) and not re.search(r'(记录|数据)', q):
             return "无相关数据，该知识库不含所问的实体概念"
+        _note_rows([(k, d) for k, d in data.items()], "计数", lambda d: 1)
         return "一共有 %d 条记录" % len(data)
 
     return MISS_ANSWER
@@ -1559,7 +2367,7 @@ def answer_envelope(q, data, D):
     - 异常**不静默吞**：引擎异常写入 reason/answer 原文。
     """
     try:
-        text = answer(q, data, D)
+        text, calc = answer_traced(q, data, D)
     except Exception as e:  # 引擎异常按未命中处理，但原因如实露出，不掩盖
         return {"answer": "未命中：问答引擎内部异常，无法给出可靠结果。（%s）" % e,
                 "hit": False, "reason": "引擎异常：%s" % e,
@@ -1570,17 +2378,27 @@ def answer_envelope(q, data, D):
                           % reason.split("：", 1)[-1],
                 "hit": False, "reason": reason, "evidence": [], "advisory": None,
                 "raw_answer": text, "source": "refuse"}
-    # 命中：产出可回溯证据（证据缺失不改变 hit —— 引擎已给出有据答案）
+    # 命中后必须能回溯：既不是拒答，也要能在本体数据里指出答案的出处。
+    # 老逻辑只看字符串哨兵，证据为空照样算命中——"找到相关实体: checkedBy、producedIn"
+    # 这类占位文本就是这么混进来的。现在证据为空 = 未验证，不计命中。
     try:
         from evidence import build_trace
-        ev = build_trace(q, data, D, text)
+        ev = build_trace(q, data, D, text, trace=calc)
     except Exception as e:  # 证据提取异常不静默吞：写进 reason 供排查，answer 仍返回
         ev = []
-        reason = "命中：规则检索有据（证据提取异常：%s）" % e
+        err = str(e)
     else:
-        reason = "命中：规则检索有据"
-    return {"answer": text, "hit": True, "reason": reason,
-            "evidence": ev, "advisory": None, "raw_answer": text, "source": "rule"}
+        err = ""
+    if not ev:
+        return {"answer": text, "hit": False,
+                "reason": ("命中但无法回溯：答案未落在本体数据上" if not err
+                           else "证据提取异常：%s" % err),
+                "evidence": [], "advisory": None, "raw_answer": text,
+                "source": "unverified"}
+    return {"answer": text, "hit": True, "reason": "命中：规则检索有据",
+            "evidence": ev, "advisory": None, "raw_answer": text, "source": "rule",
+            "trace_total": (calc or {}).get("total", 0),
+            "trace_truncated": bool((calc or {}).get("truncated"))}
 
 
 # ------------------------------------------------------------------ main

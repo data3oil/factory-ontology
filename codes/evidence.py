@@ -164,15 +164,13 @@ def _mk_trace(d, name, prop, value, kind="entity", source="rule"):
     return {"kind": kind, "id": name, "label": "%s=%s" % (prop, value), "source": source}
 
 
-def build_trace(question, data, D, answer=None):
+def build_trace(question, data, D, answer=None, trace=None):
     """把问答命中整理成**可回溯**的统一证据列表 [{kind, id, label, source}]（批 2）。
 
-    与 extract_evidence 的区别：extract_evidence 面向 api 老字段({name,prop,value})，
-    本函数产出批 2 信封契约要求的 {kind,id,label,source}，并补齐词表(dict)证据与
-    "值过滤计数"类兜底答案的命中记录（老规则表未覆盖，导致信封里 hit=true 却没有 evidence）。
-
-    规则：先复用 extract_evidence 的规则证据；为空时按规则族重扫"参与得出答案的记录"；
-    仍为空则返回 []（表示该答案无法回溯，由调用方决定是否据此降级）。
+    trace 由 ontology_qa_v3.answer_traced 在**计算当时**记下（哪几条记录参与了这次
+    计数/极值/求和）。传了 trace 就直接用它——这才是证据；它同时也是"答案对不对"唯一
+    可信的判据。没传 trace（老调用方）才退回 extract_evidence + 按规则族重扫，
+    这条老路是猜的：规则表和引擎各写一套，猜漏了就变成"命中但没证据"。
     """
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
@@ -185,7 +183,17 @@ def build_trace(question, data, D, answer=None):
             dict_ev.append({"kind": "dict", "id": str(en),
                             "label": "%s 词表：%s→%s" % (which, cn, en), "source": "lexicon"})
 
-    # 2) 规则证据(复用既有 extract_evidence)
+    # 2) 计算过程回传：引擎在算的时候记下的记录，直接用，不再猜
+    if trace is not None:
+        rows = [dict(r) for r in (trace.get("rows") or []) if isinstance(r, dict)]
+        if rows:
+            return [{"kind": r.get("kind") or "entity", "id": r.get("id") or "",
+                     "label": r.get("label") or "", "source": r.get("source") or "rule"}
+                    for r in rows] + dict_ev
+        if not trace.get("total"):
+            return dict_ev
+
+    # 2b) 降级路径（无 trace 的老调用方）：复用既有 extract_evidence
     raw = extract_evidence(question, data, D, answer or "")
     out = []
     for e in raw.get("entities", []) or []:

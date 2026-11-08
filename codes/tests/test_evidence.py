@@ -57,3 +57,30 @@ def test_evidence_extreme(tmp_path):
     # 最长保质期 180 天, 鸡蛋灌饼/手工水饺 都是 180
     assert float(e["value"]) == 180.0
     assert e["name"] in ("鸡蛋灌饼", "手工水饺")
+
+
+def test_trace_comes_from_computation(tmp_path):
+    """证据来自计算过程：计数问句的记录条数 == 答案里的数字，而不是事后猜。"""
+    data, D = _build_food(tmp_path)
+    q = "乳制品的数量"
+    text, trace = v3.answer_traced(q, data, D)
+
+    assert trace is not None
+    rows = trace["rows"]
+    assert rows, "计算过程必须记下参与计数的记录"
+    assert trace["total"] == len(rows) or trace["truncated"]
+    # 答案里的数字应与记录数一致：证据不是"看起来相关"，而是答案的算式
+    nums = [int(x) for x in __import__("re").findall(r"\d+", text)]
+    assert rows and (len(rows) in nums or trace["truncated"])
+
+
+def test_envelope_evidence_is_trace_not_rescan(tmp_path):
+    """信封里的证据 id 必须真的出现在数据里；猜出来的"属性名当实体"不能再出现。"""
+    data, D = _build_food(tmp_path)
+    env = v3.answer_envelope("乳制品的数量", data, D)
+
+    assert env["hit"] is True
+    assert env["evidence"], "命中必须带证据"
+    for e in env["evidence"]:
+        if e["kind"] == "entity":
+            assert e["id"] in data, "证据 id 必须是数据里的实体：%r" % (e,)

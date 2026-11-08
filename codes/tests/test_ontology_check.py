@@ -375,3 +375,44 @@ def test_cli_json_output_file():
         assert rep["tool"] == "ontology_check"
     finally:
         _cleanup(tmp)
+
+
+# ═══════════════ 同一语义两套取值(冲突) ═══════════════
+_RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+_RDFS_RANGE = "http://www.w3.org/2000/01/rdf-schema#range"
+_OWL_DATAPROP = "http://www.w3.org/2002/07/owl#DatatypeProperty"
+_OWL_OBJPROP = "http://www.w3.org/2002/07/owl#ObjectProperty"
+_NS = "http://factory.example/ontology#"
+
+
+def _conflict_triples(ledger_value):
+    """批次 B1 有两条原料边(R1/R2)，台账字段另写一份；ledger_value 决定是否冲突。"""
+    return [
+        (_NS + "Batch_B1", _RDF_TYPE, "<" + _NS + "Batch>"),
+        (_NS + "Raw_R1", _RDF_TYPE, "<" + _NS + "Raw>"),
+        (_NS + "Raw_R2", _RDF_TYPE, "<" + _NS + "Raw>"),
+        (_NS + "usesRaw", _RDF_TYPE, "<" + _OWL_OBJPROP + ">"),
+        (_NS + "usesRaw", _RDFS_RANGE, "<" + _NS + "Raw>"),
+        (_NS + "rawParts", _RDF_TYPE, "<" + _OWL_DATAPROP + ">"),
+        (_NS + "Batch_B1", _NS + "usesRaw", "<" + _NS + "Raw_R1>"),
+        (_NS + "Batch_B1", _NS + "usesRaw", "<" + _NS + "Raw_R2>"),
+        (_NS + "Batch_B1", _NS + "rawParts",
+         '"%s"^^<http://www.w3.org/2001/XMLSchema#string>' % ledger_value),
+    ]
+
+
+def test_value_conflict_detected():
+    """关系边与台账字段说同一件事、值不一致 -> 必须报，且能指出两套值。"""
+    conf = oc._value_conflicts(_conflict_triples("R3;R4"))
+    assert len(conf) == 1
+    _sub, rel, lit, eset, lset, cls = conf[0]
+    assert rel.endswith("usesRaw") and lit.endswith("rawParts")
+    assert {x.rsplit("_", 1)[-1] for x in eset} == {"R1", "R2"}
+    assert {x.lstrip("?").rsplit("_", 1)[-1] for x in lset} == {"R3", "R4"}
+    assert cls.endswith("Raw")
+
+
+def test_value_conflict_consistent_is_clean():
+    """两边一致 / 台账里是自由文本（对不上实体）时都不应误报。"""
+    assert oc._value_conflicts(_conflict_triples("R1;R2")) == []
+    assert oc._value_conflicts(_conflict_triples("铸造一班")) == []

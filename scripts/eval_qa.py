@@ -263,8 +263,22 @@ def gen_kb_questions(kb, meta, tables):
                     others = [_row_name(r, rows[0].keys()) for r in rows
                               if str(r.get(col)) != v and _row_name(r, rows[0].keys())]
                     if names:
+                        # 去重保序：同一产品有多条记录时，golden 里重复三四遍没有意义。
+                        _seen, _u = set(), []
+                        for n in names:
+                            if n not in _seen:
+                                _seen.add(n)
+                                _u.append(n)
+                        names = _u
+                        # absent 必须与 target 不相交。同一个名字可能既有停产记录又有在产记录
+                        # （auto_parts 的"曲轴"就是），旧代码把整份 others 当 absent，
+                        # 结果 target 和 absent 同时含"曲轴"——正确回答也永远判误答。
+                        _other = []
+                        for n in others:
+                            if n not in _seen and n not in _other:
+                                _other.append(n)
                         add("neg", "%s的%s有哪些" % (v, cn), "、".join(names[:20]),
-                            "contains_not", names[:20], absent=others[:20])
+                            "contains_not", names[:20], absent=_other[:20])
 
     # ---- 多实体 / 多表：库内其他实体计数（排除主实体自身） ----
     if len(ent_names) > 1:

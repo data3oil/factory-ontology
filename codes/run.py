@@ -12,6 +12,7 @@
 """
 
 import os
+import re
 import sys
 import json
 
@@ -22,6 +23,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 from qa_constants import MISS_ANSWER  # noqa: E402  未命中哨兵单一真相源(B3 收口)
+from lexicon import merge_lexicon  # noqa: E402  词典合并规则单一实现
 OUT = os.path.join(ROOT, "output")
 CFG = os.path.join(ROOT, "config")
 STATE = os.path.join(ROOT, "current.json")
@@ -56,7 +58,39 @@ def _rel_or_abs(p, base):
         return os.path.abspath(p)
 
 
-def setup_schema(data_dir, schema_path, table="factory"):
+def _guard_overwrite(nt, table, kind):
+    """建本体前保护已有产物。
+
+    单表建模和 schema 多表建模写的是同一个 `output/<表名>.nt`。台账一多表，
+    单表那条命令就把关系边悄悄删掉了——产物还在、问答还"有答案"，只是边没了，
+    表现为「关系问句答成属性名」，极难查。所以换建法覆盖前先备份并明说。
+    """
+    if not os.path.exists(nt):
+        return
+    prev = None
+    if os.path.exists(STATE):
+        try:
+            prev = json.load(open(STATE, encoding="utf-8"))
+        except (ValueError, OSError):
+            prev = None
+    if not isinstance(prev, dict) or prev.get("table") != table:
+        return
+    prev_kind = "schema" if prev.get("schema") else "single"
+    if prev_kind == kind:
+        return
+    import shutil
+    import time as _time
+    bak = nt + ".bak-" + _time.strftime("%Y%m%d-%H%M%S")
+    try:
+        shutil.copy2(nt, bak)
+    except OSError:
+        return
+    label = {"schema": "多表 schema 建模", "single": "单表建模"}
+    print(f"⚠️ {os.path.basename(nt)} 原为{label[prev_kind]}产物，本次是{label[kind]}，"
+          f"覆盖前已备份到 {os.path.basename(bak)}")
+
+
+def setup_schema(data_dir, schema_path, table="factory", force=False):
     """schema 驱动统一建模（激进重构核心，替代 csv_to_owl/multi_table）。
 
     从多表数据目录 + ontology_schema.json 建统一本体（schema_ontology.to_nt），
@@ -89,14 +123,22 @@ def setup_schema(data_dir, schema_path, table="factory"):
         print(f"[2/3] 加载 schema + 约束校验")
         schema = so.load_schema(schema_path)
         issues = so.validate(data, schema)
+        errors = [i for i in issues if i.get("severity") == "error"]
         if issues:
             print(f"⚠️ 约束校验 {len(issues)} 问题:", [i["msg"] for i in issues[:3]])
+        if errors and not force:
+            # fail-closed：主键重复这类错误建出来的库，问答会"有答案"但答案是错的，
+            # 比报错难查得多。默认停下，确需强建加 --force。
+            print(f"❌ 约束校验发现 {len(errors)} 个必须修复的问题，已停止建库"
+                  f"（{errors[0]['msg']}）。确认仍要建库请加 --force")
+            return None, None
     except Exception as e:
         print(f"❌ 本体建模失败（步骤2/3 加载 schema）: {e}")
         return None, None
 
     try:
         print(f"[3/3] 建统一本体 -> {os.path.basename(nt)}")
+        _guard_overwrite(nt, table, "schema")
         lines = so.to_nt(data, schema, outpath=nt)
         if not os.path.exists(nt):
             raise RuntimeError("to_nt 未生成本体文件")
@@ -109,10 +151,41 @@ def setup_schema(data_dir, schema_path, table="factory"):
         print(f"❌ 本体建模失败（步骤3/3 建本体）: {e}")
         return None, None
 
-    json.dump({"nt": _rel_or_abs(nt, ROOT), "schema": _rel_or_abs(schema_path, ROOT),
-               "data_dir": _rel_or_abs(data_dir, ROOT), "table": table},
-              open(STATE, "w", encoding="utf-8"))
-    return nt, None
+    # 同一份 schema 顺手生成/合并词典：否则 ask() 会自己重建一份，
+    # 把人工确认过的属性名和 review.pending 全冲掉（config/lexicon_factory.json
+    # 就被这样冲掉过 240 行）。
+    lex_path = os.path.join(CFG, f"lexicon_{table}.json")
+    try:
+        import multi_model as mm
+        fresh = mm._build_lexicon(schema, data)
+        old_lex = None
+        if os.path.exists(lex_path):
+            try:
+                old_lex = json.load(open(lex_path, encoding="utf-8"))
+            except (ValueError, OSError):
+                old_lex = None
+            if old_lex is not None:
+                import shutil
+                import time as _time
+                try:
+                    shutil.copy2(lex_path, lex_path + ".bak-" + _time.strftime("%Y%m%d-%H%M%S"))
+                except OSError:
+                    pass
+        if isinstance(old_lex, dict):
+            fresh = merge_lexicon(old_lex, fresh)
+        with open(lex_path, "w", encoding="utf-8") as f:
+            json.dump(fresh, f, ensure_ascii=False, indent=2)
+        print(f"   词典: {os.path.basename(lex_path)}（{len(fresh.get('attr_cn2en') or {})} 个属性名）")
+    except Exception as e:      # 词典失败不挡建库，ask 时还能重建
+        print(f"   ⚠️ 词典生成失败（不影响本体）: {e}")
+        lex_path = lex_path if os.path.exists(lex_path) else None
+
+    state = {"nt": _rel_or_abs(nt, ROOT), "schema": _rel_or_abs(schema_path, ROOT),
+             "data_dir": _rel_or_abs(data_dir, ROOT), "table": table}
+    if lex_path:
+        state["lexicon"] = _rel_or_abs(lex_path, ROOT)
+    json.dump(state, open(STATE, "w", encoding="utf-8"))
+    return nt, lex_path
 
 
 def setup(source_path, table=None, use_llm=True):
@@ -122,6 +195,7 @@ def setup(source_path, table=None, use_llm=True):
     lex = os.path.join(CFG, f"lexicon_{table}.json")
 
     print(f"\n[工厂智能体] 建模: {table}")
+    _guard_overwrite(nt, table, "single")
     print(f"[1/3] 转本体 {source_path}")
     csv2owl = _load("csv_to_owl", os.path.join(ROOT, "csv_to_owl.py"))
     old = sys.argv
@@ -138,13 +212,41 @@ def setup(source_path, table=None, use_llm=True):
         print("❌ 本体生成失败"); return None, None
 
     print("[2/3] 自动词典 (LLM推断字段语义)...")
+    # 先备份再生成：词典里有人的劳动（人工确认过的中文名、review.pending），
+    # 不能每次 setup 都当草稿纸覆盖。
+    old_lex = None
+    if os.path.exists(lex):
+        try:
+            old_lex = json.load(open(lex, encoding="utf-8"))
+        except (ValueError, OSError):
+            old_lex = None
+        import shutil
+        import time as _time
+        try:
+            shutil.copy2(lex, lex + ".bak-" + _time.strftime("%Y%m%d-%H%M%S"))
+        except OSError:
+            pass
     from agents.lexicon_agent import LexiconAgent
     r = LexiconAgent().run({"source_csv": source_path, "out_lexicon": lex,
-                            "use_llm": use_llm, "table_name": table})
+                            "use_llm": use_llm, "table_name": table,
+                            "merge_into": old_lex})
     if not r.ok:
         print(f"⚠️ 词典: {r.error}")
     if not os.path.exists(lex):
         print("❌ 词典未生成"); return None, None
+
+    # Agent 已按 merge_into 合并过的不用再合；没支持的走这里兜一层
+    if old_lex is not None:
+        try:
+            fresh = json.load(open(lex, encoding="utf-8"))
+        except (ValueError, OSError):
+            fresh = None
+        if isinstance(fresh, dict) and fresh.get("merged_from_previous") is not True:
+            merged = merge_lexicon(old_lex, fresh)
+            merged["merged_from_previous"] = True
+            with open(lex, "w", encoding="utf-8") as f:
+                json.dump(merged, f, ensure_ascii=False, indent=2)
+            print("   词典已合并旧条目（旧值优先，冲突记入 review.pending）")
 
     # 存状态 + 概要（存相对路径，包可整体迁移，不绑定本机盘符）
     json.dump({"nt": os.path.relpath(nt, ROOT), "lexicon": os.path.relpath(lex, ROOT),
@@ -275,9 +377,18 @@ def _ask_hybrid(question, nt, D, gans):
                 seen.add(ent)
                 fused.append(h)
         if fused:
-            ents = "、".join(h["entity"] for h in fused)
-            print("（混合检索）找到相关实体:", ents)
-            return
+            # 别把内部标识当答案："Valve_products、sizeMm" 是类名和字段名，
+            # 用户看到这行只知道系统没答上来，却不知道自己在看什么。
+            names = []
+            for h in fused[:8]:
+                seg = str(h["entity"]).rsplit("_", 1)[-1]
+                if re.search(r"\d", seg) or any("\u4e00" <= ch <= "\u9fff" for ch in seg):
+                    if seg not in names:
+                        names.append(seg)
+            if names:
+                print("没能直接答上来。可能相关的记录：%s。" % "、".join(names[:6]))
+                print("可以换个问法，比如带上属性名（价格 / 数量 / 日期 / 状态）。")
+                return
     except Exception:
         pass
     # 混合检索未命中/不可用 → 回落图检索兜底结果
@@ -285,17 +396,52 @@ def _ask_hybrid(question, nt, D, gans):
 
 
 def self_test():
-    """自检: 用示例数据跑通全流程。"""
+    """自检: 用示例数据跑通"建模 → 问答"，并逐题断言，不只是打印。
+
+    以前这里问的是「运行中的设备 / 空压机 / 功率最大的设备」——ai4i 里根本没有
+    这几个字段，自检每次都打印「有 0 台运行中的 / 无空压机 / 未定位到相关实体」。
+    自检自己的问题答不上来，等于没有自检。现在问数据里真有的字段，答不上来就退出码 1。
+    """
     data_csv = os.path.join(ROOT, "data", "ai4i.csv")
     if not os.path.exists(data_csv):
-        print("无示例数据, 跳过自检")
-        return
+        print("无示例数据 data/ai4i.csv, 跳过自检")
+        return 0
     print("=== 自检: 示例设备数据 (UCI AI4I 预测性维护) ===")
-    nt, lex = setup(data_csv, "ai4i", use_llm=False)
-    if nt:
-        for q in ["有多少台运行中的设备", "列出所有空压机", "功率最大的设备"]:
-            print(f"\n问: {q}")
-            ask(q, nt, lex)
+    # 用 README 里的表名 ai4i：自检要跑用户真会跑的那条路径。
+    # 换表名会连词典里的实体计数词一起换（entity_cn2en 由表名词干生成），
+    # 自检若自造表名，测的就不是文档里的路了。
+    saved = None
+    if os.path.exists(STATE):
+        try:
+            saved = open(STATE, encoding="utf-8").read()
+        except OSError:
+            saved = None
+    try:
+        nt, lex = setup(data_csv, "ai4i", use_llm=False)
+        if not nt or not lex:
+            print("❌ 自检失败: 建模未完成")
+            return 1
+        v3 = _load("ontology_qa_v3", os.path.join(ROOT, "ontology_qa_v3.py"))
+        D = v3.load_dict(lex)
+        data = v3.build_data(v3.parse_nt(nt), D)
+        checks = [
+            ("有多少台机器", "10000"),
+            ("空气温度最高的机器", "空气温度"),
+            ("刀具磨损最大的机器", "刀具磨损"),
+        ]
+        print()
+        bad = 0
+        for q, must in checks:
+            ans = v3.answer(q, data, D)
+            ok = ans != MISS_ANSWER and must in ans
+            bad += 0 if ok else 1
+            print(f"{'✅' if ok else '❌'} 问: {q}\n   {ans}")
+        print(f"\n自检结果: {len(checks) - bad}/{len(checks)} 通过")
+        return 0 if bad == 0 else 1
+    finally:
+        if saved is not None:
+            with open(STATE, "w", encoding="utf-8") as f:
+                f.write(saved)
 
 
 def main():
@@ -307,16 +453,19 @@ def main():
             print("用法: python run.py setup <数据文件> [表名]"); return
         setup(args[1], args[2] if len(args) > 2 else None)
     elif args[0] == "setup-schema":
-        if len(args) < 2:
-            print("用法: python run.py setup-schema <数据目录> [schema.json] [表名]"); return
-        setup_schema(args[1], args[2] if len(args) > 2 else None,
-                     args[3] if len(args) > 3 else "factory")
+        rest = [a for a in args[1:] if a != "--force"]
+        force = "--force" in args
+        if not rest:
+            print("用法: python run.py setup-schema <数据目录> [schema.json] [表名] [--force]")
+            return
+        setup_schema(rest[0], rest[1] if len(rest) > 1 else None,
+                     rest[2] if len(rest) > 2 else "factory", force=force)
     elif args[0] == "ask":
         if len(args) < 2:
             print("用法: python run.py ask '<问题>'"); return
         ask(args[1])
     elif args[0] == "test":
-        self_test()
+        sys.exit(self_test())
     elif args[0] == "plugin":
         # 生态插件：list/run/ext/install/remove（见 plugin_framework.cmd_plugin）
         from plugin_framework import cmd_plugin

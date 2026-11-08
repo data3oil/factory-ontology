@@ -1,3 +1,5 @@
+import re
+
 import safe_log
 # codes/fusion.py
 """工厂本体问答 - 融合决策层。纯标准库。"""
@@ -68,6 +70,32 @@ def _pick_main(cands):
     return None
 
 
+def _answer_tokens(text):
+    """答案里可以拿去做核对的硬信息：数字与编号。"""
+    t = text or ''
+    nums = re.findall(r'-?\d+(?:\.\d+)?', t)
+    ids = re.findall(r'[A-Za-z]{1,8}[-_]?\d{1,8}', t)
+    return [x for x in nums] + [x for x in ids if not any(x in n for n in nums)]
+
+
+def _coverage(answer, evidence):
+    """答案里的数字/编号有多少能在证据里找到。无可核对信息时返回 None。
+
+    这是"置信度"唯一靠谱的来源：不看候选来自哪个引擎，只看答案自身能不能被证据撑住。
+    按来源给 high（旧行为）会把"规则引擎算错了"也标成高置信，等于没有置信度。
+    """
+    toks = _answer_tokens(answer)
+    if not toks:
+        return None
+    blob = ' '.join(
+        str(e.get(k) if e.get(k) is not None else '')
+        for e in evidence if isinstance(e, dict)
+        for k in ('value', 'label', 'entity', 'iri', 'quote', 'text', 'id')
+    )
+    hit = sum(1 for t in toks if t in blob)
+    return hit / float(len(toks))
+
+
 def fuse(question, candidates, cross_domain=False, kb='', schema=None):
     if cross_domain:
         return {'ok': True, 'mode': 'cross_domain', 'answer': _NO_DATA_ANSWER,
@@ -116,17 +144,24 @@ def fuse(question, candidates, cross_domain=False, kb='', schema=None):
                 'structured': main.get('structured'), 'no_basis': True,
                 'confidence': 'none', 'kb': kb}
 
+    cov = _coverage(answer, main_ev)
     if not main_ev:
         confidence = 'low'
-    elif main.get('source') in _RULE_SOURCES:
+    elif cov is None:
+        # 答案里没有数字/编号可核（如"已入库"这类枚举值），只能按是否有证据判
+        confidence = 'high' if main.get('source') in _RULE_SOURCES else 'medium'
+    elif cov >= 0.9:
         confidence = 'high'
-    else:
+    elif cov >= 0.5:
         confidence = 'medium'
+    else:
+        confidence = 'low'
 
+    no_basis = (not main_ev) or (cov == 0.0)
     return {'ok': True, 'mode': main.get('source') or 'none', 'answer': answer,
             'evidence': merged, 'engines': engines,
-            'structured': main.get('structured'), 'no_basis': not main_ev,
-            'confidence': confidence, 'kb': kb}
+            'structured': main.get('structured'), 'no_basis': no_basis,
+            'confidence': confidence, 'coverage': cov, 'kb': kb}
 
 
 if __name__ == '__main__':
@@ -178,5 +213,26 @@ if __name__ == '__main__':
         {'answer': 'G', 'source': 'graph', 'score': 0.5, 'evidence': [ev_g], 'structured': None},
     ])
     assert r['answer'] == 'G' and r['mode'] == 'graph'
+
+    # 8) 置信度按证据覆盖率：答案里的数字能在证据里找到 -> high
+    r = fuse('q', [{'answer': '共 42 个', 'source': 'rule', 'score': 1.0,
+                    'evidence': [{'entity': 'Product', 'attr': 'count',
+                                  'value': '42', 'source': 'rule'}],
+                    'structured': None}])
+    assert r['confidence'] == 'high' and r['coverage'] == 1.0 and not r['no_basis']
+
+    # 9) 数字在证据里找不到 -> low，且判为无据（规则引擎同样不给面子）
+    r = fuse('q', [{'answer': '共 99 个', 'source': 'rule', 'score': 1.0,
+                    'evidence': [{'entity': 'Product', 'attr': 'count',
+                                  'value': '42', 'source': 'rule'}],
+                    'structured': None}])
+    assert r['confidence'] == 'low' and r['coverage'] == 0.0 and r['no_basis']
+
+    # 10) 部分覆盖 -> medium
+    r = fuse('q', [{'answer': 'A 12 个，B 34 个', 'source': 'graph', 'score': 1.0,
+                    'evidence': [{'entity': 'A', 'attr': 'n', 'value': '12',
+                                  'source': 'graph'}],
+                    'structured': None}])
+    assert r['confidence'] == 'medium' and r['coverage'] == 0.5
 
     print('fusion.py self-test OK')

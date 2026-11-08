@@ -20,7 +20,7 @@ import os
 import json
 import sys
 import time
-import random
+import hashlib
 import urllib.request
 import urllib.error
 
@@ -84,6 +84,7 @@ class VectorIndex:
         self.degraded_at = 0
         self.n_candidates = 0
         self.n_embedded = 0
+        self.from_cache = False
 
     def _mark_degraded(self, reason, n_candidates=0, n_embedded=0):
         """标记降级并 stderr 告警。告警走 stderr，不污染 stdout 的结构化输出。"""
@@ -100,19 +101,62 @@ class VectorIndex:
             pass          # 告警本身绝不能把构建搞崩
         return self
 
+    # ── 向量落盘缓存 ───────────────────────────────────────────
+    # 语料不变就不该把同一个 KB 的 768 维向量重算一遍：服务一重启就重嵌，
+    # 再撞上 5 秒预算，语义检索就永远是关着的。
+    _CACHE_SUBDIR = os.path.join(".cache", "vector")
+
+    @classmethod
+    def _cache_path(cls, fingerprint):
+        d = os.path.join(os.path.dirname(os.path.abspath(__file__)), cls._CACHE_SUBDIR)
+        try:
+            os.makedirs(d, exist_ok=True)
+        except OSError:
+            return None
+        return os.path.join(d, fingerprint + ".json")
+
+    def _load_cache(self, path, model):
+        try:
+            with open(path, encoding="utf-8") as f:
+                blob = json.load(f)
+        except (OSError, ValueError):
+            return False
+        if blob.get("model") != model:
+            return False
+        items = blob.get("items") or []
+        if not items:
+            return False
+        self.entries = items
+        self.n_embedded = len(items)
+        self.n_candidates = int(blob.get("n_candidates") or len(items))
+        self._built = True
+        self.from_cache = True
+        return True
+
+    def _save_cache(self, path, model, n_candidates):
+        try:
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"model": model, "n_candidates": n_candidates,
+                           "items": self.entries}, f)
+            os.replace(tmp, path)
+        except OSError:
+            pass      # 缓存写不了不影响检索
+
     @classmethod
     def from_graph(cls, graph, lexicon=None, base=OLLAMA_BASE, model=EMBED_MODEL,
-                   max_entries=2000, build_timeout=5.0):
+                   max_entries=2000, build_timeout=5.0, use_cache=True):
         """从 build_graph 返回的 {node: {rel: [vals]}} 建向量索引。
         每个实例实体 = 一条记录(名字 + 各属性[中文label]:值)，做 embedding。
         lexicon 提供 attr_en2cn 把英文字段名转中文 label，提升中文语义匹配。
-        类/属性声明节点(无下划线实例id)跳过。embedding 失败回落空索引(不阻塞)。
+        中文实体名（没有下划线）同样要进索引 —— 老代码用 `"_" not in name` 判断实例，
+        把中文命名的实体整套跳过了。
 
         规模防护（防止万级实例逐条 embedding 卡死）：
-        - max_entries：实例实体超过该数量时随机抽样固定数量构建，其余不进向量索引
-          （BM25 仍全量覆盖，语义召回降级但不阻塞）。
-        - build_timeout：构建超时（秒）则放弃向量索引，降级纯 BM25（返回空索引），
-          由混合检索路径自动回落，绝不阻塞下游。
+        - max_entries：超过则按固定步长等距抽样（确定性），其余不进向量索引。
+        - build_timeout：动态预算。先嵌一条量出单条耗时，再按 条数×耗时×1.5 放宽；
+          仍超时则降级，并把"已嵌几条/共几条"写进降级原因。
+        - use_cache：向量按 (文本指纹 + 模型) 落盘，重启复用。
         """
         vx = cls()
         en2cn = {}
@@ -127,7 +171,9 @@ class VectorIndex:
             name = str(node).split("#")[-1] if "#" in str(node) else str(node).split("/")[-1]
             if name.startswith("__") or "domain" in name:
                 continue
-            if "_" not in name:           # 仅实例实体（含下划线 id）；跳过类/属性声明
+            # 实例实体的判定：带下划线 id（Valve_products_P001）或中文命名（空压机3号）。
+            # 老代码只看下划线，中文名实体一个都进不了索引。
+            if "_" not in name and not any("\u4e00" <= ch <= "\u9fff" for ch in name):
                 continue
             if set(props) == {"label"} or list(props) == ["label"]:
                 continue  # 类声明节点（仅 rdfs:label），非实例，跳过
@@ -137,24 +183,37 @@ class VectorIndex:
                 for v in (vals if isinstance(vals, list) else [vals]):
                     parts.append("%s:%s" % (cn, v))
             candidates.append((name, " ".join(parts)))
-        # 规模上限：超过则随机抽样，控制 embedding 调用次数
+        # 规模上限：等距抽样（确定性）。random.sample 每次重启抽到的不是同一批，
+        # 同一个问题两次运行召回集不同，排障时根本对不上账。
         if max_entries and max_entries > 0 and len(candidates) > max_entries:
-            candidates = random.sample(candidates, max_entries)
-        # 超时防护：构建超过 build_timeout 秒则放弃向量索引，降级纯 BM25
-        deadline = time.monotonic() + (build_timeout or 0)
+            step = len(candidates) / float(max_entries)
+            candidates = [candidates[int(i * step)] for i in range(max_entries)]
+
         n_candidates = len(candidates)
+        fingerprint = hashlib.sha1(
+            (model + "\n" + "\n".join(t for _n, t in candidates)).encode("utf-8")
+        ).hexdigest()[:16]
+        cache_path = cls._cache_path(fingerprint) if use_cache else None
+        if cache_path and vx._load_cache(cache_path, model):
+            return vx
+
+        # 超时预算：先嵌一条量出单条耗时，再按规模放宽。
+        # 固定 5 秒对 113 个实体都不够（实测只嵌进 1 条就降级），对 3 个实体又太宽。
+        budget = float(build_timeout or 0)
+        t0 = time.monotonic()
         for i, (name, text) in enumerate(candidates):
-            if build_timeout and build_timeout > 0 and time.monotonic() > deadline:
-                # 🔴 以前这里是裸 `return cls()`：调用方拿到空索引却无从知道
-                #    是超时还是本来就没数据。现在带上原因与现场数字返回。
-                return vx._mark_degraded(
-                    "构建超时 build_timeout=%.1fs（已嵌入 %d/%d 条）"
-                    % (build_timeout, i, n_candidates),
-                    n_candidates=n_candidates, n_embedded=i)
             vec = embed_text(text, base=base, model=model)
             if vec is None:
                 continue
             vx.entries.append({"entity": name, "text": text, "vector": vec})
+            if budget > 0 and i == 0:
+                per_item = max(time.monotonic() - t0, 0.001)
+                budget = max(budget, per_item * n_candidates * 1.5)
+            if budget > 0 and time.monotonic() - t0 > budget:
+                return vx._mark_degraded(
+                    "构建超时（预算 %.1fs，已嵌入 %d/%d 条）"
+                    % (budget, len(vx.entries), n_candidates),
+                    n_candidates=n_candidates, n_embedded=len(vx.entries))
         vx._built = True
         # 候选全空与 embedding 全失败是两种病因，必须分开：
         # 前者是图本身没有可索引实体，后者是 Ollama 侧不可用。
@@ -168,6 +227,8 @@ class VectorIndex:
         else:
             vx.n_candidates = n_candidates
             vx.n_embedded = len(vx.entries)
+            if cache_path:
+                vx._save_cache(cache_path, model, n_candidates)
         return vx
 
     @classmethod

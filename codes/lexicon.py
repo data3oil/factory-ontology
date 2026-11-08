@@ -99,6 +99,85 @@ def get_entity_cn2uri():
     return dict(_ENTITY_CN2URI)
 
 
+# ------------------------------------------------------------------ 字段名词素
+# 用途：把英文列名还原成中文（device_type→设备类型、publisher→出版社）。
+# 病因：词典 attr_cn2en 只覆盖被 LLM/规则认出来的字段，没认出来的直接把英文当中文名
+#      （library 的 "publisher": "publisher"），于是"图书的出版社有多少种"找不到字段，
+#      退化成罗列书名。本表只收英语复合词的基本词素，不收行业专名。
+_FIELD_WORDS = {
+    "device": "设备", "equipment": "设备", "machine": "机器", "product": "产品",
+    "material": "物料", "raw": "原料", "batch": "批次", "ingredient": "配料",
+    "customer": "客户", "supplier": "供应商", "order": "订单", "sale": "销售",
+    "sales": "销售", "qc": "质检", "check": "检查", "inspect": "检验",
+    "item": "项目", "type": "类型", "category": "类别", "kind": "类别",
+    "class": "类别", "status": "状态", "state": "状态", "stage": "阶段",
+    "name": "名称", "code": "编码", "no": "编号", "id": "编号", "serial": "序列号",
+    "price": "价格", "cost": "成本", "amount": "金额", "total": "合计",
+    "quantity": "数量", "qty": "数量", "num": "数量", "count": "数量",
+    "stock": "库存", "inventory": "库存", "publisher": "出版社", "author": "作者",
+    "region": "区域", "area": "区域", "zone": "区域", "location": "位置",
+    "workshop": "车间", "line": "产线", "team": "班组", "group": "班组",
+    "owner": "负责人", "operator": "操作人", "manager": "负责人",
+    "temp": "温度", "temperature": "温度", "pressure": "压力", "power": "功率",
+    "speed": "转速", "torque": "扭矩", "wear": "磨损", "size": "尺寸",
+    "weight": "重量", "length": "长度", "width": "宽度", "height": "高度",
+    "date": "日期", "time": "时间", "year": "年份", "month": "月份",
+    "result": "结果", "level": "等级", "grade": "等级", "spec": "规格",
+    "model": "型号", "brand": "品牌", "unit": "单位", "remark": "备注",
+    "note": "备注", "contact": "联系方式", "phone": "电话", "address": "地址",
+    "production": "生产", "produce": "生产", "shelf": "保质", "expiry": "保质期",
+    "storage": "储存", "borrowed": "借出", "vibration": "振动", "yield": "收率",
+    # 2026-11-08 补：这三个词此前不在表里，导致 chem「纯度/容量」、library「借阅量」
+    # 三类问句的字段反译全部落空（_cn_of_field 拼不出中文 → 属性解析不到 → 拒答）。
+    "purity": "纯度", "capacity": "容量", "borrow": "借阅",
+    "station": "站", "energy": "能源", "book": "图书", "library": "图书",
+}
+
+
+def get_field_words():
+    """返回字段名词素 {英文词素: 中文}（只读副本）。"""
+    return dict(_FIELD_WORDS)
+
+
+def merge_lexicon(old, new):
+    """把新生成的词典合进旧词典：旧条目优先，只补新字段，冲突记入 review.pending。
+
+    词典里有人工劳动（确认过的中文名、待复核清单）。建库流程无条件覆盖它，
+    后果不是"多跑一次"，是人确认过的名字被冲掉、待复核清单清零，
+    同一个问题在两次建模之间给出不同答案。合并放这里，建库两条路复用同一份规则。
+    """
+    import json as _json
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return new
+    out = _json.loads(_json.dumps(new, ensure_ascii=False))
+    kept, added, conflicts = 0, 0, []
+    for key, val in old.items():
+        if key in ("review", "merged_from_previous"):
+            continue
+        if isinstance(val, dict) and isinstance(out.get(key), dict):
+            for k2, v2 in val.items():
+                if k2 not in out[key]:
+                    out[key][k2] = v2
+                    added += 1
+                elif out[key][k2] != v2:
+                    conflicts.append({"key": key, "name": k2,
+                                      "kept": v2, "suggested": out[key][k2]})
+                    out[key][k2] = v2
+                else:
+                    kept += 1
+        elif key not in out:
+            out[key] = val
+    review = dict(old.get("review") or {})
+    pending = list(review.get("pending") or [])
+    pending.extend(conflicts)
+    review["pending"] = pending
+    review["kept"] = kept
+    review["added"] = added
+    out["review"] = review
+    out["merged_from_previous"] = True
+    return out
+
+
 if __name__ == "__main__":
     # 自检：打印各词典条目数，确认与收敛前一致。
     print("synonym_groups:", len(get_synonym_groups()))

@@ -43,6 +43,7 @@ import time
 import json
 import sqlite3
 import hashlib
+import threading
 from datetime import datetime
 
 __all__ = ["TokenGuard", "state_dir", "db_path", "config", "now"]
@@ -116,8 +117,39 @@ def config():
     }
 
 
+class _ThreadConn(object):
+    """线程内复用的 SQLite 连接包装。
+
+    对外接口与 sqlite3.Connection 一致，唯一区别：close() 是空操作——实际连接由
+    TokenGuard 按线程缓存，直到线程结束或显式 close()。这样既不改动各方法里
+    `finally: c.close()` 的写法，又避免每次调用都新建/销毁连接。
+
+    为什么必须复用：短连接 + WAL 下，每个连接打开/关闭都会重放 -shm/-wal 的建立与
+    删除；并发时一个连接刚映射完 shm、另一个连接已把它删掉，写入就会撞
+    `SQLITE_READONLY: attempt to write a readonly database`。长连接把这段竞态窗口消掉。
+    """
+
+    __slots__ = ("_c",)
+
+    def __init__(self, conn):
+        self._c = conn
+
+    def close(self):
+        return None
+
+    def __enter__(self):
+        self._c.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return self._c.__exit__(exc_type, exc, tb)
+
+    def __getattr__(self, name):
+        return getattr(self._c, name)
+
+
 class TokenGuard(object):
-    """令牌吊销 / 刷新轮替 / 限速状态。线程安全：每次操作短连接 + 即时提交。"""
+    """令牌吊销 / 刷新轮替 / 限速状态。线程安全：每线程一条长连接 + 即时提交。"""
 
     def __init__(self, path=None):
         self.dir = state_dir(path)
@@ -125,17 +157,36 @@ class TokenGuard(object):
         os.makedirs(self.dir, exist_ok=True)
         self.cfg = config()
         self.cfg["state_dir"] = self.dir
+        self._local = threading.local()
         self._init_schema()
 
     # ── 基础设施 ──────────────────────────────
     def _conn(self):
-        c = sqlite3.connect(self.db, timeout=_BUSY_TIMEOUT_MS / 1000.0, isolation_level=None)
+        c = getattr(self._local, "conn", None)
+        if c is not None:
+            return c
+        raw = sqlite3.connect(self.db, timeout=_BUSY_TIMEOUT_MS / 1000.0, isolation_level=None)
         try:
-            c.execute("PRAGMA busy_timeout=%d" % _BUSY_TIMEOUT_MS)
-            c.execute("PRAGMA journal_mode=WAL")
+            raw.execute("PRAGMA busy_timeout=%d" % _BUSY_TIMEOUT_MS)
+            # WAL 是库文件属性，一条连接设一次即持久；后续连接再设是幂等的，但会抢写锁
+            raw.execute("PRAGMA journal_mode=WAL")
+            raw.execute("PRAGMA synchronous=NORMAL")
         except Exception:
             pass
+        c = _ThreadConn(raw)
+        self._local.conn = c
         return c
+
+    def close(self):
+        """关闭当前线程的连接（进程退出/测试清理时调用；不关也不影响正确性）。"""
+        c = getattr(self._local, "conn", None)
+        if c is None:
+            return
+        try:
+            c._c.close()
+        except Exception:
+            pass
+        self._local.conn = None
 
     def _init_schema(self):
         c = self._conn()

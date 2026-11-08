@@ -18,7 +18,7 @@
 - 📊 **答案可溯源** → 每个回答带证据，不靠模型瞎编
 - 🔒 **数据不出厂** → 本地建模本地问答，甲方数据不上云
 
-**30 秒上手**：`python run.py setup data_valve/ && python run.py ask "有多少台设备"`
+**30 秒上手**：`cd codes && python run.py setup-schema data_valve config/ontology_schema.json valve && python run.py ask "有多少台设备"`
 
 **在真实工厂里跑起来**：三油科技（data3oil.com）用这套原子在石油石化、精细化工、阀门制造等现场做落地实施——从 CSV 台账建模，到现场人员用自然语言问数据，到答案带证据回到决策桌上。想看这套东西在真实约束下怎么用（数据脏、没人标、验收没标准），以及人机分工怎么设计，读 [官网案例](https://www.data3oil.com) 或公众号「AI驱动数字化转型」。
 
@@ -28,15 +28,23 @@
 
 ## 看看它跑起来的样子（真实输出）
 
-用随仓库的阀门台账 `data_valve/`，一条命令建模，然后自然语言问数据，答案带证据：
+用随仓库的阀门台账 `data_valve/`（8 张表：产品 / 批次 / 投料 / 原料 / 质检 / 设备 / 客户 / 销售），一条命令建模，然后自然语言问数据：
 
 ```bash
-# 1. 用阀门台账建本体（CSV → 知识图谱）
-$ python run.py setup data_valve/valve_products.csv valve
-[工厂智能体] 建模: valve
-✅ 本体已生成: output/valve.nt (131 行 N-Triples)
-   类: Valve_products (8 实例)
-   数据属性: 11 个
+cd codes
+
+# 1. 八张台账建一张本体（CSV → 实体-关系图）
+$ python run.py setup-schema data_valve config/ontology_schema.json valve
+[1/3] 加载多表数据 data_valve
+      -> 8 表: ['valve_batch_ingredient', 'valve_batches', 'valve_customers', 'valve_equipment',
+                'valve_products', 'valve_qc', 'valve_raw_materials', 'valve_sales']
+[2/3] 加载 schema + 约束校验
+[3/3] 建统一本体 -> valve.nt
+✅ 本体: 1065 行 N-Triples | 图 142 节点/173 边
+   类型体系: ['Enterprise', 'BusinessObject', 'Product', 'Customer', 'Sale',
+              'Equipment', 'RawMaterial', 'Batch', 'BatchIngredient', 'Qc']
+   语义域: ['生产域', '采购域', '销售域']
+   词典: lexicon_valve.json（72 个属性名）
 
 # 2. 自然语言问数据（不用 SQL）
 $ python run.py ask "一共有多少种阀门产品"
@@ -45,8 +53,12 @@ $ python run.py ask "一共有多少种阀门产品"
 $ python run.py ask "价格最高的阀门是什么"
 最大价格的记录: 对夹蝶阀 D371X-10 (价格=2560.0)
 
-$ python run.py ask "口径最小的阀门型号"
-最小尺寸的记录: 气动球阀 Q641F-40P (尺寸=80.0)
+# 3. 顺着本体里的边问 —— 外键不是字符串，是关系
+$ python run.py ask "质检单 Q001 检测的是哪个批次"
+Q001 的质检批次是 B007
+
+$ python run.py ask "批次 B001 用了哪些原料"
+B001 的原材料（2 条）：R005、R007
 ```
 
 台账变成能对话的图谱，每个答案都能对上原始记录。这就是"CSV 进，答案出，带证据"。
@@ -168,28 +180,33 @@ cd codes
 # 1. 用公开数据集建模（UCI AI4I 预测性维护数据集，1 万行真实制造传感器数据）
 python run.py setup data/ai4i.csv ai4i
 
-# 2. 自检全流程
-python run.py test
+# 2. 自检「建模 → 问答」，逐题断言，答不上来退出码 1
+python run.py test                       # 预期 自检结果: 3/3 通过
 
 # 3. 自然语言问答（ai4i 实测输出）
-python run.py ask "有多少台机器"            # 一共有 10000 条记录
-python run.py ask "空气温度最高的机器"       # 最大空气温度的记录: ...
-python run.py ask "刀具磨损最大的机器"       # 最大刀具磨损的记录: ...
+python run.py ask "有多少台机器"            # 有 10000 个机器
+python run.py ask "空气温度最高的机器"       # 最大空气温度的记录: 5146 (空气温度=304.5)
+python run.py ask "刀具磨损最大的机器"       # 最大刀具磨损的记录: 5402 (刀具磨损=253.0)
 ```
+
+> 问句里能用的实体名词（"机器""设备"）是建库时从**表名**生成的（`config/lexicon_<表名>.json` 的 `entity_cn2en`）。自己起表名后如果这两个词没对上，问"有多少台机器"会被当成类型值去数、答 0 —— 在词典里补一行 `"机器": "你的表名"` 即可。
 
 ### 换你自己的数据
 
-三步，不写代码：
+两步，不写代码：
 
 ```bash
-# 1. 单表：CSV → 本体
-python csv_to_owl.py 你的数据.csv output/你的数据.nt
+# 1. 自动建模（CSV → 本体 + 词典 + 约束校验），一条命令到底
+python run.py setup 你的数据.csv 你的表名
 
-# 2. 自动建模（本体 + 词典 + 验证）
-python run.py setup 你的数据.csv 表名
-
-# 3. 直接问：规则引擎（ontology_qa_v3）回答
+# 2. 直接问：规则引擎（ontology_qa_v3）回答，确定性、零 token
 python run.py ask "你的问题"
+```
+
+只想要本体文件（不生成词典/不问答）时，单独跑转换：
+
+```bash
+python csv_to_owl.py 你的数据.csv output/你的数据.nt
 ```
 
 多表场景走 schema 驱动统一建模：
@@ -200,6 +217,33 @@ python run.py setup-schema data_valve config/ontology_schema.json valve
 ```
 
 没有手写 schema 时，`suggest_schema`（schema_ontology.py 内函数）从数据自动推断实体、关系和约束，无 schema 也能建模。
+
+### 怎么验证它不是在自说自话
+
+随仓库带一套固定评测集：8 个库、331 道题（250 道库里有答案，81 道库里根本没有这类数据）。题目和标准答案都由 CSV 确定性生成，不靠人写、不调模型。
+
+```bash
+python scripts/eval_qa.py --gen      # 生成/刷新评测集
+python scripts/eval_qa.py            # 全库跑，输出逐库命中/未命中/误答/编造
+python scripts/eval_qa.py --kb valve --dry   # 只看某个库的题目，不跑引擎
+```
+
+判分把四件事分开记，不合并成"准确率"：**命中** / **未命中**（诚实拒答）/ **误答**（给了答案但错）/ **编造**（说了库里没有的事）。
+
+本机当前基线（2026-11-08，`--out` 可比对）：
+
+| 口径 | 数值 |
+|------|------|
+| 可答题命中 | **250 / 250（100%）** |
+| 误答 | 0 |
+| 编造 | 0 |
+| 无答案题正确拒答 | 81 / 81 |
+
+逐库都是满分：ai4i 31/31、auto_parts 35/35、chem 35/35、energy_station 27/27、food 35/35、library 24/24、manufacturing 24/24、valve 39/39。
+
+**这个 100% 该怎么读**：题目由 `--gen` 从同一批台账自动生成（标准答案由真实 CSV 算出，零人工标注），量的是"引擎能不能吃透自己建出来的库"，不等于陌生问法也满分。同一口径下 v0.5.0 是 63.2%、误答 14.4%，这轮修的是属性名解析、实体别名、状态值、计数前缀匹配、关系两跳与哈希顺序导致的答案漂移——提升来自这条链上的具体缺陷被逐个堵住，不是靠调题。
+
+评测直接读各库已建好的本体产物（`config/kbs.json` 里 `nt` 指向的 `output/*.nt`）。阀门库用上面的 `setup-schema` 一条命令就能重建；其余库的数据目录与词典同在 `config/kbs.json` 里。
 
 ### 多数据源
 
@@ -440,7 +484,9 @@ python valve_demo.py
 
 **问答评测集**（`scripts/eval_qa.py`，确定性生成，标准答案全部由真实 CSV 算出，零人工标注、不调模型）：8 个行业 KB、共 **331 问**（可答 250 + 无答案 81），五类问法（普通属性 / 类型词作主语 / 多实体多表 / 否定或比较 / 无答案）。判分把 **未命中（诚实拒答）≠ 误答（有答案但答错）≠ 编造** 分列。
 
-实测基线（`scripts/eval_qa_baseline.json`，v0.5.0）：命中率 **63.2%（158/250）**、未命中 22.4%、**误答率 14.4%**、**编造 0**（无答案 81 题中正确拒绝 40；10-02 起的判分口径「去假命中」把原先算命中的 4 条回归为未命中，故未命中率上升而不是能力退化）。误答率仍是当前最大短板；逐 KB 分维度明细见基线 JSON 的 `per_kb.<kb>.by_category`。
+实测基线（`scripts/eval_qa_baseline.json`，v0.5.0）：命中率 **63.2%（158/250）**、未命中 22.4%、**误答率 14.4%**、**编造 0**（无答案 81 题中正确拒绝 40；10-02 起的判分口径「去假命中」把原先算命中的 4 条回归为未命中，故未命中率上升而不是能力退化）。误答率曾是最大短板；逐 KB 分维度明细见基线 JSON 的 `per_kb.<kb>.by_category`。
+
+> v0.6.0（2026-11-08）在同一套题上做到 250/250、误答 0，见上文「本机当前基线」。这组 v0.5.0 数字保留作对照——它记录了修之前的地板在哪。
 
 > 口径说明：该基线是 `ontology_qa_v3.answer` 的 in-process 口径（规则 + 本体这一确定性地基），**不含** LLM 润色 / 文档 RAG 融合 / GraphRAG 与混合检索兜底层。
 

@@ -1,79 +1,81 @@
 {
   "description": "自动生成词典（multi_model, suggest_schema 推断 + LLM 语义聚类同义词 + data profiling 映射 + 公共工业词典合并）",
   "attr_cn2en": {
-    "批次编号": "batch_id",
-    "原料编号": "raw_id",
     "编号": "id",
-    "产品编号": "product_id",
-    "生产日期": "produce_date",
-    "数量": "quantity",
-    "原料": "raw_parts",
-    "班组": "team",
-    "状态": "status",
-    "客户名称": "customer_name",
+    "型号编码": "model_code",
+    "产品名": "product_name",
+    "阀门类型": "type",
+    "口径(mm)": "size_mm",
+    "口径": "size_mm",
+    "压力等级": "pressure_grade",
+    "连接形式": "connection",
+    "密封面材质": "seal_material",
+    "阀体材质": "body_material",
+    "标准号": "standard_no",
+    "温度范围": "temp_range",
+    "价格": "price",
+    "客户名": "customer_name",
     "区域": "region",
     "行业": "industry",
     "信用等级": "credit_level",
-    "设备名称": "device_name",
+    "产品": "product_id",
+    "客户": "customer_id",
+    "数量": "quantity",
+    "销售日期": "sale_date",
+    "金额": "amount",
+    "设备名": "device_name",
     "设备类型": "device_type",
     "车间": "workshop",
     "功率(kW)": "power_kw",
     "功率": "power_kw",
+    "状态": "status",
     "振动(mm/s)": "vibration_mm_s",
     "振动": "vibration_mm_s",
     "温度(℃)": "temp_c",
     "温度": "temp_c",
     "电流(A)": "current_a",
     "电流": "current_a",
+    "部件名": "part_name",
+    "材质": "material",
+    "供应商": "supplier",
+    "质检结果": "qc_result",
+    "库存": "stock",
+    "生产日期": "produce_date",
+    "原料": "raw_parts",
+    "班组": "team",
+    "批次": "batch_id",
+    "检验项": "check_item",
+    "试验压力": "press_rule",
+    "保压(秒)": "hold_sec",
+    "保压": "hold_sec",
+    "泄漏率(泡/min)": "leak_bubbles_min",
+    "泄漏率": "leak_bubbles_min",
+    "结果": "result",
+    "检验员": "checker",
+    "检验日期": "check_date",
+    "批次编号": "batch_id",
+    "原料编号": "raw_id",
+    "产品编号": "product_id",
+    "客户名称": "customer_name",
+    "设备名称": "device_name",
     "型号代码": "model_code",
     "产品名称": "product_name",
     "类型": "type",
     "尺寸(mm)": "size_mm",
     "尺寸": "size_mm",
-    "压力等级": "pressure_grade",
     "连接方式": "connection",
     "密封材质": "seal_material",
-    "阀体材质": "body_material",
-    "标准号": "standard_no",
-    "温度范围": "temp_range",
-    "价格": "price",
     "检查项目": "check_item",
     "压力规则": "press_rule",
     "保压秒数": "hold_sec",
     "泄漏气泡": "leak_bubbles_min",
-    "结果": "result",
     "检查员": "checker",
     "检查日期": "check_date",
     "部件名称": "part_name",
-    "材质": "material",
-    "供应商": "supplier",
-    "质检结果": "qc_result",
-    "库存": "stock",
-    "客户编号": "customer_id",
-    "销售日期": "sale_date",
-    "金额": "amount"
+    "客户编号": "customer_id"
   },
   "attr_en2cn": {
-    "batch_id": "批次编号",
-    "raw_id": "原料编号",
     "id": "编号",
-    "product_id": "产品编号",
-    "produce_date": "生产日期",
-    "quantity": "数量",
-    "raw_parts": "原料",
-    "team": "班组",
-    "status": "状态",
-    "customer_name": "客户名称",
-    "region": "区域",
-    "industry": "行业",
-    "credit_level": "信用等级",
-    "device_name": "设备名称",
-    "device_type": "设备类型",
-    "workshop": "车间",
-    "power_kw": "功率(kW)",
-    "vibration_mm_s": "振动(mm/s)",
-    "temp_c": "温度(℃)",
-    "current_a": "电流(A)",
     "model_code": "型号代码",
     "product_name": "产品名称",
     "type": "类型",
@@ -85,21 +87,40 @@
     "standard_no": "标准号",
     "temp_range": "温度范围",
     "price": "价格",
+    "customer_name": "客户名称",
+    "region": "区域",
+    "industry": "行业",
+    "credit_level": "信用等级",
+    "product_id": "产品编号",
+    "customer_id": "客户编号",
+    "quantity": "数量",
+    "sale_date": "销售日期",
+    "amount": "金额",
+    "device_name": "设备名称",
+    "device_type": "设备类型",
+    "workshop": "车间",
+    "power_kw": "功率(kW)",
+    "status": "状态",
+    "vibration_mm_s": "振动(mm/s)",
+    "temp_c": "温度(℃)",
+    "current_a": "电流(A)",
+    "part_name": "部件名称",
+    "material": "材质",
+    "supplier": "供应商",
+    "qc_result": "质检结果",
+    "stock": "库存",
+    "produce_date": "生产日期",
+    "raw_parts": "原料",
+    "team": "班组",
+    "batch_id": "批次编号",
+    "raw_id": "原料编号",
     "check_item": "检查项目",
     "press_rule": "压力规则",
     "hold_sec": "保压秒数",
     "leak_bubbles_min": "泄漏气泡",
     "result": "结果",
     "checker": "检查员",
-    "check_date": "检查日期",
-    "part_name": "部件名称",
-    "material": "材质",
-    "supplier": "供应商",
-    "qc_result": "质检结果",
-    "stock": "库存",
-    "customer_id": "客户编号",
-    "sale_date": "销售日期",
-    "amount": "金额"
+    "check_date": "检查日期"
   },
   "status_cn2en": {
     "运行中": "运行中",
@@ -109,6 +130,9 @@
     "离线": "offline",
     "合格": "合格",
     "不合格": "不合格",
+    "A": "A",
+    "B": "B",
+    "C": "C",
     "已入库": "已入库",
     "待质检": "待质检",
     "生产中": "生产中",
@@ -123,18 +147,18 @@
     "试压中": "pressure_testing"
   },
   "type_cn2en": {
-    "机加设备": "机加设备",
-    "试压设备": "试压设备",
-    "铸造设备": "铸造设备",
-    "装配设备": "装配设备",
-    "焊接设备": "焊接设备",
-    "表面处理设备": "表面处理设备",
     "闸阀": "闸阀",
     "球阀": "球阀",
     "蝶阀": "蝶阀",
     "截止阀": "截止阀",
     "止回阀": "止回阀",
     "安全阀": "安全阀",
+    "机加设备": "机加设备",
+    "试压设备": "试压设备",
+    "铸造设备": "铸造设备",
+    "装配设备": "装配设备",
+    "焊接设备": "焊接设备",
+    "表面处理设备": "表面处理设备",
     "设备": "equipment",
     "机器": "machine",
     "电机": "motor",
@@ -325,30 +349,35 @@
     ]
   },
   "entity_cn2en": {
-    "批次配料": "valve_batch_ingredient",
-    "批次": "valve_batches",
-    "客户": "valve_customers",
-    "设备": "valve_equipment",
     "产品": "valve_products",
-    "质检": "valve_qc",
-    "原料": "valve_raw_materials",
+    "客户": "valve_customers",
     "销售": "valve_sales",
+    "设备": "valve_equipment",
+    "原料": "valve_raw_materials",
+    "原材料": "valve_raw_materials",
+    "批次": "valve_batches",
+    "批次配料": "valve_batch_ingredient",
+    "批次原料": "valve_batch_ingredient",
+    "质检": "valve_qc",
     "供应商": "supplier",
     "订单": "order",
     "库存": "inventory"
   },
   "numeric_fields": {
+    "口径": "size_mm",
+    "价格": "price",
     "数量": "quantity",
+    "金额": "amount",
     "功率": "power_kw",
     "振动": "vibration_mm_s",
     "温度": "temp_c",
     "电流": "current_a",
-    "尺寸": "size_mm",
-    "价格": "price",
-    "保压秒数": "hold_sec",
-    "泄漏气泡": "leak_bubbles_min",
     "库存": "stock",
-    "金额": "amount"
+    "保压": "hold_sec",
+    "泄漏率": "leak_bubbles_min",
+    "尺寸": "size_mm",
+    "保压秒数": "hold_sec",
+    "泄漏气泡": "leak_bubbles_min"
   },
   "field_aliases": {
     "status": [
@@ -367,7 +396,7 @@
   },
   "value_fields": [],
   "_public_dict_merged": true,
-  "_industry": "泵阀",
+  "_industry": null,
   "fault_cn2en": {
     "内圈故障": "inner_race_fault",
     "外圈故障": "outer_race_fault",
@@ -403,6 +432,7 @@
     "泵振动超标": "pump_excess_vibration",
     "轴承过热": "bearing_overheating"
   },
+  "relations_cn2en": {},
   "material_synonyms": {
     "不锈钢": [
       "304",
@@ -495,5 +525,404 @@
     "机械密封": "mechanical_seal",
     "泵轴": "pump_shaft",
     "轴承座": "bearing_house"
-  }
+  },
+  "review": {
+    "pending": [
+      {
+        "key": "attr_cn2en",
+        "name": "原料",
+        "kept": "raw_parts",
+        "suggested": "raw_id"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "batch_id",
+        "kept": "批次编号",
+        "suggested": "批次"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "raw_id",
+        "kept": "原料编号",
+        "suggested": "原料"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_id",
+        "kept": "产品编号",
+        "suggested": "产品"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_name",
+        "kept": "客户名称",
+        "suggested": "客户名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "device_name",
+        "kept": "设备名称",
+        "suggested": "设备名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "model_code",
+        "kept": "型号代码",
+        "suggested": "型号编码"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_name",
+        "kept": "产品名称",
+        "suggested": "产品名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "type",
+        "kept": "类型",
+        "suggested": "阀门类型"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "size_mm",
+        "kept": "尺寸(mm)",
+        "suggested": "口径(mm)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "connection",
+        "kept": "连接方式",
+        "suggested": "连接形式"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "seal_material",
+        "kept": "密封材质",
+        "suggested": "密封面材质"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_item",
+        "kept": "检查项目",
+        "suggested": "检验项"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "press_rule",
+        "kept": "压力规则",
+        "suggested": "试验压力"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "hold_sec",
+        "kept": "保压秒数",
+        "suggested": "保压(秒)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "leak_bubbles_min",
+        "kept": "泄漏气泡",
+        "suggested": "泄漏率(泡/min)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "checker",
+        "kept": "检查员",
+        "suggested": "检验员"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_date",
+        "kept": "检查日期",
+        "suggested": "检验日期"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "part_name",
+        "kept": "部件名称",
+        "suggested": "部件名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_id",
+        "kept": "客户编号",
+        "suggested": "客户"
+      },
+      {
+        "key": "entity_cn2en",
+        "name": "产品",
+        "kept": "valve_products",
+        "suggested": "valve"
+      },
+      {
+        "key": "field_aliases",
+        "name": "deviceType",
+        "kept": [
+          "deviceType",
+          "device_type",
+          "type"
+        ],
+        "suggested": [
+          "type",
+          "Type"
+        ]
+      },
+      {
+        "key": "field_aliases",
+        "name": "deviceName",
+        "kept": [
+          "deviceName",
+          "device_name",
+          "name"
+        ],
+        "suggested": [
+          "product_name",
+          "ProductName"
+        ]
+      },
+      {
+        "key": "attr_cn2en",
+        "name": "原料",
+        "kept": "raw_parts",
+        "suggested": "raw_id"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "model_code",
+        "kept": "型号代码",
+        "suggested": "型号编码"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_name",
+        "kept": "产品名称",
+        "suggested": "产品名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "type",
+        "kept": "类型",
+        "suggested": "阀门类型"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "size_mm",
+        "kept": "尺寸(mm)",
+        "suggested": "口径(mm)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "connection",
+        "kept": "连接方式",
+        "suggested": "连接形式"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "seal_material",
+        "kept": "密封材质",
+        "suggested": "密封面材质"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_name",
+        "kept": "客户名称",
+        "suggested": "客户名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_id",
+        "kept": "产品编号",
+        "suggested": "产品"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_id",
+        "kept": "客户编号",
+        "suggested": "客户"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "device_name",
+        "kept": "设备名称",
+        "suggested": "设备名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "part_name",
+        "kept": "部件名称",
+        "suggested": "部件名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "batch_id",
+        "kept": "批次编号",
+        "suggested": "批次"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "raw_id",
+        "kept": "原料编号",
+        "suggested": "原料"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_item",
+        "kept": "检查项目",
+        "suggested": "检验项"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "press_rule",
+        "kept": "压力规则",
+        "suggested": "试验压力"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "hold_sec",
+        "kept": "保压秒数",
+        "suggested": "保压(秒)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "leak_bubbles_min",
+        "kept": "泄漏气泡",
+        "suggested": "泄漏率(泡/min)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "checker",
+        "kept": "检查员",
+        "suggested": "检验员"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_date",
+        "kept": "检查日期",
+        "suggested": "检验日期"
+      },
+      {
+        "key": "attr_cn2en",
+        "name": "原料",
+        "kept": "raw_parts",
+        "suggested": "raw_id"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "model_code",
+        "kept": "型号代码",
+        "suggested": "型号编码"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_name",
+        "kept": "产品名称",
+        "suggested": "产品名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "type",
+        "kept": "类型",
+        "suggested": "阀门类型"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "size_mm",
+        "kept": "尺寸(mm)",
+        "suggested": "口径(mm)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "connection",
+        "kept": "连接方式",
+        "suggested": "连接形式"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "seal_material",
+        "kept": "密封材质",
+        "suggested": "密封面材质"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_name",
+        "kept": "客户名称",
+        "suggested": "客户名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "product_id",
+        "kept": "产品编号",
+        "suggested": "产品"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "customer_id",
+        "kept": "客户编号",
+        "suggested": "客户"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "device_name",
+        "kept": "设备名称",
+        "suggested": "设备名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "part_name",
+        "kept": "部件名称",
+        "suggested": "部件名"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "batch_id",
+        "kept": "批次编号",
+        "suggested": "批次"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "raw_id",
+        "kept": "原料编号",
+        "suggested": "原料"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_item",
+        "kept": "检查项目",
+        "suggested": "检验项"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "press_rule",
+        "kept": "压力规则",
+        "suggested": "试验压力"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "hold_sec",
+        "kept": "保压秒数",
+        "suggested": "保压(秒)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "leak_bubbles_min",
+        "kept": "泄漏气泡",
+        "suggested": "泄漏率(泡/min)"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "checker",
+        "kept": "检查员",
+        "suggested": "检验员"
+      },
+      {
+        "key": "attr_en2cn",
+        "name": "check_date",
+        "kept": "检查日期",
+        "suggested": "检验日期"
+      }
+    ],
+    "kept": 205,
+    "added": 69
+  },
+  "merged_from_previous": true
 }
