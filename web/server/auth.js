@@ -191,6 +191,20 @@ export function login(username, password) {
   return { ok: true, token, user: publicUser(u) };
 }
 
+/** 受信登录（企业基座 SSO 用）：上游已确认身份，这里只签发本系统会话。
+ *  只给已在 users.json 里的账号发会话，不自动建号——否则基座侧任意用户名都能进来。
+ *  用户名映射走 server/sso_map.json（基座用户名 → 本系统用户名），未配置时按同名尝试。 */
+export function loginAs(username, source) {
+  const users = loadUsers();
+  const list = Object.values(users || {});
+  const u = users[username] || list.find((x) => x && x.username === username);
+  if (!u) return { ok: false, error: '本系统没有该账号：' + username };
+  const token = randomBytes(32).toString('hex');
+  sessions.set(token, { username: u.username, expires: Date.now() + SESSION_TTL });
+  saveSessions();
+  return { ok: true, token, user: publicUser(u), via: source || 'sso' };
+}
+
 /** 注销（使 token 失效）。 */
 export function logout(token) {
   if (token) { sessions.delete(token); saveSessions(); }

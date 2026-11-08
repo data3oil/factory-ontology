@@ -17,6 +17,7 @@ web_state.json
 output/
 __pycache__/
 .pytest_cache/
+codes/.cache/
 *.pyc
 .env
 
@@ -137,3 +138,9 @@ _branch_backup/
 codes/config/kbs.dev.json
 .codegraph/
 _dispatch/
+
+# 企业基座 SSO 用户名映射(含真实账号名, 不入库; 部署时在 server/ 下自备)
+web/server/sso_map.json
+# 评测中间产物(修复前后对照, 本地留档即可; 正式基线是 scripts/eval_qa_baseline.json)
+scripts/_before.json
+scripts/_after.json

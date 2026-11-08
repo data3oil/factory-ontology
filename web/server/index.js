@@ -6,13 +6,46 @@ import { join as pathJoin } from 'path';
 import { extname, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger, KIT_DIR } from './ontology.js';
-import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions } from './auth.js';
+import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions, loginAs } from './auth.js';
 // 角色判定与权限矩阵的单一真相源（不在这里另写一套）
 import { isAdmin, canManageEnterprise, canResetEnterprise } from './roles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
 const DIST_DIR = join(__dirname, '..', 'public');
+
+// ── 企业基座 SSO：一次性授权码 → 本系统身份 ──
+// 账号表不是一套：基座用户名经 server/sso_map.json 映射到本系统用户名，未配置按同名试。
+const SSO_MAP_FILE = join(__dirname, 'sso_map.json');
+async function ssoFromBase(code) {
+  if (!code) return { ok: false, error: 'no code' };
+  const base = process.env.BASE_IDP || 'http://127.0.0.1:8790';
+  const clientId = process.env.BASE_CLIENT_ID || 'ontology';
+  try {
+    let r = await fetch(base + '/idp/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, client_id: clientId }),
+    });
+    const j1 = await r.json().catch(() => ({}));
+    const tok = j1.access_token || (j1.data && j1.data.access_token) || '';
+    if (!tok) {
+      return { ok: false, error: 'token 交换失败 HTTP ' + r.status + ' ' + JSON.stringify(j1).slice(0, 150) };
+    }
+    r = await fetch(base + '/idp/userinfo', { headers: { Authorization: 'Bearer ' + tok } });
+    const j2 = await r.json().catch(() => ({}));
+    const u = j2.data || j2 || {};
+    const baseUser = u.username || u.sub || '';
+    if (!baseUser) return { ok: false, error: 'userinfo 里没有 username' };
+    let map = {};
+    try {
+      if (existsSync(SSO_MAP_FILE)) map = (JSON.parse(readFileSync(SSO_MAP_FILE, 'utf-8')).map) || {};
+    } catch (e) { /* 映射表坏了按同名走 */ }
+    return loginAs(map[baseUser] || baseUser, 'base-sso');
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
 
 // 行业→kb 映射：事件驱动无死角，不再硬编码 9 个，而是从 kbs.json 注册表全量动态读取。
 // listIndustries() 返回全部可建模行业 [{kb,name,icon,dir}]，行业下拉/改行业联动都以此为准。
@@ -1220,6 +1253,26 @@ function ontologyFresh(dir, kb) {
       res.end(JSON.stringify({ ok: false, error: String(err.message || err) }));
     }
     return;
+  }
+
+  // ── 统一登录：企业基座（壳）带 ?code= 打开时，用一次性授权码换本系统会话 ──
+  // 前端零改动：换到会话后把 token 注入首页 localStorage（前端本来就读这个 key）。
+  if (url === '/' && req.method === 'GET' && /[?&]code=/.test(req.url)) {
+    const code = new URL(req.url, 'http://127.0.0.1').searchParams.get('code') || '';
+    const out = await ssoFromBase(code);
+    if (out.ok) {
+      const idx = join(DIST_DIR, 'index.html');
+      if (existsSync(idx)) {
+        const html = readFileSync(idx, 'utf-8').replace('</head>',
+          `<script>try{localStorage.setItem('factory_enterprise_token',${JSON.stringify(out.token)});` +
+          `history.replaceState(null,'','/')}catch(e){}</script></head>`);
+        res.writeHead(200, { 'Content-Type': 'text/html;charset=utf-8' });
+        res.end(html);
+        return;
+      }
+    }
+    // 换不到就照常给首页（前端显示登录页），但把真因打到服务端日志，不假装成功
+    console.warn('[sso] 换身份失败：' + (out.error || 'unknown'));
   }
 
   // ── 静态服务 public/ ──
