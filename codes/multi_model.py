@@ -326,6 +326,10 @@ def build_data(data, table="factory_multi"):
 
 def _register_kb(kb, nt_rel, lex_rel):
     """把 kb 的 nt/lexicon 写回 kbs.json(幂等 upsert)。降级 CLI 路径复刻 api_server._update_kbs。"""
+    # 跨平台: kbs.json 是入库文件, 存 Windows 反斜杠会让 Linux/macOS 侧拼错路径
+    # (api_server._update_kbs 一直做这个归一化, 这里此前漏了, 2026-11-10 补上)。
+    nt_rel = (nt_rel or "").replace("\\", "/")
+    lex_rel = (lex_rel or "").replace("\\", "/")
     try:
         kbs_file = os.path.join(ROOT, "config", "kbs.json")
         data = json.load(open(kbs_file, encoding="utf-8"))
