@@ -30,6 +30,18 @@ jobs:
           mkdir -p output
           python -c "import food_demo; food_demo._build_kb()"
           ls -l output/food.nt
+      - name: 预建阀门本体(公理闭环用例 test_routes_and_ask_loop 依赖 output/valve.nt)
+        # 2026-11-10: 这一步此前缺失, 导致该用例在干净检出上一条断言就跑挂
+        # (axiom_service.run() 拿不到 nt → 返回 ok:false → 断言 200 && ok 失败),
+        # 而本机因为 output/valve.nt 已存在一直通过——典型的"本地绿、CI 红"。
+        # 必须走 valve_demo.build(): 它有阀门语义的显式 rels(produces/usesRawMaterial),
+        # 自动建模只认出 1 处跨表关系, 建出的 nt 没有 产品<-批次->原料 的边,
+        # 于是 /api/ask 的 "P004 用了哪些原料" 落回 rule 引擎, 公理闭环断言照样失败。
+        # 也不要换 multi_model.build(): 除了同样缺显式 rels, 它还会把 kbs.json 里的
+        # "output/valve.nt" 写成 Windows 反斜杠, 并把 lexicon_valve.json 覆盖成精简版。
+        run: |
+          python -c "import valve_demo; valve_demo.build()"
+          ls -l output/valve.nt
       - name: 工程门（去演示化 / 断链 / 静默吞异常 / 界面文案）
         working-directory: ${{ github.workspace }}
         run: |
