@@ -5,7 +5,7 @@ import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
 import { join as pathJoin } from 'path';
 import { extname, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger, KIT_DIR } from './ontology.js';
+import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger, axiomsGet, axiomsSave, axiomsSeed, axiomsReason, KIT_DIR } from './ontology.js';
 import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions, loginAs } from './auth.js';
 // 角色判定与权限矩阵的单一真相源（不在这里另写一套）
 import { isAdmin, canManageEnterprise, canResetEnterprise } from './roles.js';
@@ -107,10 +107,11 @@ const server = createServer(async (req, res) => {
   }
   // 校验会话，返回公开用户；未登录/失效返回 null 并写 401
   // 企业上下文层：按实体 IRI 取这个实体在别的系统里的记录
+  const BASE_CFG = join(__dirname, '..', '..', 'config', 'base.json');
   async function baseContext(iri) {
     if (!iri) return { reason: 'bad_request', why: '缺 iri 参数' };
     let cfg = {};
-    try { cfg = JSON.parse(readFileSync('D:/factory-ontology/config/base.json', 'utf8')); }
+    try { cfg = JSON.parse(readFileSync(BASE_CFG, 'utf8')); }
     catch (e) { return { reason: 'disabled', why: 'config/base.json 不存在' }; }
     if (!cfg.enabled || !cfg.token) return { reason: 'disabled' };
     const base = (cfg.base_url || 'http://127.0.0.1:8790').replace(/\/+$/, '');
@@ -446,6 +447,40 @@ function ontologyFresh(dir, kb) {
       // deep_recall: 前端「深度召回」开关, 透传到后端 /api/ask
       const result = await askOntology(question, kb, body.deep_recall);
       res.writeHead(result.ok ? 200 : 500, { 'Content-Type': 'application/json;charset=utf-8' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json;charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: String(err.message || err) }));
+    }
+    return;
+  }
+
+  // ── API: 本体公理集（转发后端 axiom 路由族）──
+  // 前端公理面板用相对路径 /api/axioms*。BFF 没有这条路由时，请求会掉进静态
+  // SPA fallback 拿到 index.html（HTTP 200），面板只能报"解析失败"——功能等于不存在。
+  if (url === '/api/axioms' || url === '/api/axioms/seed' || url === '/api/axioms/reason') {
+    const user = requireAuth(); if (!user) return;
+    try {
+      let result = { ok: false, error: '不支持的请求方法' };
+      if (url === '/api/axioms' && req.method === 'GET') {
+        const kb = new URL(req.url, 'http://x').searchParams.get('kb') || '';
+        result = await axiomsGet(kb);
+      } else if (url === '/api/axioms' && req.method === 'PUT') {
+        const body = JSON.parse((await readBody(req)) || '{}');
+        result = await axiomsSave(body.kb || '', body.axioms || {});
+      } else if (url === '/api/axioms/seed' && req.method === 'POST') {
+        const body = JSON.parse((await readBody(req)) || '{}');
+        result = await axiomsSeed(body.kb || '');
+      } else if (url === '/api/axioms/reason' && req.method === 'POST') {
+        const body = JSON.parse((await readBody(req)) || '{}');
+        result = await axiomsReason(body.kb || '');
+      } else {
+        writeErr(405, { ok: false, error: '方法不允许' });
+        return;
+      }
+      // 后端以 400 表达"结构不合规、拒绝保存"，这里透传 4xx，不把拒绝包装成成功
+      const code = result && result.ok ? 200 : (result && result.status === 400 ? 400 : 500);
+      res.writeHead(code, { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify(result));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json;charset=utf-8' });

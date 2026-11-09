@@ -203,5 +203,6 @@ def test_routes_reject_broken_axioms():
     h = {"X-API-Key": os.environ.get("FOOD_ADMIN_KEY", "test-admin-key")}
     r = c.put("/api/axioms", json={"kb": "valve", "axioms": {"chains": [{"implies": "x"}]}},
               headers=h)
-    assert r.status_code == 200 and r.json()["ok"] is False
+    # 结构不合规是客户端错误：用 400，不用 200+ok:false（后者在日志/网关里看着像成功）
+    assert r.status_code == 400 and r.json()["ok"] is False
     assert "path" in r.json()["error"]

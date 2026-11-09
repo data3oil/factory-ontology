@@ -16,6 +16,7 @@
 from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 import api_server as core
 
@@ -60,7 +61,9 @@ def axioms_put(req: AxiomSaveReq):
     k = _kb(req.kb)
     ok, err = axs.save(k, req.axioms)
     if not ok:
-        return {"ok": False, "kb": k, "error": err}
+        # 结构不合规是客户端错误，用 4xx——200+ok:false 会让"保存失败"在网关/日志里
+        # 看起来像成功，BFF 与前端也只能靠 body 猜。
+        return JSONResponse(status_code=400, content={"ok": False, "kb": k, "error": err})
     return {"ok": True, "kb": k, "summary": axs.summary(k)}
 
 

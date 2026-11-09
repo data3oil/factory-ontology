@@ -27,13 +27,13 @@ export function isAdmin(user) {
 }
 
 export const SETTINGS_GROUPS = [
-  { title: '建本体与演进', items: ['model', 'selfmodel', 'evolve'] },
+  { title: '建本体与演进', items: ['model', 'selfmodel', 'evolve', 'axioms'] },
   { title: '知识库', items: ['knowledge'] },
   { title: '模型与质量', items: ['eval'] },
   { title: '系统', items: ['orch', 'enterprise'] },
 ];
 
-const ALL_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
+const ALL_ENTRIES = ['model', 'selfmodel', 'evolve', 'axioms', 'knowledge', 'eval', 'orch', 'enterprise'];
 const MEMBER_ENTRIES = ['knowledge'];
 
 export function visibleSettingsEntries(user) {
@@ -77,9 +77,9 @@ if (isDirectRun) {
   eq('isAdmin(null)', isAdmin(null), false);
 
   const adminEntries = visibleSettingsEntries({ role: 'admin' });
-  eq('visibleSettingsEntries(admin).length', adminEntries.length, 7);
+  eq('visibleSettingsEntries(admin).length', adminEntries.length, 8);
   eq('visibleSettingsEntries(admin).order', adminEntries,
-    ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise']);
+    ['model', 'selfmodel', 'evolve', 'axioms', 'knowledge', 'eval', 'orch', 'enterprise']);
   eq('visibleSettingsEntries(member)', visibleSettingsEntries({ role: 'member' }), ['knowledge']);
 
   const admin = { role: 'admin' };

@@ -1707,3 +1707,26 @@ export async function evolveTrigger() {
     return { ok: false, error: netErr(e, '触发本体自演进') };
   }
 }
+
+// ── 本体公理集：转发后端 axiom 路由族 ──
+// 前端面板走相对路径 /api/axioms*，BFF 若不提供，请求会落到静态 SPA fallback
+// （200 + index.html），面板拿到 HTML 只能报解析失败——路由少一条，功能等于不存在。
+export async function axiomsGet(kb) {
+  const q = kb ? '?kb=' + encodeURIComponent(kb) : '';
+  return apiFetch('/api/axioms' + q, { method: 'GET' });
+}
+
+export async function axiomsSave(kb, axioms) {
+  // 后端结构不合规返回 400 + {ok:false,error}；apiFetch 会原样带 status 回来，
+  // 由路由层决定透传 400，别把"拒绝保存"说成成功。
+  return apiFetch('/api/axioms', { method: 'PUT', body: { kb: kb || '', axioms } });
+}
+
+export async function axiomsSeed(kb) {
+  return apiFetch('/api/axioms/seed', { method: 'POST', body: { kb: kb || '' } });
+}
+
+export async function axiomsReason(kb) {
+  // 推理是同步跑全图：小库毫秒级，大库可能几十秒，默认 15s 不够
+  return apiFetch('/api/axioms/reason', { method: 'POST', body: { kb: kb || '' }, timeout: 180000 });
+}

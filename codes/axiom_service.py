@@ -151,6 +151,20 @@ def save(kb, doc, backup=True):
         return False, err
     os.makedirs(AX_DIR, exist_ok=True)
     p = axiom_path(kb)
+    # 内容等价就不写盘：面板"打开→保存"传回来的是同一份文档，但 json.dump 会
+    # 重排缩进、抹掉人手写的空行，一保存就制造几十上百行无意义 diff。
+    # 语义没变就当成功直接返回，连备份和 updated_at 都不动。
+    if os.path.exists(p):
+        try:
+            with io.open(p, encoding="utf-8") as f:
+                old = json.load(f)
+            a = {k: v for k, v in old.items() if k != "updated_at"}
+            b = {k: v for k, v in doc.items() if k != "updated_at"}
+            b.setdefault("kb", kb)
+            if a == b:
+                return True, None
+        except (ValueError, OSError):
+            pass  # 旧文件坏了/读不了：照常走覆盖 + 备份，不做"等价"判断
     if backup and os.path.exists(p):
         try:
             bak = p + ".bak_%s" % time.strftime("%Y%m%d_%H%M%S")
