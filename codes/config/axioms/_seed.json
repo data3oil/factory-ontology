@@ -1,0 +1,89 @@
+{
+  "version": "0.1.0",
+  "label": "跨行业种子公理",
+  "note": "种子不是某一行的公理。它只认「角色」：哪张表是产品、哪张是批次、哪张是原料、哪张是质检。认出来之后，沿数据里真实存在的边去找路径，找得到就生成属性链。每一行生成的结果是普通公理文件，用户可以在前端改、删、加。",
+
+  "roles": {
+    "product": {
+      "label": "产品",
+      "match": ["product", "products", "item", "成品", "产品", "制品"]
+    },
+    "batch": {
+      "label": "批次",
+      "match": ["batch", "batches", "lot", "批次", "生产批", "炉批"]
+    },
+    "material": {
+      "label": "原料",
+      "match": ["material", "materials", "raw", "原料", "物料", "辅料", "原辅料"]
+    },
+    "material_link": {
+      "label": "用料明细",
+      "match": ["ingredient", "用料", "配方明细"],
+      "note": "批次与原料之间的连接表。不当作原料本身，只当作路径上的中间节点。"
+    },
+    "qc": {
+      "label": "质检",
+      "match": ["qc", "quality", "check", "inspect", "test", "质检", "检验", "质量", "检测"]
+    },
+    "equipment": {
+      "label": "设备",
+      "match": ["equipment", "device", "machine", "设备", "机台", "产线"]
+    },
+    "customer": {
+      "label": "客户",
+      "match": ["customer", "client", "客户", "甲方"]
+    },
+    "sale": {
+      "label": "销售",
+      "match": ["sale", "sales", "order", "销售", "订单"]
+    }
+  },
+
+  "chains": [
+    {
+      "id": "SEED-C01",
+      "label": "产品用料",
+      "from_role": "product",
+      "to_role": "material",
+      "implies": "hasMaterial",
+      "max_steps": 4,
+      "ask": {
+        "label": "用料",
+        "terms": ["原料", "用料", "材料", "物料", "用的什么料", "用了哪些料", "用了什么", "用到", "用在哪"]
+      }
+    },
+    {
+      "id": "SEED-C02",
+      "label": "产品质检记录",
+      "from_role": "product",
+      "to_role": "qc",
+      "implies": "hasQc",
+      "max_steps": 4,
+      "ask": {
+        "label": "质检记录",
+        "terms": ["质检", "检验", "检测", "查过什么", "检了什么"]
+      }
+    }
+  ],
+
+  "qc_rule": {
+    "id": "SEED-BR01",
+    "label": "质检不合格 → 被检对象待处理",
+    "note": "只有在数据里真的读到「不合格」这类取值时才生成。属性名和取值都从数据里取，不猜。",
+    "bad_values": ["不合格", "不通过", "NG", "fail", "failed", "异常"],
+    "good_values": ["合格", "通过", "OK", "pass", "正常"],
+    "then_prop": "status",
+    "then_value": "待处理",
+    "ask": {
+      "label": "不合格",
+      "terms": ["不合格", "没通过", "质量问题", "待处理", "卡住"]
+    }
+  },
+
+  "functional_hints": {
+    "note": "属性名像单值标识的（编号/编码/型号/id），默认按函数型公理查冲突。",
+    "match": ["id", "code", "no", "number", "编号", "编码", "型号", "批号"]
+  },
+
+  "disjoint_note": "角色不同且同层级的类，默认两两不相交（产品⊥客户、批次⊥质检）。同角色多子类不做。"
+}

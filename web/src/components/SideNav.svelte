@@ -27,6 +27,7 @@
       { key: 'model', label: '数据建模' },
       { key: 'selfmodel', label: '自助建模' },
       { key: 'evolve', label: '本体演进（人确认）' },
+      { key: 'axioms', label: '公理与推理' },
     ] },
     { title: '知识库', items: [
       { key: 'knowledge', label: '知识库管理' },

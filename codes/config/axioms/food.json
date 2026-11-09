@@ -1,0 +1,208 @@
+{
+  "version": "0.1.0",
+  "label": "food 公理集（种子生成）",
+  "kb": "food",
+  "prefix": "http://factory.example/ontology#",
+  "note": "初始由跨行业种子按角色识别生成，路径取自该库数据里真实存在的边。可以随便改，改完点保存再跑推理。",
+  "derive": {
+    "domain_range": true,
+    "type_inheritance": true
+  },
+  "inverse_of": [],
+  "chains": [
+    {
+      "id": "SEED-C01",
+      "label": "产品用料",
+      "definition": "由种子按 Food_products → Food_raw_materials 的实际路径生成",
+      "path": [
+        {
+          "prop": "produces",
+          "inverse": true
+        },
+        {
+          "prop": "belongsToBatch",
+          "inverse": true
+        },
+        {
+          "prop": "usesRawMaterial",
+          "inverse": false
+        }
+      ],
+      "implies": "hasMaterial",
+      "ask": {
+        "label": "用料",
+        "terms": [
+          "原料",
+          "用料",
+          "材料",
+          "物料",
+          "用的什么料",
+          "用了哪些料",
+          "用了什么",
+          "用到",
+          "用在哪"
+        ]
+      },
+      "from_class": "Food_products",
+      "to_class": "Food_raw_materials"
+    }
+  ],
+  "functional": [
+    {
+      "id": "SEED-F-batchId",
+      "prop": "batchId",
+      "label": "batchId 单值",
+      "definition": "属性名像编号，按单值处理，多值即数据冲突"
+    }
+  ],
+  "disjoint_with": [
+    {
+      "id": "SEED-D-batch-equipment",
+      "classes": [
+        "Food_batches",
+        "Food_equipment"
+      ],
+      "label": "batch 与 equipment 不相交"
+    },
+    {
+      "id": "SEED-D-batch-material",
+      "classes": [
+        "Food_batches",
+        "Food_raw_materials"
+      ],
+      "label": "batch 与 material 不相交"
+    },
+    {
+      "id": "SEED-D-batch-material_link",
+      "classes": [
+        "Food_batches",
+        "Food_batch_ingredient"
+      ],
+      "label": "batch 与 material_link 不相交"
+    },
+    {
+      "id": "SEED-D-batch-product",
+      "classes": [
+        "Food_batches",
+        "Food_products"
+      ],
+      "label": "batch 与 product 不相交"
+    },
+    {
+      "id": "SEED-D-batch-qc",
+      "classes": [
+        "Food_batches",
+        "Food_qc"
+      ],
+      "label": "batch 与 qc 不相交"
+    },
+    {
+      "id": "SEED-D-equipment-material",
+      "classes": [
+        "Food_equipment",
+        "Food_raw_materials"
+      ],
+      "label": "equipment 与 material 不相交"
+    },
+    {
+      "id": "SEED-D-equipment-material_link",
+      "classes": [
+        "Food_equipment",
+        "Food_batch_ingredient"
+      ],
+      "label": "equipment 与 material_link 不相交"
+    },
+    {
+      "id": "SEED-D-equipment-product",
+      "classes": [
+        "Food_equipment",
+        "Food_products"
+      ],
+      "label": "equipment 与 product 不相交"
+    },
+    {
+      "id": "SEED-D-equipment-qc",
+      "classes": [
+        "Food_equipment",
+        "Food_qc"
+      ],
+      "label": "equipment 与 qc 不相交"
+    },
+    {
+      "id": "SEED-D-material-material_link",
+      "classes": [
+        "Food_raw_materials",
+        "Food_batch_ingredient"
+      ],
+      "label": "material 与 material_link 不相交"
+    },
+    {
+      "id": "SEED-D-material-product",
+      "classes": [
+        "Food_raw_materials",
+        "Food_products"
+      ],
+      "label": "material 与 product 不相交"
+    },
+    {
+      "id": "SEED-D-material-qc",
+      "classes": [
+        "Food_raw_materials",
+        "Food_qc"
+      ],
+      "label": "material 与 qc 不相交"
+    },
+    {
+      "id": "SEED-D-material_link-product",
+      "classes": [
+        "Food_batch_ingredient",
+        "Food_products"
+      ],
+      "label": "material_link 与 product 不相交"
+    },
+    {
+      "id": "SEED-D-material_link-qc",
+      "classes": [
+        "Food_batch_ingredient",
+        "Food_qc"
+      ],
+      "label": "material_link 与 qc 不相交"
+    },
+    {
+      "id": "SEED-D-product-qc",
+      "classes": [
+        "Food_products",
+        "Food_qc"
+      ],
+      "label": "product 与 qc 不相交"
+    }
+  ],
+  "business_rules": [],
+  "seed_report": {
+    "roles": {
+      "product": [
+        "Food_products"
+      ],
+      "material": [
+        "Food_raw_materials"
+      ],
+      "batch": [
+        "Food_batches"
+      ],
+      "material_link": [
+        "Food_batch_ingredient"
+      ],
+      "qc": [
+        "Food_qc"
+      ],
+      "equipment": [
+        "Food_equipment"
+      ]
+    },
+    "skipped": [
+      "产品质检记录（product→qc）：数据里找不到连通的边",
+      "质检规则：数据里没有「质检记录 → 批次」的边，规则无处可落，留空等人工填"
+    ]
+  },
+  "updated_at": "2026-11-10 06:29:19"
+}

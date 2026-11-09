@@ -1805,6 +1805,28 @@ _ASK_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
 ASK_TIMEOUT = 30  # 秒
 
 
+def _axiom_cand(q, kb, schema=None):
+    """公理推理候选：命中返回候选字典，答不上返回 None（链路照旧往下走）。
+
+    只做协议适配（证据归一、给融合层认的 source=axiom），判断全在 axiom_service.answer。
+    该函数自带中文问法预检，普通问题不会去解析闭包图。
+    """
+    try:
+        import axiom_service as _axs
+        hit = _axs.answer(q, kb)
+    except Exception as e:
+        note_swallow("ask", e)
+        return None
+    if not hit:
+        return None
+    return {"answer": hit.get("answer"),
+            "evidence": evidence_norm.normalize_evidence(hit.get("evidence") or [], schema),
+            "source": "axiom",
+            "score": fusion.CAND_SCORE["axiom"],
+            "structured": hit.get("structured"),
+            "engines": ["axiom"]}
+
+
 def _ask_impl(req: AskReq):
     """问答引擎实现(供 ask 端点包装审计后调用)。"""
     ctx = _get_kb_ctx(req.kb)
@@ -1864,6 +1886,23 @@ def _ask_impl(req: AskReq):
                 if doc_payload:
                     doc_payload.setdefault("confidence", "low")
                     return doc_payload
+            # 公理推理先试一步：规则引擎只给话术、给不出行级证据时（ev 为空），
+            # 跨表问题（产品用了哪些原料 / 哪些产品被卡住）的正解在推理闭包里。
+            # 命中就用带依据的公理答案，不命中继续走原来的话术分支，行为不变。
+            _axc = _axiom_cand(q, ctx["kb"], _schema)
+            if _axc:
+                if req.deep_recall:
+                    candidates.append(_axc)
+                else:
+                    try:
+                        return fusion.fuse(q, [_axc], cross_domain=False, kb=ctx["kb"],
+                                           schema=_schema)
+                    except Exception as e:
+                        logger.warning(f"fusion 收口异常(axiom), 回落原 payload: {e}")
+                        return {"ok": True, "mode": "axiom", "answer": _axc.get("answer"),
+                                "evidence": _axc.get("evidence") or [], "engines": ["axiom"],
+                                "structured": _axc.get("structured"), "no_basis": False,
+                                "confidence": "high", "kb": ctx["kb"]}
             # 规则引擎对"计数/列表/最值"这类问题是从本体聚合出答案的，本身不产出行级证据。
             # 原来只要 evidence 为空就判 no_basis=True，导致「有 6 台设备」这种正确答案
             # 被标成"未命中：无可靠依据"，前端据此显示低置信度——是明确的错标。
@@ -1876,6 +1915,23 @@ def _ask_impl(req: AskReq):
             return {"ok": True, "mode": "rule", "answer": polished,
                     "evidence": [], "engines": ["rule"], "structured": None,
                     "no_basis": True, "confidence": "none", "kb": ctx["kb"]}
+    # 1.5 公理推理引擎: 规则引擎按字段算不出来的跨表关系, 用本体公理推出来的事实答。
+    # "P004 用了哪些原料" 要跨 产品→批次→原料 三跳, 规则引擎没有这个字段,
+    # 图检索顺着已有的边走到批次就断了。这里查的是推理后的闭包图(closure.nt)。
+    # 答不了返回 None 交回原链路 —— 只做加法, 不改上面任何分支的判定。
+    _axc = _axiom_cand(q, ctx["kb"], _schema)
+    if _axc:
+        if req.deep_recall:
+            candidates.append(_axc)
+        else:
+            try:
+                return fusion.fuse(q, [_axc], cross_domain=False, kb=ctx["kb"], schema=_schema)
+            except Exception as e:
+                logger.warning(f"fusion 收口异常(axiom), 回落原 payload: {e}")
+                return {"ok": True, "mode": "axiom", "answer": _ax.get("answer"),
+                        "evidence": _ax.get("evidence") or [], "engines": ["axiom"],
+                        "structured": _ax.get("structured"), "no_basis": False,
+                        "confidence": "high", "kb": ctx["kb"]}
     #     (计数/列表/极值/范围/统计), 且其中引用的实体概念不在该 kb 本体任何实体类/词典
     #     (kb_vocab: entity/type/status/zone/attr/numeric_fields), 则禁止逻辑桥/图检索/混合/
     #     LLM 兜底编造, 强制返回"无相关数据"。横向覆盖所有跨域问题(书/船/测线/冲床/图纸…),
@@ -3243,7 +3299,7 @@ _sys.modules.setdefault('api_server', _sys.modules[__name__])
 # ── 路由族挂载（P1-1 拆分）：各族已移入 codes/routes/<family>_routes.py ──
 import importlib as _importlib  # noqa: E402
 
-_ROUTE_FAMILIES = ['audit', 'eval', 'evolve', 'export', 'flows', 'industry', 'knowledge', 'standard', 'stats', 'trace']
+_ROUTE_FAMILIES = ['audit', 'axiom', 'eval', 'evolve', 'export', 'flows', 'industry', 'knowledge', 'standard', 'stats', 'trace']
 
 for _fam in _ROUTE_FAMILIES:
     _m = _importlib.import_module('routes.%s_routes' % _fam)

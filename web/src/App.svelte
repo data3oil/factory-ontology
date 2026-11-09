@@ -12,6 +12,7 @@
   import SelfModelPanel from './components/SelfModelPanel.svelte';
   import LexiconAssetPanel from './components/LexiconAssetPanel.svelte';
   import EvolvePanel from './components/EvolvePanel.svelte';
+  import AxiomPanel from './components/AxiomPanel.svelte';
   import SideNav from './components/SideNav.svelte';
   import AppTopBar from './components/AppTopBar.svelte';
   import OrchStatusCard from './components/OrchStatusCard.svelte';
@@ -221,7 +222,7 @@
   const NAV_MAP = { build: 'model', ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
   // 交付与迁移是一级区，内部两个页签（版本与交付 / 词典），两条都可达
   const DELIVERY_TABS = { delivery: 'assets', lexicon: 'lexasset' };
-  const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'knowledge', 'eval', 'orch', 'enterprise'];
+  const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'axioms', 'knowledge', 'eval', 'orch', 'enterprise'];
   // 角色口径：设置区显示哪些条目，以后端返回的 settingsEntries 为准（单一真相源在 server/roles.js）
   const visibleEntries = $derived(
     user && Array.isArray(user.settingsEntries) && user.settingsEntries.length
@@ -1749,6 +1750,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <div style="padding:12px 18px 0"><BuildGuide step={buildStep} onGo={goBuildStep} /></div>
       <div class="dashboard-body">
         <EvolvePanel kb={currentKb} />
+      </div>
+    </section>
+    {:else if activeTab === 'axioms'}
+    <!-- ─── 公理与推理（轻量公理集 + 小型推理机，与问答同一套事实）─── -->
+    <section class="pane pane-full">
+      <div class="pane-title">公理与推理<span class="pane-sub">给本体加最小公理集，推出跨表关系；改完可试问，答复带依据</span></div>
+      <div class="dashboard-body">
+        <AxiomPanel kb={currentKb} />
       </div>
     </section>
     {:else if activeTab === 'orch'}

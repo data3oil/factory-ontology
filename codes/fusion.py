@@ -4,7 +4,7 @@ import safe_log
 # codes/fusion.py
 """工厂本体问答 - 融合决策层。纯标准库。"""
 
-_RULE_SOURCES = {'rule', 'logical'}
+_RULE_SOURCES = {'rule', 'logical', 'axiom'}   # axiom: 公理推导，确定性同规则
 _GRAPH_SOURCES = {'graph'}
 _TEXT_SOURCES = {'bm25', 'vector', 'hybrid'}
 _DOC_SOURCES = {'doc'}
@@ -12,7 +12,7 @@ _NO_DATA_ANSWER = '无相关数据（该知识库不含该实体概念）'
 
 # 候选来源权重(集中一处, 取代散落在 api_server 构造处的魔法数 0.9/1.0/0.5)。
 # 用途: 候选入队时的 score; 只影响 doc/graph/text 之间的相对先后, rule/logical 由 _RULE_SOURCES 优先。
-CAND_SCORE = {'rule': 1.0, 'logical': 1.0, 'doc': 0.9, 'graph': 1.0,
+CAND_SCORE = {'rule': 1.0, 'logical': 1.0, 'axiom': 1.0, 'doc': 0.9, 'graph': 1.0,
               'bm25': 0.5, 'vector': 0.5, 'hybrid': 0.5}
 # doc 候选相关性下限(> 阈值才算相关)。0.0 = 只要过二元组闸门即相关(原行为)。
 DOC_MIN_SCORE = 0.0

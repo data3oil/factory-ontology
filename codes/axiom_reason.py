@@ -19,7 +19,7 @@
 用法：
     python axiom_reason.py --nt output/valve.nt \
         --schema config/ontology_schema.json \
-        --axioms config/ontology_axioms.json \
+        --axioms config/axioms/valve.json \
         --out-dir output/reason
 """
 
@@ -662,10 +662,12 @@ def write_outputs(out_dir, reasoner, ax, path_nt, stats, bad_lines, elapsed):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="轻量公理集推理（前向链，零依赖）")
-    ap.add_argument("--nt", default=os.path.join("output", "valve.nt"))
-    ap.add_argument("--schema", default=os.path.join("config", "ontology_schema.json"))
-    ap.add_argument("--axioms", default=os.path.join("config", "ontology_axioms.json"))
-    ap.add_argument("--out-dir", default=os.path.join("output", "reason"))
+    # 默认路径锚在脚本所在目录：从仓库根跑和从 codes/ 跑结果一样，不受 cwd 影响
+    _here = os.path.dirname(os.path.abspath(__file__))
+    ap.add_argument("--nt", default=os.path.join(_here, "output", "valve.nt"))
+    ap.add_argument("--schema", default=os.path.join(_here, "config", "ontology_schema.json"))
+    ap.add_argument("--axioms", default=os.path.join(_here, "config", "axioms", "valve.json"))
+    ap.add_argument("--out-dir", default=os.path.join(_here, "output", "reason"))
     ap.add_argument("--max-rounds", type=int, default=MAX_ROUNDS_DEFAULT)
     ap.add_argument("--no-fix-dangling", action="store_true", help="不修正引用断裂，只报告")
     ap.add_argument("--quiet", action="store_true")

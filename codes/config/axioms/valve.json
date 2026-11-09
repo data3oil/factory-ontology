@@ -1,0 +1,85 @@
+{
+  "version": "0.1.0",
+  "label": "阀门工厂公理集",
+  "kb": "valve",
+  "prefix": "http://factory.example/ontology#",
+  "note": "种子生成后人工加过三条业务规则和中文问法。改完点保存，推理机按文件跑，不缓存。",
+
+  "derive": {"domain_range": true, "type_inheritance": true},
+
+  "inverse_of": [],
+
+  "chains": [
+    {
+      "id": "AX-C01",
+      "label": "产品用料",
+      "definition": "某产品由某批次产出、该批次用了某原料，则产品用了这个原料。跨批次/原料两张表。",
+      "path": [
+        {"prop": "producedIn", "inverse": true},
+        {"prop": "usesRawMaterial"}
+      ],
+      "implies": "hasMaterial",
+      "ask": {
+        "label": "用料",
+        "terms": ["原料", "用料", "材料", "物料", "用的什么料", "用了哪些料", "用了什么", "用到", "用在哪"]
+      },
+      "from_class": "Valve_products",
+      "to_class": "Valve_raw_materials"
+    },
+    {
+      "id": "AX-C02",
+      "label": "产品质检记录",
+      "definition": "产品由批次产出，批次被质检记录指向，则这条质检记录也算该产品的。",
+      "path": [
+        {"prop": "producedIn", "inverse": true},
+        {"prop": "checkedBy", "inverse": true}
+      ],
+      "implies": "hasQc",
+      "ask": {
+        "label": "质检记录",
+        "terms": ["质检", "检验", "检测", "查过什么", "检了什么", "合格吗"]
+      },
+      "from_class": "Valve_products",
+      "to_class": "Valve_qc"
+    }
+  ],
+
+  "functional": [
+    {"id": "AX-F01", "prop": "modelCode", "label": "型号编码单值"},
+    {"id": "AX-F02", "prop": "standardNo", "label": "执行标准单值"}
+  ],
+
+  "disjoint_with": [
+    {"id": "AX-D01", "classes": ["Valve_products", "Valve_customers"], "label": "产品与客户不相交"},
+    {"id": "AX-D02", "classes": ["Valve_batches", "Valve_qc"], "label": "批次与质检记录不相交"},
+    {"id": "AX-D03", "classes": ["Valve_products", "Valve_raw_materials"], "label": "产品与原料不相交"},
+    {"id": "AX-D04", "classes": ["Valve_sales", "Valve_equipment"], "label": "销售与设备不相交"}
+  ],
+
+  "business_rules": [
+    {
+      "id": "BR-01",
+      "label": "质检不合格 → 批次待处理",
+      "definition": "任一质检项判不合格，该批次整体不进正常流程。",
+      "when": {"class": "Valve_qc", "prop": "result", "op": "eq", "value": "不合格"},
+      "then": {"link": "checkedBy", "target_class": "Valve_batches", "prop": "status", "value": "待处理"},
+      "ask": {"label": "不合格批次", "terms": ["不合格", "没通过", "待处理", "质量问题"]}
+    },
+    {
+      "id": "BR-02",
+      "label": "批次待处理/隔离 → 产品暂停发货",
+      "definition": "批次卡住，它产出的产品不能发货。BR-01 的结论会在下一轮触发本规则。",
+      "when": {"class": "Valve_batches", "prop": "status", "op": "in", "value": ["待处理", "隔离"]},
+      "then": {"link": "producedIn", "target_class": "Valve_products", "prop": "deliveryStatus", "value": "暂停发货"},
+      "ask": {"label": "暂停发货", "terms": ["暂停发货", "不能发货", "发货受影响"]}
+    },
+    {
+      "id": "BR-03",
+      "label": "设备功率超 100kW → 重点设备",
+      "definition": "装机功率超过 100kW 的设备纳入重点设备，巡检频次不同。",
+      "when": {"class": "Valve_equipment", "prop": "powerKw", "op": "gt", "value": 100},
+      "then": {"prop": "equipmentClass", "value": "重点设备"},
+      "ask": {"label": "重点设备", "terms": ["重点设备", "高功率", "大功率设备"]}
+    }
+  ]
+}

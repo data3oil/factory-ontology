@@ -467,3 +467,43 @@ export async function evolveTrigger() {
     body: JSON.stringify({}),
   });
 }
+
+// ── 本体公理集与推理（axiom 路由族）──
+// 读：文件不存在时后端按跨行业种子生成一份，generated=true 提示"这份是自动生成的"
+export async function axiomsGet(kb) {
+  const q = kb ? `?kb=${encodeURIComponent(kb)}` : '';
+  return fetchRetry(`/api/axioms${q}`, { cache: 'no-store' });
+}
+
+export async function axiomsSave(kb, axioms) {
+  return fetchRetry('/api/axioms', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kb, axioms }),
+  });
+}
+
+export async function axiomsSeed(kb) {
+  return fetchRetry('/api/axioms/seed', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kb }),
+  });
+}
+
+export async function axiomsReason(kb) {
+  return fetchRetry('/api/axioms/reason', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kb }),
+  });
+}
+
+// 公理面板里的"试问"：走正式问答接口，验证闭环而不是另开一条链路
+export async function askOnce(question, kb) {
+  return fetchRetry('/api/ask', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ question, kb }),
+  });
+}
