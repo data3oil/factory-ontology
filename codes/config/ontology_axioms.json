@@ -1,0 +1,84 @@
+{
+  "version": "0.1.0",
+  "label": "阀门工厂最小公理集",
+  "prefix": "http://factory.example/ontology#",
+  "note": "轻量公理集：只收录问答链路用得上、且能确定性推出来的那几条。不做 OWL DL，不引 rdflib。每条公理都有 id，推理结果逐条带依据。",
+
+  "derive": {
+    "type_inheritance": true,
+    "domain_range": true,
+    "domain_range_source": "schema.relations.from/to",
+    "comment": "domain/range 一律从 schema 的 relations 生成，不读 nt 里的 rdfs:domain/rdfs:range —— 导出产物里这两处已经和 schema 对不上，读了会推出错类型。"
+  },
+
+  "inverse_of": [],
+
+  "chains": [
+    {
+      "id": "AX-C01",
+      "label": "产品用料（经批次传导）",
+      "definition": "某产品由某批次产出、该批次用了某原料，则这个产品用了这个原料。跨 批次/原料 两张表，规则引擎答不了，靠公理补。",
+      "path": [
+        {"prop": "producedIn", "inverse": true},
+        {"prop": "usesRawMaterial"}
+      ],
+      "implies": "hasMaterial"
+    },
+    {
+      "id": "AX-C02",
+      "label": "产品质检记录（经批次传导）",
+      "definition": "某批次质检了某产品，则这条质检记录也算这个产品的质检记录。",
+      "path": [
+        {"prop": "checkedBy"},
+        {"prop": "producedIn"}
+      ],
+      "implies": "hasQc"
+    }
+  ],
+
+  "functional": [
+    {
+      "id": "AX-F01",
+      "prop": "modelCode",
+      "label": "产品型号编码单值",
+      "definition": "同一产品的型号编码只能有一个值，出现第二个即数据冲突。"
+    }
+  ],
+
+  "disjoint_with": [
+    {
+      "id": "AX-D01",
+      "classes": ["Valve_products", "Valve_customers"],
+      "label": "产品与客户不相交"
+    },
+    {
+      "id": "AX-D02",
+      "classes": ["Valve_batches", "Valve_qc"],
+      "label": "批次与质检记录不相交"
+    }
+  ],
+
+  "business_rules": [
+    {
+      "id": "BR-01",
+      "label": "质检不合格 → 批次待处理",
+      "definition": "任一质检项判为不合格，该批次整体不进正常流程，状态改待处理。这是工厂里的常识，之前散在人脑里。",
+      "when": {"class": "Valve_qc", "prop": "result", "op": "eq", "value": "不合格"},
+      "then": {"link": "checkedBy", "target_class": "Valve_batches", "prop": "status", "value": "待处理"}
+    },
+    {
+      "id": "BR-02",
+      "label": "批次待处理/隔离 → 产品暂停发货",
+      "definition": "批次卡住，它产出的产品就不能发货。BR-01 推出来的待处理会在下一轮触发本规则。",
+      "when": {"class": "Valve_batches", "prop": "status", "op": "in", "value": ["待处理", "隔离"]},
+      "then": {"link": "producedIn", "target_class": "Valve_products", "prop": "deliveryStatus", "value": "暂停发货"}
+    },
+    {
+      "id": "BR-03",
+      "label": "设备功率超 100kW → 列为重点设备",
+      "definition": "装机功率超过 100kW 的设备纳入重点设备，巡检频次不同。",
+      "when": {"class": "Valve_equipment", "prop": "powerKw", "op": "gt", "value": 100},
+      "then": {"prop": "equipmentClass", "value": "重点设备"}
+    }
+  ]
+}
