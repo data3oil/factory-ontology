@@ -97,6 +97,12 @@ jobs:
           python scripts/check_boundary.py || true
           echo "==== scripts/check_chainbreak.py ===="
           python scripts/check_chainbreak.py || true
+      - name: 合规扫描（本机路径 / 用户名 / 内网IP / 密钥 / 客户与个人信息）
+        # 2026-11-10 起设为阻断门。此前它"通过"是不可信的：git ls-files 默认把中文
+        # 文件名转义成 "\345\256..."，脚本拿转义串当路径，os.path.isfile 恒假，
+        # 所有中文名文档被静默跳过——30 处本机路径一处都没报出来。
+        # 只跑工作区模式（历史遗留另用 --history 人工核查，全量约 30s）。
+        run: python scripts/pre_push_scan.py
       - name: 既有自检工具(能跑就跑, 单脚本失败不阻断)
         # verify_* 与 eval_qa 依赖本机环境/建好的本体; CI 上未必都能跑通,
         # 故逐个跑并打印退出码, 任一失败不阻断整条流水线(跑得到就跑)。

@@ -10,7 +10,7 @@ id 后缀误命中、status 分支抢答），全靠全量回归才发现。
 
 前置: 后端在跑（codes/api_server.py），读键默认 test-read-key。
 每一条断言对应一个真实踩过的坑，根因见
-        D:\\knowledge-base\\obsidian-vault\\projects\\工厂本体建模-过程变化日志-2026-09-15.md
+        <本地知识库>/projects/工厂本体建模-过程变化日志-2026-09-15.md
 """
 import json
 import os
