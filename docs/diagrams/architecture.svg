@@ -91,5 +91,5 @@
 <!-- 模型层 -->
 <rect x="60" y="946" width="1160" height="48" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
 <text x="88" y="976" fill="#334155" font-size="18" font-weight="bold" font-family="Microsoft YaHei">模型层</text>
-<text x="178" y="976" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">本地 Ollama（可全离线，数据不出厂） · 云端 DeepSeek / 兼容 OpenAI 接口 · 本地 embedding —— 改组态见 config/model_config.json</text>
+<text x="178" y="976" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">本地 Ollama（可全离线，数据不出厂） · 云端 DeepSeek / 兼容 OpenAI 接口 · 本地 embedding —— 改模型见 config/model_config.json</text>
 </svg>

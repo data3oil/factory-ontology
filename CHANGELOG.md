@@ -34,11 +34,20 @@
 - **CI 补「预建阀门本体」**：干净检出没有 `output/valve.nt`（生成物不入库），`test_routes_and_ask_loop` 必挂在本机却一直绿。改用 `valve_demo.build()`（有显式 rels），不能用 `multi_model.build()`（缺 rels，还会写坏 `kbs.json` 与词典）。
 - **合规扫描器重写**：`core.quotepath` 使中文名路径被转义 → `os.path.isfile` 恒假 → 中文名文件从未被扫；补 `-z` 取原始路径、历史模式、规则集（手机号/真实邮箱/本机路径/内网 IP/疑似密钥/连接串/硬编码口令）、口令取值合理性判断；豁免须写理由；CI 加阻断步骤。
 
+### 移除
+
+- **`codes/memnote.py` 与 README「记忆沉淀（可选）：行业经验 note 进 OptMem」一节**（合规）。原实现用 `subprocess` 调用 `~/optmem/memo`——一个**用户家目录下的外部程序，不是本仓库代码**，却在文档里宣称「零依赖（纯标准库）」；默认写用户家目录、默认开启（`OPTMEM_NOTE` 默认 `1`）；README 让用户跑的 `memo_search.py` 在仓库里**根本不存在**；主流程从未 import 它，测试与脚本也没有任何引用，在本机（无 `~/optmem`）实际 100% 静默失败。更关键的是语义：行业词典里「术语 → 字段」的映射本身就是甲方的数据模型，把它交给一个可同步/可上传的第三方记忆服务，等于甲方数据出界，与「数据不出厂」直接冲突。功能贡献为零、合规成本不为零，整块删除。
+
 ### 文档
 
 - README 全面校准：补公理集与推理机章节、检索降级链插入 `axiom` 层、REST API 补 4 个端点、核心组件补 3 个模块、修正与代码矛盾的表述（原写「不涉及推理机」）、修掉过期的数据路径（`data/` → `data_ai4i/` 等）与失真数字（`pytest 29 项`、`九道自检门`、`1066 行`）。
 - 重绘 `docs/diagrams/architecture.svg` 与 `dataflow.svg`（旧图停留在 2026-09-02，检索层只有三层、无公理推理）。
+- 重绘 `docs/diagrams/roadmap.svg`：六步深色版 → 七步浅色版，**新增「配公理集 · 跑推理」一步**；修正 `multi_table` → `multi_model`、`FOOD_MODEL=local_ollama` → `FOOD_MODEL=local`（`local_ollama` 是早期命名，现行 `model_config.json` 只有 `local`/`cloud`）；补上「公理集」作为换行业四件套之一。该图此前是孤儿文件，README 从未引用，现挂到「落地路线」一节。
+- `docs/部署.md` 部署架构图同步：`multi_table` → `multi_model`，知识库那格补「公理集 · 前向链推理」，并说明推理产物不写回本体。
+- `docs/方法论-两阶段泛化建模.md` 分层图补「公理推理层（可选，0.6.0 起）」，并按显示宽度重排对齐（原图边框 47 格、内容行 49–50 格，等宽字体下是歪的）。
+- 版本号统一到 **0.6.0**：`codes/run.py` 的 `__version__`、`codes/e2e_test.py` 的版本断言、README 徽章、本文件。
 - 新增 `docs/本体公理集与小型推理机-20261110.md`。
+- `scripts/eval_qa_baseline.json` 刷新为 2026-11-10 实跑结果（331 题、命中 250/250、误答 0、编造 0）。
 
 ## [0.5.0] - 2026-10-12
 

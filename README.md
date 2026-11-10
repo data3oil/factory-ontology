@@ -274,6 +274,14 @@ python scripts/verify_ontology_evolve.py        # 预期 PASS 23 / FAIL 0
 
 前端「本体自演进」面板与此一一对应：待确认候选列表（每条可选归属类）、确认/拒绝、历史与回退。
 
+## 落地路线：七步从零到被使用
+
+![工厂落地路线](docs/diagrams/roadmap.svg)
+
+从空目录到一个业务真用得上的库，是七步：建骨架 → 接入数据建模 → 配词典 → **配公理集跑推理** → 部署 → 用起来 → 运维合规。每一步都有对应工具，没有一步需要写代码。
+
+换一个工厂只换四样东西——**数据、schema、词典、公理集**，规则引擎、推理机与检索链路一行不改。
+
 ## 快速开始
 
 ```bash
@@ -661,21 +669,6 @@ python scripts/run_all_gates.py --fast   # 跳过评测基线，9 门
 - [规模化](docs/规模化.md)：从内存图到图数据库的升级路径
 - [逻辑推理与可解释](docs/逻辑推理与可解释-设计.md)：轻量 + 确定性 + 可解释设计
 - 贡献规范见 [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## 记忆沉淀（可选）：行业经验 note 进 OptMem
-
-`codes/memnote.py` 提供轻量"记忆沉淀"命令/函数，把**行业词典经验、建模经验**固化进
-OptMem（可选增强，跨行业、跨会话复用）。**不侵入主流程、零依赖**（纯标准库），按需触发，失败静默。
-
-```bash
-python codes/memnote.py lexicon <行业> <中文术语> <英文>        # 行业词典经验
-python codes/memnote.py model  <行业> "<建模经验一句话>"          # 建模/映射经验
-python codes/memnote.py note   "<一行经验, ≤280字节>"             # 直接记
-python codes/memnote.py hint                                      # 关键节点提示
-```
-
-建议在"新行业词典/同义词组建成后、建模映射调通"时沉淀。可用 `OPTMEM_NOTE=0` 关闭；检索复用见
-`python memo_search.py "<关键词>"`（OptMem 检索）。命令行参数缺省用 `python` 的 memo 工具。
 
 ## 一键启动
 
