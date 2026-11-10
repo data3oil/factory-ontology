@@ -254,3 +254,47 @@ def test_bad_lines_counted_not_fatal(tmp_path):
     lines = [nt("w1", T, "Widget"), "this is not n-triples"]
     rep, _ = run(tmp_path, lines)
     assert rep["bad_lines"] == 1
+
+
+# ───────────────────────── 命名空间 ─────────────────────────
+
+def test_chain_survives_mixed_namespace_prefix(tmp_path):
+    """类在 factory.example#、对象属性在 food.example# 时，属性链仍要能走通。
+
+    真实来源：食品库 food.nt 就是这么混前缀的（类在 factory.example#，对象属性在
+    food.example#）。种子按「出现最多的 # 前缀」取，取到类所在命名空间，于是
+    链解析出的 #produces 在数据里根本不存在 —— 一条都推不出来，而且不报错。
+    2026-11-10 修：唯一局部名匹配时回退到数据里的真 IRI，并记录回退。
+    """
+    F = "http://factory.example/ontology#"
+    D = "http://food.example/ontology#"
+    OWL_CLASS = "http://www.w3.org/2002/07/owl#Class"
+    triples = [
+        (F + "Food_products", T, OWL_CLASS),
+        (F + "Food_raw_materials", T, OWL_CLASS),
+        (F + "Food_products_P1", T, F + "Food_products"),
+        (F + "Food_raw_materials_R1", T, F + "Food_raw_materials"),
+        # 边：主语/宾语是 factory 前缀，谓词是 food 前缀
+        (F + "Food_batches_B1", D + "produces", F + "Food_products_P1"),
+        (F + "Food_batch_ingredient_I1", D + "belongsToBatch", F + "Food_batches_B1"),
+        (F + "Food_batch_ingredient_I1", D + "usesRawMaterial", F + "Food_raw_materials_R1"),
+    ]
+    cfg = {
+        "prefix": F,          # 与数据里的类同前缀，但覆盖不到对象属性
+        "chains": [{
+            "id": "C1", "label": "用料",
+            "path": [{"prop": "produces", "inverse": True},
+                     {"prop": "belongsToBatch", "inverse": True},
+                     {"prop": "usesRawMaterial", "inverse": False}],
+            "implies": "hasMaterial",
+        }],
+    }
+    ax = ar.Axioms(cfg, {}, triples)
+    r = ar.Reasoner(triples, ax)
+    r.run()
+    inferred = [t for t in r.facts if t in r.just]
+    got = [(s.rsplit("#", 1)[-1], p.rsplit("#", 1)[-1], o.rsplit("#", 1)[-1]) for s, p, o in inferred]
+    assert got == [("Food_products_P1", "hasMaterial", "Food_raw_materials_R1")], got
+    # 回退要留痕，不能静默改前缀
+    assert ax.prefix_fallbacks, "回退必须记录"
+    assert ("produces", D + "produces") in ax.prefix_fallbacks

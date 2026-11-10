@@ -476,6 +476,7 @@ def run(kb, fix_dangling=True):
         "repaired": len(r.repaired),
         "schema_mismatch": ax.schema_mismatch,
         "endpoint_mismatch": r.endpoint_mismatch,
+        "prefix_fallbacks": ax.prefix_fallbacks,
         "rule_conflicts": r.rule_conflicts,
         "functional_conflicts": fc,
         "disjoint_conflicts": dc,

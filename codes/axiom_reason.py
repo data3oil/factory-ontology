@@ -109,6 +109,20 @@ class Axioms(object):
         self.derived = []
         self.schema_mismatch = []
 
+        # 数据里的真实 IRI 索引（局部名 -> 全 IRI 集合）。
+        # 起因（2026-11-10）：食品库数据里**类**在 factory.example#、**对象属性**在 food.example#，
+        # 而 detect_prefix 只取「出现最多的 # 前缀」，于是公理文件的前缀是 factory.example#，
+        # 解析出的 #produces 在数据里根本不存在 → 链一条都走不通（推 0 条，还不报错）。
+        # 阀门库整库同一前缀，所以没暴露。
+        self._iris = set()
+        self._local = {}
+        for s, p, o in nt_triples:
+            for x in (s, p, o):
+                if isinstance(x, str) and x.startswith("http") and "#" in x:
+                    self._iris.add(x)
+                    self._local.setdefault(x.rsplit("#", 1)[1], set()).add(x)
+        self.prefix_fallbacks = []   # [(名字, 实际用的 IRI)]：回退过谁，进报告，不静默
+
         self.subclass = []          # (sub, super, axiom_id)
         for s, p, o in nt_triples:
             if p == RDFS_SUBCLASS:
@@ -155,11 +169,24 @@ class Axioms(object):
             })
 
     def _iri(self, name):
+        """名字 -> IRI。前缀拼出来在数据里不存在时，按局部名回退到数据里的真 IRI。
+
+        只在「唯一局部名匹配」时回退：有歧义就退回前缀拼法，宁可不推也不推错。
+        """
         if name is None:
             return None
         if name.startswith("http"):
             return name
-        return self.prefix + name
+        cand = self.prefix + name
+        if cand in self._iris:
+            return cand
+        alts = self._local.get(name) or set()
+        if len(alts) == 1:
+            got = next(iter(alts))
+            if got != cand:
+                self.prefix_fallbacks.append((name, got))
+            return got
+        return cand
 
     def _class_iri(self, ent):
         """entity -> 类 IRI。导出器用 table 名首字母大写作类名（valve_products → Valve_products）。"""
