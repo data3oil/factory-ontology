@@ -1,63 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="920" viewBox="0 0 1280 920">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1010" viewBox="0 0 1280 1010">
 <defs>
 <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#eef2f7"/></linearGradient>
 <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0d9488"/></marker>
 </defs>
-<rect width="1280" height="920" fill="url(#bg)"/>
-<text x="640" y="50" fill="#0f172a" font-size="38" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">factory-ontology 系统架构</text>
-<text x="640" y="80" fill="#64748b" font-size="18" text-anchor="middle" font-family="Microsoft YaHei">本体驱动 · 规则确定性 · GraphRAG 兜底 · 可解释 · 全本地化</text>
+<rect width="1280" height="1010" fill="url(#bg)"/>
+<text x="640" y="46" fill="#0f172a" font-size="36" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">factory-ontology 系统架构</text>
+<text x="640" y="76" fill="#64748b" font-size="17" text-anchor="middle" font-family="Microsoft YaHei">本体驱动 · 规则确定性 · 公理推理可解释 · GraphRAG 兜底 · 数据不出厂 · v0.6.0</text>
 
 <!-- 交付层 -->
-<rect x="60" y="108" width="1160" height="105" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
-<rect x="60" y="108" width="1160" height="6" rx="3" fill="#0d9488"/>
-<text x="90" y="138" fill="#0d9488" font-size="22" font-weight="bold">交付层（用户触点）</text>
-<rect x="90" y="150" width="350" height="50" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="120" y="174" fill="#0f172a" font-size="19">📱 移动端 APP（PWA）</text><text x="120" y="194" fill="#64748b" font-size="15">问答 · 扫码溯源 · 反向追溯</text>
-<rect x="465" y="150" width="350" height="50" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="495" y="174" fill="#0f172a" font-size="19">🎤 语音助手（本地）</text><text x="495" y="194" fill="#64748b" font-size="15">faster-whisper · edge-tts</text>
-<rect x="840" y="150" width="350" height="50" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="870" y="174" fill="#0f172a" font-size="19">⚙️ Web 管理后台</text><text x="870" y="194" fill="#64748b" font-size="15">数据上传 · 词典 · 审计</text>
+<rect x="60" y="100" width="1160" height="100" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
+<rect x="60" y="100" width="1160" height="6" rx="3" fill="#0d9488"/>
+<text x="90" y="130" fill="#0d9488" font-size="21" font-weight="bold" font-family="Microsoft YaHei">交付层（用户触点）</text>
+<rect x="90" y="142" width="350" height="46" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="112" y="162" fill="#0f172a" font-size="17" font-family="Microsoft YaHei">Web 前端（Svelte5）</text><text x="112" y="180" fill="#64748b" font-size="13" font-family="Microsoft YaHei">问答 · 证据溯源 · 公理与推理 · 自演进</text>
+<rect x="465" y="142" width="350" height="46" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="487" y="162" fill="#0f172a" font-size="17" font-family="Microsoft YaHei">移动端 PWA · 扫码溯源</text><text x="487" y="180" fill="#64748b" font-size="13" font-family="Microsoft YaHei">正向追溯 · 反向召回</text>
+<rect x="840" y="142" width="350" height="46" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="862" y="162" fill="#0f172a" font-size="17" font-family="Microsoft YaHei">语音助手（本地）</text><text x="862" y="180" fill="#64748b" font-size="13" font-family="Microsoft YaHei">faster-whisper · edge-tts</text>
+
+<line x1="640" y1="200" x2="640" y2="226" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
 <!-- API 层 -->
-<line x1="640" y1="213" x2="640" y2="240" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
-<rect x="60" y="245" width="1160" height="95" rx="14" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
-<rect x="60" y="245" width="1160" height="6" rx="3" fill="#7c3aed"/>
-<text x="90" y="275" fill="#7c3aed" font-size="22" font-weight="bold">API 层（FastAPI，业务集中）</text>
-<text x="90" y="305" fill="#0f172a" font-size="18">/api/ask · /api/trace/forward · /api/trace/reverse · /api/scan · /api/export · /api/stats</text>
-<text x="90" y="328" fill="#64748b" font-size="16">/api/admin/*（upload/kbs/audit/sync/rebuild）· 角色化鉴权(admin/read)</text>
+<rect x="60" y="230" width="1160" height="104" rx="14" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
+<rect x="60" y="230" width="1160" height="6" rx="3" fill="#7c3aed"/>
+<text x="90" y="260" fill="#7c3aed" font-size="21" font-weight="bold" font-family="Microsoft YaHei">API 层（FastAPI · 全库 67 条 /api 路由，11 个路由族）</text>
+<text x="90" y="288" fill="#0f172a" font-size="16" font-family="Microsoft YaHei">/api/ask · /api/axioms（读/存/重生成/推理）· /api/trace/* · /api/scan · /api/ontology/*（图/演进/契约）</text>
+<text x="90" y="312" fill="#64748b" font-size="15" font-family="Microsoft YaHei">角色化鉴权（admin/read，fail-closed）· 多租户行级隔离 · 令牌吊销与限速 · 哈希链审计 · 上传上限</text>
 
-<!-- 问答推理层 -->
-<line x1="640" y1="340" x2="640" y2="367" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
-<rect x="60" y="372" width="1160" height="110" rx="14" fill="#ffffff" stroke="#f59e0b" stroke-width="2"/>
-<rect x="60" y="372" width="1160" height="6" rx="3" fill="#f59e0b"/>
-<text x="90" y="402" fill="#d97706" font-size="22" font-weight="bold">问答/推理层（确定性优先）</text>
-<rect x="90" y="416" width="360" height="54" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="118" y="440" fill="#0f172a" font-size="19">① 规则引擎 ontology_qa_v3</text><text x="118" y="462" fill="#64748b" font-size="15">结构化 100% · 零 token · 可解释</text>
-<rect x="470" y="416" width="360" height="54" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="498" y="440" fill="#0f172a" font-size="19">② 逻辑推理桥 logical_qa</text><text x="498" y="462" fill="#64748b" font-size="15">LLM→逻辑查询→确定性执行（KAG）</text>
-<rect x="850" y="416" width="340" height="54" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="878" y="440" fill="#0f172a" font-size="19">③ GraphRAG graph_rag</text><text x="878" y="462" fill="#64748b" font-size="15">图遍历 + LLM 兜底 · 词典引导</text>
+<line x1="640" y1="334" x2="640" y2="360" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
+
+<!-- 原子层 -->
+<rect x="60" y="364" width="1160" height="286" rx="14" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<rect x="60" y="364" width="1160" height="6" rx="3" fill="#2563eb"/>
+<text x="90" y="394" fill="#2563eb" font-size="21" font-weight="bold" font-family="Microsoft YaHei">原子层（开源算法原子，可被闭源编排层组合调度）</text>
+
+<!-- 本体认知原子 -->
+<rect x="90" y="410" width="350" height="180" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+<text x="112" y="436" fill="#1d4ed8" font-size="18" font-weight="bold" font-family="Microsoft YaHei">本体认知原子（底座）</text>
+<text x="112" y="464" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">schema 驱动统一建模</text>
+<text x="112" y="486" fill="#64748b" font-size="13" font-family="Microsoft YaHei">实体/关系/属性角色 · suggest_schema</text>
+<text x="112" y="512" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">公理集 + 前向链推理机</text>
+<text x="112" y="534" fill="#64748b" font-size="13" font-family="Microsoft YaHei">链/单值/不相交/业务规则 · 带依据</text>
+<text x="112" y="560" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">确定性规则问答（零 token）</text>
+<text x="112" y="582" fill="#64748b" font-size="13" font-family="Microsoft YaHei">数量/极值/平均/过滤/范围/计数</text>
+
+<!-- rag 原子 -->
+<rect x="465" y="410" width="350" height="180" rx="10" fill="#f5f3ff" stroke="#c4b5fd"/>
+<text x="487" y="436" fill="#6d28d9" font-size="18" font-weight="bold" font-family="Microsoft YaHei">rag 原子</text>
+<text x="487" y="464" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">本体引导 GraphRAG</text>
+<text x="487" y="486" fill="#64748b" font-size="13" font-family="Microsoft YaHei">沿关系路径扩种子 → 子图检索 + LLM</text>
+<text x="487" y="512" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">向量混合检索</text>
+<text x="487" y="534" fill="#64748b" font-size="13" font-family="Microsoft YaHei">BM25 稀疏 + 本地向量，RRF 融合</text>
+<text x="487" y="560" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">逻辑推理桥</text>
+<text x="487" y="582" fill="#64748b" font-size="13" font-family="Microsoft YaHei">LLM 转逻辑查询 → 确定性执行</text>
+
+<!-- 事件原子 -->
+<rect x="840" y="410" width="350" height="180" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+<text x="862" y="436" fill="#c2410c" font-size="18" font-weight="bold" font-family="Microsoft YaHei">事件原子 + 扩展</text>
+<text x="862" y="464" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">数据变更领域事件</text>
+<text x="862" y="486" fill="#64748b" font-size="13" font-family="Microsoft YaHei">DATA_ADDED / METRIC_ANOMALY / …</text>
+<text x="862" y="512" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">生态插件（四类扩展点）</text>
+<text x="862" y="534" fill="#64748b" font-size="13" font-family="Microsoft YaHei">decision / data_source / push / template</text>
+<text x="862" y="560" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">MCP server</text>
+<text x="862" y="582" fill="#64748b" font-size="13" font-family="Microsoft YaHei">AI agent 可直接调问答与溯源</text>
+
+<!-- 问答链路 -->
+<rect x="90" y="604" width="1100" height="34" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-dasharray="5,4"/>
+<text x="110" y="627" fill="#334155" font-size="15" font-family="Microsoft YaHei">问答降级链： 规则引擎 → 公理推理机 → 逻辑推理桥 → 本体引导 GraphRAG → 向量混合检索 → LLM 兜底（确定性优先，逐层兜底）</text>
+
+<line x1="640" y1="650" x2="640" y2="676" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
 <!-- 本体层 -->
-<line x1="640" y1="482" x2="640" y2="509" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
-<rect x="60" y="514" width="1160" height="88" rx="14" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
-<rect x="60" y="514" width="1160" height="6" rx="3" fill="#7c3aed"/>
-<text x="90" y="544" fill="#7c3aed" font-size="22" font-weight="bold">本体层</text>
-<rect x="90" y="557" width="530" height="36" rx="8" fill="#f5f3ff" stroke="#ddd6fe"/><text x="120" y="581" fill="#0f172a" font-size="18">本体图（实体-关系-属性，valve.nt）</text>
-<rect x="650" y="557" width="540" height="36" rx="8" fill="#f5f3ff" stroke="#ddd6fe"/><text x="680" y="581" fill="#0f172a" font-size="18">词典 lexicon（中文字段名→字段，换领域只换它）</text>
+<rect x="60" y="680" width="1160" height="108" rx="14" fill="#ffffff" stroke="#0891b2" stroke-width="2"/>
+<rect x="60" y="680" width="1160" height="6" rx="3" fill="#0891b2"/>
+<text x="90" y="710" fill="#0891b2" font-size="21" font-weight="bold" font-family="Microsoft YaHei">本体层（三份外置资产，换行业只换它们）</text>
+<rect x="90" y="722" width="350" height="50" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="112" y="742" fill="#0f172a" font-size="16" font-family="Microsoft YaHei">本体图 · output/&lt;kb&gt;.nt</text><text x="112" y="761" fill="#64748b" font-size="13" font-family="Microsoft YaHei">N-Triples 标准序列化，实体-关系-属性</text>
+<rect x="465" y="722" width="350" height="50" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="487" y="742" fill="#0f172a" font-size="16" font-family="Microsoft YaHei">公理集 · config/axioms/&lt;kb&gt;.json</text><text x="487" y="761" fill="#64748b" font-size="13" font-family="Microsoft YaHei">人可读可改，种子生成，前端可编辑</text>
+<rect x="840" y="722" width="350" height="50" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="862" y="742" fill="#0f172a" font-size="16" font-family="Microsoft YaHei">词典 · config/lexicon_&lt;kb&gt;.json</text><text x="862" y="761" fill="#64748b" font-size="13" font-family="Microsoft YaHei">中文字段名/枚举值/同义词，问答靠它</text>
+
+<line x1="640" y1="788" x2="640" y2="814" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
 <!-- 数据层 -->
-<line x1="640" y1="602" x2="640" y2="629" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
-<rect x="60" y="634" width="1160" height="100" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
-<rect x="60" y="634" width="1160" height="6" rx="3" fill="#0d9488"/>
-<text x="90" y="664" fill="#0d9488" font-size="22" font-weight="bold">数据层</text>
-<rect x="90" y="677" width="360" height="48" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="118" y="700" fill="#0f172a" font-size="18">data_loader 多格式读取</text><text x="118" y="720" fill="#64748b" font-size="15">CSV / JSON / SQLite / Excel</text>
-<rect x="470" y="677" width="360" height="48" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="498" y="700" fill="#0f172a" font-size="18">multi_table 多表建本体</text><text x="498" y="720" fill="#64748b" font-size="15">外键检测 · join表 · 跨表关系</text>
-<rect x="850" y="677" width="340" height="48" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="878" y="700" fill="#0f172a" font-size="18">db_loader ERP 直连</text><text x="878" y="720" fill="#64748b" font-size="15">MySQL / PostgreSQL · graph_store 持久化</text>
+<rect x="60" y="818" width="1160" height="100" rx="14" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<rect x="60" y="818" width="1160" height="6" rx="3" fill="#475569"/>
+<text x="90" y="848" fill="#334155" font-size="21" font-weight="bold" font-family="Microsoft YaHei">数据层</text>
+<rect x="90" y="860" width="265" height="46" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="110" y="880" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">data_loader 多格式读取</text><text x="110" y="898" fill="#64748b" font-size="12" font-family="Microsoft YaHei">CSV / JSON / SQLite / Excel</text>
+<rect x="370" y="860" width="265" height="46" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="390" y="880" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">多表 → 统一本体</text><text x="390" y="898" fill="#64748b" font-size="12" font-family="Microsoft YaHei">跨表关系 · 外键检测 · schema 驱动</text>
+<rect x="650" y="860" width="265" height="46" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="670" y="880" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">db_loader 厂区直连</text><text x="670" y="898" fill="#64748b" font-size="12" font-family="Microsoft YaHei">MySQL / PostgreSQL（行级租户隔离）</text>
+<rect x="930" y="860" width="260" height="46" rx="8" fill="#f8fafc" stroke="#cbd5e1"/><text x="950" y="880" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">graph_store 持久化</text><text x="950" y="898" fill="#64748b" font-size="12" font-family="Microsoft YaHei">SQLite 图存储（20 万实体过渡）</text>
+
+<line x1="640" y1="918" x2="640" y2="942" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
 <!-- 模型层 -->
-<line x1="640" y1="734" x2="640" y2="761" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
-<rect x="60" y="766" width="1160" height="90" rx="14" fill="#ffffff" stroke="#e11d48" stroke-width="2"/>
-<rect x="60" y="766" width="1160" height="6" rx="3" fill="#e11d48"/>
-<text x="90" y="796" fill="#be123c" font-size="22" font-weight="bold">模型层（model_llm，可切换）</text>
-<rect x="90" y="809" width="530" height="38" rx="8" fill="#fff1f2" stroke="#fecdd3"/><text x="120" y="834" fill="#0f172a" font-size="18">☁️ cloud DeepSeek（联网）</text>
-<rect x="650" y="809" width="540" height="38" rx="8" fill="#fff1f2" stroke="#fecdd3"/><text x="680" y="834" fill="#0f172a" font-size="18">🖥️ local Ollama（离线，数据不出厂）</text>
-
-<!-- 底部说明 -->
-<rect x="60" y="872" width="1160" height="36" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
-<text x="640" y="896" text-anchor="middle" fill="#64748b" font-size="17" font-family="Microsoft YaHei">CSV/结构化数据 → 工厂本体建模 → 确定性问答 + GraphRAG 检索 → 答案带证据 · 一企业一本体，换行业只换词典</text>
+<rect x="60" y="946" width="1160" height="48" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/>
+<text x="88" y="976" fill="#334155" font-size="18" font-weight="bold" font-family="Microsoft YaHei">模型层</text>
+<text x="178" y="976" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">本地 Ollama（可全离线，数据不出厂） · 云端 DeepSeek / 兼容 OpenAI 接口 · 本地 embedding —— 改组态见 config/model_config.json</text>
 </svg>

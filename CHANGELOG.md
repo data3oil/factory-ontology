@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.6.0] - 2026-11-10
+
+### 公理集与小型推理机（跨行业种子 + 前向链，闭环到问答）
+
+> 主题：schema 表达不了「产品经批次走到原料」这类跨表知识，硬编码进代码又违背「换行业只换配置」。加一层人能读、能改的公理集，配一个只做前向链的小推理机。
+
+**新增 · 公理集**
+- `config/axioms/_seed.json`：**角色种子**——只认「哪张表是产品/批次/原料/质检/设备」，判据是表名里的词，不写死任何一行的表名。
+- `generate(kb)`：按该库**数据里真实存在的边**找路径，不去猜「应该有什么边」；走不通就不生成，并记下跳过原因。同一份种子在 valve（2 步）与 food（3 步）都出得来，路径长度随数据长法不同。
+- `config/axioms/<kb>.json`：分库公理集，人可改（前端改的就是它）。保存前自动备份 `.bak_<时间戳>`，结构不合规直接拒绝，不写半成品。
+
+**新增 · 小型推理机**（`codes/axiom_reason.py`，零依赖、纯标准库）
+- 六类公理：RDFS 类型继承 / domain-range 补充 / 属性链 / 单值 / 不相交 / 业务规则（条件 + 沿一条关系 + 赋值）。
+- 半朴素前向链跑到不动点，每条新事实带 justification（哪条公理、由哪几条推）。
+- 端点类型对不上就跳过该公理并记账——**宁可不推，也不推错**；撞到矛盾只报告，不静默改既有状态。
+- 产物写 `output/reason/<kb>/{inferred.nt,closure.nt,report.json}`，**不写回** `output/<kb>.nt`；引用断裂按尾段唯一匹配在内存修正，原文件不动。
+- 实测：valve 1065 条 → **+194 条**（17 条公理，2 轮，0.01s）；food 453 条 → **+22 条**（23 条公理，2 轮）。
+
+**新增 · 接口与前端**
+- 4 个端点：`GET /api/axioms`、`PUT /api/axioms`（结构不合规 400）、`POST /api/axioms/seed`、`POST /api/axioms/reason`；`api_server._ROUTE_FAMILIES` 增 `axiom` 族。
+- 前端「建本体与演进 → 公理与推理」面板（`AxiomPanel.svelte`）：按种子重生成 / 跑推理 / 保存、角色识别与跳过说明、表单与 JSON 双模编辑、推理结果与带依据样例、**试问**（走正式 `/api/ask`，看 mode / 引擎 / 置信 / 证据）。
+
+**新增 · 问答接入（闭环）**
+- `_ask_impl` 增 `axiom` 引擎：规则答上了但**没有行级证据**、或规则未命中时先让公理试；命中进 fusion，`source=axiom` 与 `rule/logical` 同级。不命中返回 None，链路原样往下走。
+- 公理只在问法命中 `ask.terms` **且**找到实体时才开口，所以「有多少台设备」仍归规则引擎，不越界。
+
+### 修复
+
+- **axiom IRI 解析（真 bug，2026-11-10）**：食品库数据里「类」在 `factory.example#`、「对象属性」在 `food.example#`，而种子按「出现最多的 `#` 前缀」取，取到类的命名空间，链解析出的 `#produces` 在数据里不存在 → 一条都推不出来**且不报错**（阀门库整库同前缀，所以一直没暴露）。改为唯一局部名匹配时回退到数据里的真 IRI，回退明细写进 `report.prefix_fallbacks`，有歧义就不推。
+- **`multi_model._register_kb` 写坏入库配置**：把 `os.path.relpath` 结果原样写进 `config/kbs.json`，Windows 下是 `output\valve.nt`，提交后 Linux/macOS 侧拼出的路径不存在。统一归一化为正斜杠（与 `api_server._update_kbs` 对齐），并加回归测试。
+- **e2e 暴露的 5 处断链**：`roles.js` 缺 `axioms` 导致入口被权限矩阵过滤；BFF 没有 `/api/axioms` 路由，落到 SPA fallback 返回 200 + index.html；保存失败也返回 200；保存重排 145 行 diff；`baseContext` 硬编码本机绝对路径。
+- **CI 补「预建阀门本体」**：干净检出没有 `output/valve.nt`（生成物不入库），`test_routes_and_ask_loop` 必挂在本机却一直绿。改用 `valve_demo.build()`（有显式 rels），不能用 `multi_model.build()`（缺 rels，还会写坏 `kbs.json` 与词典）。
+- **合规扫描器重写**：`core.quotepath` 使中文名路径被转义 → `os.path.isfile` 恒假 → 中文名文件从未被扫；补 `-z` 取原始路径、历史模式、规则集（手机号/真实邮箱/本机路径/内网 IP/疑似密钥/连接串/硬编码口令）、口令取值合理性判断；豁免须写理由；CI 加阻断步骤。
+
+### 文档
+
+- README 全面校准：补公理集与推理机章节、检索降级链插入 `axiom` 层、REST API 补 4 个端点、核心组件补 3 个模块、修正与代码矛盾的表述（原写「不涉及推理机」）、修掉过期的数据路径（`data/` → `data_ai4i/` 等）与失真数字（`pytest 29 项`、`九道自检门`、`1066 行`）。
+- 重绘 `docs/diagrams/architecture.svg` 与 `dataflow.svg`（旧图停留在 2026-09-02，检索层只有三层、无公理推理）。
+- 新增 `docs/本体公理集与小型推理机-20261110.md`。
+
 ## [0.5.0] - 2026-10-12
 
 ### 本体自定义与本体自演进（人在环：候选自动提 → 人拍板并入 → 版本化 → 可回退）

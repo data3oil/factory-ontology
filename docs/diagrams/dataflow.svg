@@ -1,61 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="920" viewBox="0 0 1280 920">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0b1120"/><stop offset="1" stop-color="#16203a"/>
-    </linearGradient>
-    <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#6fcf97"/>
-    </marker>
-    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.35"/></filter>
-  </defs>
-  <rect width="1280" height="920" fill="url(#bg)"/>
-  <text x="640" y="52" fill="#e8eefb" font-size="42" font-weight="bold" text-anchor="middle" font-family="PingFang SC,Microsoft YaHei,sans-serif">数据走向逻辑图</text>
-  <text x="640" y="80" fill="#8fa3c8" font-size="16" text-anchor="middle">从企业台账到用户答案的完整链路</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="950" viewBox="0 0 1280 950">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#eef2f7"/></linearGradient>
+<marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0d9488"/></marker>
+</defs>
+<rect width="1280" height="950" fill="url(#bg)"/>
+<text x="640" y="46" fill="#0f172a" font-size="36" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">数据走向：从企业台账到带依据的答案</text>
+<text x="640" y="76" fill="#64748b" font-size="17" text-anchor="middle" font-family="Microsoft YaHei">CSV 进 · 答案出 · 每个答案都能追回原始记录，且全程在厂内完成</text>
 
-  <!-- 数据源 -->
-  <rect x="120" y="110" width="1040" height="90" rx="14" fill="#1a2336" opacity="0.9" stroke="#3498db" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="140" fill="#7fb8e8" font-size="20" font-weight="bold">① 数据源（企业台账）</text>
-  <rect x="150" y="152" width="300" height="38" rx="8" fill="#24304d"/><text x="178" y="177" fill="#e8eefb" font-size="16">CSV / Excel 台账</text>
-  <rect x="490" y="152" width="300" height="38" rx="8" fill="#24304d"/><text x="518" y="177" fill="#e8eefb" font-size="16">ERP 数据库(MySQL/PG)</text>
-  <rect x="830" y="152" width="300" height="38" rx="8" fill="#24304d"/><text x="858" y="177" fill="#e8eefb" font-size="16">Web 上传(/admin)</text>
+<!-- ① 数据源 -->
+<circle cx="84" cy="134" r="20" fill="#0d9488"/><text x="84" y="141" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">1</text>
+<rect x="120" y="104" width="1100" height="90" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
+<text x="146" y="132" fill="#0d9488" font-size="20" font-weight="bold" font-family="Microsoft YaHei">数据源（企业自有）</text>
+<rect x="146" y="142" width="250" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="164" y="168" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">CSV / Excel 台账</text>
+<rect x="414" y="142" width="250" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="432" y="168" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">ERP / MES 数据库</text>
+<rect x="682" y="142" width="250" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="700" y="168" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">Web 上传（带鉴权）</text>
+<rect x="950" y="142" width="242" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="968" y="168" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">JSON / SQLite</text>
 
-  <!-- 箭头到 数据接入 -->
-  <line x1="640" y1="200" x2="640" y2="225" stroke="#6fcf97" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="670" y1="194" x2="670" y2="220" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
-  <rect x="120" y="230" width="1040" height="80" rx="14" fill="#1a2336" opacity="0.9" stroke="#27ae60" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="260" fill="#6fcf97" font-size="20" font-weight="bold">② 数据接入</text>
-  <text x="150" y="290" fill="#e8eefb" font-size="16">data_loader（多格式）· db_loader（ERP 直连）· data_import（定时同步）· data_quality（质量校验）</text>
+<!-- ② 数据接入 -->
+<circle cx="84" cy="266" r="20" fill="#0d9488"/><text x="84" y="273" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">2</text>
+<rect x="120" y="236" width="1100" height="90" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"/>
+<text x="146" y="264" fill="#0d9488" font-size="20" font-weight="bold" font-family="Microsoft YaHei">数据接入</text>
+<rect x="146" y="274" width="340" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="164" y="300" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">data_loader：多格式统一读取</text>
+<rect x="504" y="274" width="340" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="522" y="300" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">db_loader：直连读表（带行级租户）</text>
+<rect x="862" y="274" width="330" height="40" rx="8" fill="#f0fdfa" stroke="#99f6e4"/><text x="880" y="300" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">增量检测：数据 hash 变了才重建</text>
 
-  <line x1="640" y1="310" x2="640" y2="335" stroke="#6fcf97" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="670" y1="326" x2="670" y2="352" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
-  <!-- 本体构建 -->
-  <rect x="120" y="340" width="1040" height="80" rx="14" fill="#1a2336" opacity="0.9" stroke="#9b59b6" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="370" fill="#c39bd3" font-size="20" font-weight="bold">③ 本体构建</text>
-  <text x="150" y="400" fill="#e8eefb" font-size="16">multi_table 多表关联建本体（外键 → 跨表对象属性）→ food.nt（实体-关系-属性）</text>
+<!-- ③ 本体构建 -->
+<circle cx="84" cy="418" r="20" fill="#0891b2"/><text x="84" y="425" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">3</text>
+<rect x="120" y="368" width="1100" height="110" rx="14" fill="#ffffff" stroke="#0891b2" stroke-width="2"/>
+<text x="146" y="396" fill="#0891b2" font-size="20" font-weight="bold" font-family="Microsoft YaHei">本体构建（三份外置资产，换行业只换它们）</text>
+<rect x="146" y="406" width="340" height="58" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="164" y="428" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">① 本体（schema 驱动）</text><text x="164" y="450" fill="#64748b" font-size="13" font-family="Microsoft YaHei">实体/关系/属性角色 → output/&lt;kb&gt;.nt</text>
+<rect x="504" y="406" width="340" height="58" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="522" y="428" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">② 词典（建库自动生成）</text><text x="522" y="450" fill="#64748b" font-size="13" font-family="Microsoft YaHei">字段中文名/枚举/同义词 → lexicon_&lt;kb&gt;.json</text>
+<rect x="862" y="406" width="330" height="58" rx="8" fill="#ecfeff" stroke="#a5f3fc"/><text x="880" y="428" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">③ 公理集（跨行业种子）</text><text x="880" y="450" fill="#64748b" font-size="13" font-family="Microsoft YaHei">沿数据里真实的边生成 → axioms/&lt;kb&gt;.json</text>
 
-  <line x1="640" y1="420" x2="640" y2="445" stroke="#6fcf97" stroke-width="2" marker-end="url(#ar)"/>
+<line x1="670" y1="478" x2="670" y2="504" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
-  <!-- 问答/检索 -->
-  <rect x="120" y="450" width="1040" height="115" rx="14" fill="#1a2336" opacity="0.9" stroke="#e67e22" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="480" fill="#f5b041" font-size="20" font-weight="bold">④ 问答/检索（问题进来）</text>
-  <rect x="150" y="493" width="320" height="58" rx="8" fill="#3a2f1d"/><text x="178" y="516" fill="#e8eefb" font-size="17">规则引擎</text><text x="178" y="538" fill="#8fa3c8" font-size="14">结构化确定性 100%</text>
-  <rect x="490" y="493" width="320" height="58" rx="8" fill="#3a2f1d"/><text x="518" y="516" fill="#e8eefb" font-size="17">逻辑桥</text><text x="518" y="538" fill="#8fa3c8" font-size="14">LLM→逻辑→执行</text>
-  <rect x="830" y="493" width="300" height="58" rx="8" fill="#3a2f1d"/><text x="858" y="516" fill="#e8eefb" font-size="17">GraphRAG</text><text x="858" y="538" fill="#8fa3c8" font-size="14">图遍历 + LLM 兜底</text>
+<!-- ④ 问答/检索 -->
+<circle cx="84" cy="650" r="20" fill="#2563eb"/><text x="84" y="657" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">4</text>
+<rect x="120" y="520" width="1100" height="262" rx="14" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+<text x="146" y="548" fill="#2563eb" font-size="20" font-weight="bold" font-family="Microsoft YaHei">问答与检索（问题进来：确定性优先，逐层兜底）</text>
 
-  <line x1="640" y1="565" x2="640" y2="590" stroke="#6fcf97" stroke-width="2" marker-end="url(#ar)"/>
+<rect x="146" y="562" width="1046" height="34" rx="7" fill="#eff6ff" stroke="#93c5fd"/><text x="164" y="585" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">① 规则引擎 ontology_qa_v3 —— 数量/极值/平均/过滤/范围/计数，确定性、零 token、可复现</text>
+<rect x="146" y="602" width="1046" height="34" rx="7" fill="#eff6ff" stroke="#93c5fd"/><text x="164" y="625" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">② 公理推理机 axiom_service + axiom_reason —— 属性链/单值/不相交/业务规则，答跨表关系并给依据</text>
+<rect x="146" y="642" width="1046" height="34" rx="7" fill="#f5f3ff" stroke="#c4b5fd"/><text x="164" y="665" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">③ 逻辑推理桥 logical_qa —— LLM 把问题转成逻辑查询，再交给确定性执行器</text>
+<rect x="146" y="682" width="1046" height="34" rx="7" fill="#f5f3ff" stroke="#c4b5fd"/><text x="164" y="705" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">④ 本体引导 GraphRAG + 向量混合检索（BM25 + 本地向量，RRF 融合）—— 开放/模糊问法兜底</text>
+<rect x="146" y="722" width="1046" height="34" rx="7" fill="#fff7ed" stroke="#fdba74"/><text x="164" y="745" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">⑤ LLM 兜底 —— 数据缺失就说明缺失，咨询类给建议并声明无唯一答案；不编数字</text>
 
-  <!-- API -->
-  <rect x="120" y="595" width="1040" height="70" rx="14" fill="#1a2336" opacity="0.9" stroke="#3498db" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="625" fill="#7fb8e8" font-size="20" font-weight="bold">⑤ API 层（FastAPI）</text>
-  <text x="150" y="652" fill="#e8eefb" font-size="15">/api/ask（答案+证据）· /trace（溯源）· /scan · /export · /admin（上传/重建）· 鉴权 + 审计</text>
+<line x1="670" y1="782" x2="670" y2="808" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
 
-  <line x1="640" y1="665" x2="640" y2="690" stroke="#6fcf97" stroke-width="2" marker-end="url(#ar)"/>
+<!-- ⑤ API 层 -->
+<circle cx="84" cy="850" r="20" fill="#7c3aed"/><text x="84" y="857" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">5</text>
+<rect x="120" y="820" width="1100" height="60" rx="14" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
+<text x="146" y="848" fill="#7c3aed" font-size="20" font-weight="bold" font-family="Microsoft YaHei">API 层（FastAPI）</text>
+<text x="330" y="848" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">67 条 /api 路由 · 角色化鉴权 · 多租户隔离 · 审计账本 · 上传上限 —— 问答、公理、溯源、图、演进、评测统一出口</text>
+<text x="146" y="870" fill="#64748b" font-size="13" font-family="Microsoft YaHei">POST /api/ask · GET/PUT /api/axioms · POST /api/axioms/seed|reason · /api/trace/* · /api/ontology/*</text>
 
-  <!-- 输出 -->
-  <rect x="120" y="695" width="1040" height="90" rx="14" fill="#1a2336" opacity="0.9" stroke="#e74c3c" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="150" y="725" fill="#f1948a" font-size="20" font-weight="bold">⑥ 输出（用户拿到答案）</text>
-  <rect x="150" y="737" width="240" height="38" rx="8" fill="#3a2226"/><text x="178" y="762" fill="#e8eefb" font-size="16">📱 APP 问答/溯源</text>
-  <rect x="410" y="737" width="240" height="38" rx="8" fill="#3a2226"/><text x="438" y="762" fill="#e8eefb" font-size="16">🎤 语音朗读</text>
-  <rect x="670" y="737" width="240" height="38" rx="8" fill="#3a2226"/><text x="698" y="762" fill="#e8eefb" font-size="16">📄 溯源导出(CSV)</text>
-  <rect x="930" y="737" width="200" height="38" rx="8" fill="#3a2226"/><text x="958" y="762" fill="#e8eefb" font-size="16">🧠 证据(可解释)</text>
+<line x1="670" y1="880" x2="670" y2="902" stroke="#0d9488" stroke-width="2.5" marker-end="url(#ar)"/>
+
+<!-- ⑥ 输出 -->
+<circle cx="84" cy="924" r="20" fill="#0d9488"/><text x="84" y="931" fill="#ffffff" font-size="19" font-weight="bold" text-anchor="middle" font-family="Microsoft YaHei">6</text>
+<rect x="120" y="900" width="1100" height="42" rx="12" fill="#ffffff" stroke="#475569" stroke-width="2"/>
+<text x="146" y="928" fill="#334155" font-size="17" font-weight="bold" font-family="Microsoft YaHei">输出</text>
+<text x="210" y="928" fill="#0f172a" font-size="15" font-family="Microsoft YaHei">答案 + 证据（命中实体/属性/数值）· mode 与引擎 · 推导依据（哪条公理、由哪几条推）· 可回指原始记录 · 数据未出厂</text>
 </svg>

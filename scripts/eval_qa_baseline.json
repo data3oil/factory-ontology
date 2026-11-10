@@ -9,17 +9,17 @@
   },
   "overall": {
     "answerable": 250,
-    "empty_zero": 41,
+    "empty_zero": 0,
     "fabricate": 0,
-    "hit": 158,
-    "hit_rate": 0.632,
-    "miss": 56,
-    "miss_rate": 0.224,
+    "hit": 250,
+    "hit_rate": 1.0,
+    "miss": 0,
+    "miss_rate": 0.0,
     "noans": 81,
-    "refuse_ok": 40,
+    "refuse_ok": 81,
     "total": 331,
-    "wrong": 36,
-    "wrong_rate": 0.144
+    "wrong": 0,
+    "wrong_rate": 0.0
   },
   "per_kb": {
     "ai4i": {
@@ -27,42 +27,6 @@
       "by_category": {
         "attr": {
           "n": 14,
-          "ok": 13
-        },
-        "multi": {
-          "n": 3,
-          "ok": 0
-        },
-        "neg": {
-          "n": 12,
-          "ok": 12
-        },
-        "noans": {
-          "n": 11,
-          "ok": 1
-        },
-        "type": {
-          "n": 2,
-          "ok": 1
-        }
-      },
-      "empty_zero": 10,
-      "fabricate": 0,
-      "hit": 26,
-      "hit_rate": 0.8387,
-      "miss": 0,
-      "miss_rate": 0.0,
-      "noans": 11,
-      "refuse_ok": 1,
-      "total": 42,
-      "wrong": 5,
-      "wrong_rate": 0.1613
-    },
-    "auto_parts": {
-      "answerable": 35,
-      "by_category": {
-        "attr": {
-          "n": 16,
           "ok": 14
         },
         "multi": {
@@ -71,71 +35,107 @@
         },
         "neg": {
           "n": 12,
-          "ok": 9
+          "ok": 12
         },
         "noans": {
-          "n": 9,
-          "ok": 4
+          "n": 11,
+          "ok": 11
         },
         "type": {
-          "n": 4,
+          "n": 2,
           "ok": 2
         }
       },
-      "empty_zero": 5,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 28,
-      "hit_rate": 0.8,
-      "miss": 3,
-      "miss_rate": 0.0857,
+      "hit": 31,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
+      "noans": 11,
+      "refuse_ok": 11,
+      "total": 42,
+      "wrong": 0,
+      "wrong_rate": 0.0
+    },
+    "auto_parts": {
+      "answerable": 35,
+      "by_category": {
+        "attr": {
+          "n": 16,
+          "ok": 16
+        },
+        "multi": {
+          "n": 3,
+          "ok": 3
+        },
+        "neg": {
+          "n": 12,
+          "ok": 12
+        },
+        "noans": {
+          "n": 9,
+          "ok": 9
+        },
+        "type": {
+          "n": 4,
+          "ok": 4
+        }
+      },
+      "empty_zero": 0,
+      "fabricate": 0,
+      "hit": 35,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 9,
-      "refuse_ok": 4,
+      "refuse_ok": 9,
       "total": 44,
-      "wrong": 4,
-      "wrong_rate": 0.1143
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "chem": {
       "answerable": 35,
       "by_category": {
         "attr": {
           "n": 16,
-          "ok": 4
+          "ok": 16
         },
         "multi": {
           "n": 3,
-          "ok": 0
+          "ok": 3
         },
         "neg": {
           "n": 12,
-          "ok": 3
+          "ok": 12
         },
         "noans": {
           "n": 11,
-          "ok": 7
+          "ok": 11
         },
         "type": {
           "n": 4,
-          "ok": 2
+          "ok": 4
         }
       },
-      "empty_zero": 4,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 9,
-      "hit_rate": 0.2571,
-      "miss": 15,
-      "miss_rate": 0.4286,
+      "hit": 35,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 11,
-      "refuse_ok": 7,
+      "refuse_ok": 11,
       "total": 46,
-      "wrong": 11,
-      "wrong_rate": 0.3143
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "energy_station": {
       "answerable": 27,
       "by_category": {
         "attr": {
           "n": 10,
-          "ok": 6
+          "ok": 10
         },
         "multi": {
           "n": 3,
@@ -143,71 +143,71 @@
         },
         "neg": {
           "n": 12,
-          "ok": 9
+          "ok": 12
         },
         "noans": {
           "n": 10,
-          "ok": 8
+          "ok": 10
         },
         "type": {
           "n": 2,
-          "ok": 0
+          "ok": 2
         }
       },
-      "empty_zero": 2,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 18,
-      "hit_rate": 0.6667,
-      "miss": 7,
-      "miss_rate": 0.2593,
+      "hit": 27,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 10,
-      "refuse_ok": 8,
+      "refuse_ok": 10,
       "total": 37,
-      "wrong": 2,
-      "wrong_rate": 0.0741
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "food": {
       "answerable": 35,
       "by_category": {
         "attr": {
           "n": 16,
-          "ok": 12
+          "ok": 16
         },
         "multi": {
           "n": 5,
-          "ok": 3
+          "ok": 5
         },
         "neg": {
           "n": 12,
-          "ok": 9
+          "ok": 12
         },
         "noans": {
           "n": 9,
-          "ok": 3
+          "ok": 9
         },
         "type": {
           "n": 2,
-          "ok": 0
+          "ok": 2
         }
       },
-      "empty_zero": 6,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 24,
-      "hit_rate": 0.6857,
-      "miss": 7,
-      "miss_rate": 0.2,
+      "hit": 35,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 9,
-      "refuse_ok": 3,
+      "refuse_ok": 9,
       "total": 44,
-      "wrong": 4,
-      "wrong_rate": 0.1143
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "library": {
       "answerable": 24,
       "by_category": {
         "attr": {
           "n": 10,
-          "ok": 4
+          "ok": 10
         },
         "multi": {
           "n": 3,
@@ -215,75 +215,75 @@
         },
         "neg": {
           "n": 9,
-          "ok": 6
+          "ok": 9
         },
         "noans": {
           "n": 11,
-          "ok": 5
+          "ok": 11
         },
         "type": {
           "n": 2,
-          "ok": 1
+          "ok": 2
         }
       },
-      "empty_zero": 6,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 14,
-      "hit_rate": 0.5833,
-      "miss": 9,
-      "miss_rate": 0.375,
+      "hit": 24,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 11,
-      "refuse_ok": 5,
+      "refuse_ok": 11,
       "total": 35,
-      "wrong": 1,
-      "wrong_rate": 0.0417
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "manufacturing": {
       "answerable": 24,
       "by_category": {
         "attr": {
           "n": 14,
-          "ok": 2
+          "ok": 14
         },
         "multi": {
           "n": 2,
-          "ok": 1
+          "ok": 2
         },
         "neg": {
           "n": 6,
-          "ok": 0
+          "ok": 6
         },
         "noans": {
           "n": 9,
-          "ok": 2
+          "ok": 9
         },
         "type": {
           "n": 2,
-          "ok": 1
+          "ok": 2
         }
       },
-      "empty_zero": 7,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 4,
-      "hit_rate": 0.1667,
-      "miss": 14,
-      "miss_rate": 0.5833,
+      "hit": 24,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 9,
-      "refuse_ok": 2,
+      "refuse_ok": 9,
       "total": 33,
-      "wrong": 6,
-      "wrong_rate": 0.25
+      "wrong": 0,
+      "wrong_rate": 0.0
     },
     "valve": {
       "answerable": 39,
       "by_category": {
         "attr": {
           "n": 16,
-          "ok": 13
+          "ok": 16
         },
         "multi": {
           "n": 7,
-          "ok": 6
+          "ok": 7
         },
         "neg": {
           "n": 12,
@@ -291,24 +291,24 @@
         },
         "noans": {
           "n": 11,
-          "ok": 10
+          "ok": 11
         },
         "type": {
           "n": 4,
           "ok": 4
         }
       },
-      "empty_zero": 1,
+      "empty_zero": 0,
       "fabricate": 0,
-      "hit": 35,
-      "hit_rate": 0.8974,
-      "miss": 1,
-      "miss_rate": 0.0256,
+      "hit": 39,
+      "hit_rate": 1.0,
+      "miss": 0,
+      "miss_rate": 0.0,
       "noans": 11,
-      "refuse_ok": 10,
+      "refuse_ok": 11,
       "total": 50,
-      "wrong": 3,
-      "wrong_rate": 0.0769
+      "wrong": 0,
+      "wrong_rate": 0.0
     }
   },
   "skipped_kb": {}

@@ -5,7 +5,7 @@
 
 **工厂本体驱动的数据问答框架。** 把结构化台账变成可自然语言提问的语义知识图谱，CSV 进，答案出，每个答案都带证据。
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![CI](https://github.com/data3oil/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/data3oil/factory-ontology/actions)
@@ -24,7 +24,7 @@
 
 大模型很聪明，但它不认识你的数据表。把台账直接丢给 LLM，它编起数字来理直气壮。这个仓库的做法很朴素：先让数据自己说话，再让模型在数据划定的圈子里回答。本体就是这个圈子。
 
-> **原子化定位**：本仓库是**本体认知原子**底座（schema 驱动建模 + 规则问答 + 本体约束），并组合提供 **rag 原子**（本体引导 GraphRAG + 向量混合检索）与 **事件原子**（数据变更事件），共同构成一套可复用、可组合、可被闭源侧编排的**开源算法原子层**。换工厂只换「域」（数据/词典/schema），原子代码不动。
+> **原子化定位**：本仓库是**本体认知原子**底座（schema 驱动建模 + 公理集与小型推理机 + 规则问答 + 本体约束），并组合提供 **rag 原子**（本体引导 GraphRAG + 向量混合检索）与 **事件原子**（数据变更事件），共同构成一套可复用、可组合、可被闭源侧编排的**开源算法原子层**。换工厂只换「域」（数据/词典/schema），原子代码不动。
 
 ## 看看它跑起来的样子（真实输出）
 
@@ -58,10 +58,19 @@ $ python run.py ask "质检单 Q001 检测的是哪个批次"
 Q001 的质检批次是 B007
 
 $ python run.py ask "批次 B001 用了哪些原料"
-B001 的原材料（2 条）：R005、R007
+B001 的原材料（2 条）：密封圈、螺栓
+
+# 4. 公理集推理：沿数据里真实存在的边推跨表关系（17 条公理，纯标准库）
+$ python axiom_reason.py --nt output/valve.nt --schema config/ontology_schema_valve.json \
+      --axioms config/axioms/valve.json --out-dir output/reason/valve
+推理完成：原始 1065 条 → 新增 194 条（2 轮，0.01s）
+  公理 17 条（派生 6 / 链 2 / 单值 2 / 不相交 4 / 业务规则 3）
+  ⚠ 引用断裂 30 条（已在内存修正，原文件未动）
 ```
 
-台账变成能对话的图谱，每个答案都能对上原始记录。这就是"CSV 进，答案出，带证据"。
+台账变成能对话的图谱，每个答案都能对上原始记录。这就是"CSV 进，答案出，带证据"。推理机推出来的每条新事实都带「由哪条公理、从哪几条推的」，不是黑箱。
+
+> 上面四段输出都是在本仓库的干净检出上实跑的结果，可以逐字复现；问答的顺序可能因哈希遍历不同略有差异，条数与内容不会变。
 
 ## 工厂本体是什么
 
@@ -100,7 +109,9 @@ B001 的原材料（2 条）：R005、R007
 
 本体在这里不是 W3C 的完整 OWL 推理体系，而是一份轻量 JSON schema。它声明三类东西：实体（有哪些表、哪些类）、关系（表与表怎么关联）、属性角色（哪个字段是编号、哪个是数值、哪个是分类）。schema 驱动建模把多张表统一成一张“实体-关系-属性”图，输出标准 N-Triples，下游的规则引擎和 GraphRAG 消费同一份产物。
 
-轻，所以快。换一个工厂，换一份 schema 和词典，代码不动。
+在 schema 之上，还有一层**人可读、可改的公理集**（`config/axioms/<kb>.json`）和**一个只做前向链的小推理机**（`axiom_reason.py`，零依赖）。它补的是 schema 管不到的那部分：跨表关系（产品经批次走到原料）、单值约束（型号编码不能有两个值）、类不相交（产品不能同时是客户）、以及「质检不合格 → 批次待处理」这类业务规则。**这不是 OWL 推理机**：没有反向链、没有 sameAs、不做基数求解，撞到矛盾只报告不修。宁可少推，也不推错。
+
+轻，所以快。换一个工厂，换一份 schema、一份词典、一份公理集，代码不动。
 
 **诚实定位**：适用场景是中小工厂、台账级结构化数据（单表或多表 CSV）。不是通用 AI 平台，不是大规模图数据库方案，不处理非结构化文本。本体是受限 schema，回答能力限定在结构化查询模板之内。能力边界写在第[诚实边界](#诚实边界)节。
 
@@ -120,6 +131,7 @@ B001 的原材料（2 条）：R005、R007
 
 ```
 规则引擎（确定性，零 token）
+  → 公理推理机（确定性，读公理集推出来的事实作答，带依据）
   → 逻辑推理桥（LLM 转逻辑查询后确定性执行）
   → 本体引导 GraphRAG（沿关系路径扩种子，子图检索 + LLM）
   → 向量混合检索（BM25 稀疏 + 本地向量语义，RRF 融合）
@@ -127,12 +139,102 @@ B001 的原材料（2 条）：R005、R007
 ```
 
 - **规则引擎**（`ontology_qa_v3.py`）兜住结构化查询：数量/极值/平均/过滤/范围/计数，确定性、可复现、零 token。
+- **公理推理机**（`axiom_service.py` + `axiom_reason.py`）在两种时机介入：规则答上了但**没有行级证据**（只有话术）、或规则直接没答上。它只认公理集里写明的问法（每条公理带 `ask.terms`），命中了且找到实体才开口，答的是推理产物（如「P004 用了哪些原料」→ 沿 `批次→投料→原料` 推出来的 4 项），并附「哪条公理、由哪几条推」。不命中返回 None，链路原样往下走，行为不变。所以「有多少台设备」仍然归规则引擎，公理不抢。
 - **逻辑推理桥**（`logical_qa.py`）把“有多少种球阀”这类需多步推理的问题，LLM 转成逻辑查询后交给确定性执行器。
 - **本体引导 GraphRAG**（`graph_rag.py`）在规则 miss 后，沿本体关系路径扩展种子，子图检索 + LLM 生成，回答带实体关联依据。
 - **向量混合检索**（`bm25_retrieval.py` + `vector_retrieval.py`）用 RRF 融合 BM25 稀疏命中和本地向量语义命中，覆盖“最贵的产品”“油轮有几艘”这类语义模糊查询。embedding 失败时回落到 BM25，不阻塞。
 - **LLM 兜底**区分两类：数据缺失的极值查询（如实说“知识库无该数据”不编数字）、咨询建议类问题（给专业建议，声明无唯一答案）。
 
 **本体与 RAG 的融合**不是"先检索后问答"两张皮，而是本体约束整个检索过程：本体限定可查的实体与属性（回答不越过 schema 圈定的范围），规则引擎给确定性结果，GraphRAG 沿本体关系路径扩展证据，混合检索做语义召回，最后证据溯源把答案钉回源数据。三层各自兜底，共同形成一条从确定到模糊、从规则到生成的完整链。
+
+## 公理集与小型推理机：把「跨表关系」写成人能读的规则
+
+前面那条链里，「产品用了哪些原料」这种问题，规则引擎答不了，因为它不是在一张表里做过滤——它得知道**产品经批次走到原料**这条路。这条知识 schema 表达不了，硬编码进代码又违背「换行业只换配置」。所以加了一层：**公理集 + 一个小推理机**。
+
+### 为什么不是给某个行业写死一套
+
+这个项目是跨行业的。公理集要是绑死 `Valve_products`，换个库就是废的。所以分两层：
+
+- **种子**（`config/axioms/_seed.json`）：只认「角色」——哪张表是产品、批次、原料、质检、设备。判据是表名里的词（product / batch / material / ingredient / qc…），不写死任何一行的表名。
+- **分库公理集**（`config/axioms/<kb>.json`）：种子按该库的实际数据生成一遍，之后就以这份文件为准，人可以改。
+
+生成时最有用的不是角色识别，是**沿数据里真实存在的边找路径**。种子不去猜「应该有什么边」，而是看这个库里实际有什么、几步能走到。走不通就不生成，并在面板上写明跳过了什么。
+
+### 四层结构
+
+```
+config/axioms/_seed.json      角色定义 + 链模板 + 质检规则模板
+        ↓ generate(kb)
+config/axioms/<kb>.json        该库公理集（人可改，前端改的就是它）
+        ↓ axiom_reason 前向链跑到不动点
+output/reason/<kb>/closure.nt  原图 + 推导事实（不写回 *.nt）
+        ↓ axiom_service.answer
+/api/ask 的 axiom 引擎          答案 + 依据（哪条公理、由哪几条推）
+```
+
+### 公理有哪几种
+
+| 类型 | 作用 | 例子 |
+|---|---|---|
+| 类型继承 | 个体类型沿 subClassOf 上溯 | 产品也是 BusinessObject |
+| 域值域 | 按 schema 的 from/to 补类型 | 端点对不上就跳过，不硬推 |
+| 属性链 | 跨表关系 | `产品→批次→原料 ⇒ hasMaterial` |
+| 单值 | 编号类属性多值即冲突 | 型号编码、执行标准 |
+| 不相交 | 类之间不能同时成立 | 产品⊥客户、批次⊥质检 |
+| 业务规则 | 条件 + 沿一条关系 + 赋值 | 质检不合格 → 批次待处理 → 产品暂停发货 |
+
+实测（两个行业，同一份种子）：
+
+| 库 | 数据规模 | 生成公理 | 推出新事实 | 产品→原料路径 |
+|---|---|---|---|---|
+| valve（阀门） | 1065 条三元组 | 17 条 | **+194 条**（2 轮） | `producedIn⁻ → usesRawMaterial`（2 步） |
+| food（食品） | 453 条三元组 | 23 条 | **+22 条**（2 轮） | `produces⁻ → belongsToBatch⁻ → usesRawMaterial`（3 步） |
+
+路径长度不同，是因为两个库的数据长法不同——种子没有假设「应该几步」。
+
+### 问答怎么接的
+
+`_ask_impl` 里加了一个 `axiom` 引擎，两个入口：规则答上了但**没有行级证据**时先让公理试；规则直接没答上时也先让公理试。命中就进 fusion，`source=axiom` 与 `rule/logical` 同级（确定性），置信 high；不命中返回 None，链路原样往下走。
+
+为什么不是永远优先：**公理只在问法命中 `ask.terms` 且找到实体时才开口**。「有多少台设备」就该归规则引擎，公理不抢。
+
+```bash
+# valve 库实测（POST /api/ask）
+P004 用了哪些原料   → mode=axiom  气动球阀 Q641F-40P 的用料：阀杆、阀体铸件、螺栓、密封圈（共 4 项）
+R001 被哪些产品用到 → mode=axiom  阀体铸件 关联到：球阀 Q41F-16P…（4 项，反向）
+哪些产品暂停发货     → mode=axiom  按公理 BR-02，暂停发货的有：…（3 个）
+P004 的质检记录      → mode=axiom  Q023（1 项）
+有多少台设备         → mode=rule   有 10 台设备（公理不插手）
+```
+
+### 三条命令跑通闭环
+
+```bash
+# 先起服务（另开窗口；见「REST API」节）
+cd codes && python api_server.py          # http://localhost:8000，key 取 FOOD_ADMIN_KEY
+
+# 1) 按跨行业种子给这个库生成公理集（也可以在前端点「按种子重新生成」）
+curl -X POST localhost:8000/api/axioms/seed -H "X-API-Key: $FOOD_ADMIN_KEY" \
+     -H "Content-Type: application/json" -d '{"kb":"valve"}'
+
+# 2) 跑一次推理，看新增多少条、各公理贡献、有没有端点不符
+curl -X POST localhost:8000/api/axioms/reason -H "X-API-Key: $FOOD_ADMIN_KEY" \
+     -H "Content-Type: application/json" -d '{"kb":"valve"}'
+
+# 3) 试问：看到 mode=axiom 且 evidence 非空，就说明公理接进问答了
+curl -X POST localhost:8000/api/ask -H "X-API-Key: $FOOD_ADMIN_KEY" \
+     -H "Content-Type: application/json" -d '{"question":"P004 用了哪些原料","kb":"valve"}'
+```
+
+想改规则就直接改 `config/axioms/valve.json`（`chains` 加一步、`business_rules` 换条件），再跑第 2 步即可，不用改代码；改坏了保存会被结构校验拦下，不写半成品。
+
+### 前端：公理与推理页
+
+左侧「建本体与演进 → 公理与推理」。这一页是闭环的自检台：顶部统计 + 按种子重新生成 / 跑推理 / 保存；角色识别结果与「种子跳过了什么」；表单编辑（属性链可加步、勾反向，业务规则写「当/则/沿哪条关系」，也可切 JSON 原文直接改）；推理结果（新增条数、各公理贡献、端点不符、规则改写既有状态的清单、带依据的推导样例）；**试问**走正式 `/api/ask`，显示 mode / 引擎 / 置信 / 证据——看到 `mode=axiom` 就说明闭环通了。
+
+保存会先备份旧文件（`.bak_<时间戳>`），结构不合规直接拒绝，不写半成品文件。
+
+> 设计与踩坑记录见 [本体公理集与小型推理机](docs/本体公理集与小型推理机-20261110.md)。那篇里还记着推理机第一次跑就撞出来的三个导出器问题（销售→产品的 30 条边全悬空、`sells` 的 domain/range 写成同一个类、`usesRawMaterial` 的 domain 不是 schema 里那个类）——它们不是推理机造成的，是一直在那儿没人看见。
 
 ## 本体自定义与自演进：把本体的运维交回企业自己
 
@@ -165,7 +267,7 @@ B001 的原材料（2 条）：R005、R007
 为什么坚持人在环：本体一旦被改歪，整条**确定性回答链**就跟着歪（规则引擎是在本体划定的范围内做计算的）。自动提候选省的是人的力气，不是人的判断。
 
 ```bash
-# 这道能力自带可重跑自检：真起服务、真跑一遗「提候选 → 人拍板并入 → 图上可见 → 回退」，
+# 这道能力自带可重跑自检：真起服务、真跑一遍「提候选 → 人拍板并入 → 图上可见 → 回退」，
 # 并且跑完把运行态逐字节还原（词典 / 演进状态 / 审计 / 快照）。
 python scripts/verify_ontology_evolve.py        # 预期 PASS 23 / FAIL 0
 ```
@@ -178,7 +280,7 @@ python scripts/verify_ontology_evolve.py        # 预期 PASS 23 / FAIL 0
 cd codes
 
 # 1. 用公开数据集建模（UCI AI4I 预测性维护数据集，1 万行真实制造传感器数据）
-python run.py setup data/ai4i.csv ai4i
+python run.py setup data_ai4i/ai4i.csv ai4i
 
 # 2. 自检「建模 → 问答」，逐题断言，答不上来退出码 1
 python run.py test                       # 预期 自检结果: 3/3 通过
@@ -230,7 +332,7 @@ python scripts/eval_qa.py --kb valve --dry   # 只看某个库的题目，不跑
 
 判分把四件事分开记，不合并成"准确率"：**命中** / **未命中**（诚实拒答）/ **误答**（给了答案但错）/ **编造**（说了库里没有的事）。
 
-本机当前基线（2026-11-08，`--out` 可比对）：
+本机当前基线（2026-11-10 实跑，`--out` 可比对）：
 
 | 口径 | 数值 |
 |------|------|
@@ -311,6 +413,7 @@ codes/industrial_dict_loader.py  ← 合并加载器（load_dict 自动调用）
 | **词典驱动** | 字段中文名、枚举值、状态词全部外置在 lexicon JSON。问答逻辑不绑定具体词表，换领域只换词典 |
 | **建库自动映射** | `_build_lexicon` 自动生成 entity_cn2en（实体计数映射）+ numeric_fields（极值字段）+ type_cn2en + synonym_map（同义词）。换任何行业建库即生成查询映射，无需硬编码 |
 | **规则引擎** | `ontology_qa_v3.py`：数量/极值/平均/总和/范围/过滤计数/反查/分组/列出/TopN 等通用模板，确定性执行，零 token |
+| **公理集与推理机** | `axiom_reason.py` + `axiom_service.py`：跨行业种子按数据里真实的边生成公理集；六类公理（继承/域值域/属性链/单值/不相交/业务规则）前向链跑到不动点，每条新事实带 justification；问答只在问法命中 `ask.terms` 且找到实体时才接管 |
 | **逻辑推理桥** | `logical_qa.py`：LLM 转逻辑查询 → 确定性执行器，覆盖多步推理的开放式问题而不失确定性 |
 | **本体引导 GraphRAG** | `graph_rag.py`：规则 miss 后，问题匹配本体关系时沿关系路径扩展种子（find_seeds），子图检索 + LLM 生成 |
 | **向量混合检索** | `bm25_retrieval.py`（BM25 稀疏）+ `vector_retrieval.py`（本地向量 nomic-embed-text）RRF 融合，语义模糊查询命中，embedding 失败回落不阻塞 |
@@ -324,6 +427,7 @@ codes/industrial_dict_loader.py  ← 合并加载器（load_dict 自动调用）
 ```
 data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自动推断）[本体认知原子底座]
             → ontology_qa_v3（规则引擎，确定性优先）
+            + axiom_service + axiom_reason（公理集 + 前向链推理机，跨表关系带依据）
             + logical_qa（逻辑推理桥）
             + graph_rag（本体引导 GraphRAG 兜底）
             + bm25_retrieval + vector_retrieval（向量混合检索兜底）[rag 原子]
@@ -331,7 +435,7 @@ data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自
             → api_server（REST API）+ web（Svelte5 前端）
 ```
 
-分层：交付层（Web/APP/语音/管理后台）→ API 层（FastAPI，原子对外暴露的编排入口）→ 原子层（本体认知原子：建模 + 确定性规则问答；rag 原子：GraphRAG + 混合检索；事件原子：数据事件模型）→ 本体层（本体图 + 词典外置）→ 数据层（多格式）→ 模型层（云端 DeepSeek / 本地 Ollama 可切换）。
+分层：交付层（Web/APP/语音/管理后台）→ API 层（FastAPI，原子对外暴露的编排入口）→ 原子层（本体认知原子：建模 + 公理推理 + 确定性规则问答；rag 原子：GraphRAG + 混合检索；事件原子：数据事件模型）→ 本体层（本体图 + 公理集 + 词典外置）→ 数据层（多格式）→ 模型层（云端 DeepSeek / 本地 Ollama 可切换）。
 
 **原子化边界**：本仓库是开源算法原子层，认知/rag/事件原子通过 REST 端点向外暴露，可被闭源侧编排器按需组合调度；数据全在工厂本地流转，不出厂。
 
@@ -343,6 +447,10 @@ data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自
 | `data_loader.py` | 统一读取 CSV/JSON/SQLite/Excel |
 | `schema_ontology.py` | schema 驱动统一建模：属性语义角色、类型体系、validate/traverse/build_graph、suggest_schema 自动推断、to_nt |
 | `ontology_qa_v3.py` | 规则问答引擎（词典驱动，确定性，零 token） |
+| `axiom_reason.py` | **小型推理机**：RDFS 继承 / domain-range / 属性链 / 单值 / 不相交 / 业务规则，半朴素前向链跑到不动点，零依赖，每条新事实带 justification |
+| `axiom_service.py` | 公理集四件事：按跨行业种子 `generate` / 结构校验后 `save` / `run` 推理落盘 / `answer` 接问答 |
+| `config/axioms/` | `_seed.json`（角色种子）+ 各库 `<kb>.json`（人可改的公理集，前端改的就是它） |
+| `routes/` | 按域拆分的路由族（`axiom_routes.py` 等 **11 族**），`api_server.py` 只做装配 |
 | `logical_qa.py` | 逻辑推理桥：LLM 转逻辑查询后确定性执行 |
 | `knowledge/`（ingest/embed/store/rag）| **rag 原子**：文档切块、embedding、入库、检索 |
 | `graph_rag.py` | 本体引导 GraphRAG：建图、同义词扩展、种子定位、子图检索、LLM 生成 |
@@ -389,7 +497,7 @@ python run.py plugin remove my_plugin           # 移除
 
 ### 阀门厂（合成数据）
 
-`data_valve/` 为合成数据，但字段特征取自真实行业标准：GB/T 32808 阀门型号编码（Z41H-16C、Q641F-40P）、材料牌号（WCB/CF8/CF8M/304）、API 598 试压矩阵（壳体/密封压力、保压、泄漏率气泡/min）、设备传感器（振动/温度/电流）。用于验证“换领域即用”与检索容错。多表 schema 建模实测：8 张表 → 1066 行 N-Triples（142 节点 / 173 边）。
+`data_valve/` 为合成数据，但字段特征取自真实行业标准：GB/T 32808 阀门型号编码（Z41H-16C、Q641F-40P）、材料牌号（WCB/CF8/CF8M/304）、API 598 试压矩阵（壳体/密封压力、保压、泄漏率气泡/min）、设备传感器（振动/温度/电流）。用于验证“换领域即用”与检索容错。多表 schema 建模实测：8 张表 → 1065 行 N-Triples（142 节点 / 173 边）。
 
 ```bash
 cd codes
@@ -410,7 +518,7 @@ benchmark: 9/9 = 100%
 
 ### 食品溯源（合成数据）
 
-`data/food_*.csv` 为合成数据，用于正/反向溯源：原料 → 批次 → 产品，质量召回场景。
+`data_food/` 为合成数据（6 张表），用于正/反向溯源：原料 → 批次 → 产品，质量召回场景。它也是公理集的第二个验证行业：同一份种子在这个库上生成 23 条公理，`produces⁻ → belongsToBatch⁻ → usesRawMaterial` 三跳推出 22 条用料关系。
 
 ## REST API
 
@@ -421,7 +529,11 @@ python api_server.py          # http://localhost:8000
 
 | 端点 | 说明 |
 |------|------|
-| `POST /api/ask` | 自然语言问答（规则引擎 → 逻辑桥 → GraphRAG → 混合检索） |
+| `POST /api/ask` | 自然语言问答（规则引擎 → 公理推理机 → 逻辑桥 → GraphRAG → 混合检索） |
+| `GET /api/axioms?kb=valve` | 取该库公理集（文件不存在时按跨行业种子生成一份，返回 `generated:true`） |
+| `PUT /api/axioms` | 保存公理集：结构不合规直接 **400**（不写半成品），保存前自动备份 |
+| `POST /api/axioms/seed` | 按种子重新生成该库公理集（覆盖前先备份） |
+| `POST /api/axioms/reason` | 跑一次推理，返回新增条数、各公理贡献、端点不符、带依据的推导样例 |
 | `GET /api/trace/forward?batch=B001` | 正向溯源：批次 → 产品 + 原料 |
 | `GET /api/trace/reverse?raw=R007` | 反向溯源：原料 → 受影响批次 → 产品 |
 | `GET /api/scan?code=***` | 扫码溯源 |
@@ -438,9 +550,11 @@ python api_server.py          # http://localhost:8000
 
 工程化能力：角色化鉴权（`FOOD_ADMIN_KEY`/`FOOD_READ_KEY`，默认 fail-closed：未配置或 key 不匹配一律 401；key 可走环境变量或 `config/api_keys.json`）、多租户与行级隔离（`config/tenants.json` 租户注册表 + 数据访问层强制租户条件，缺上下文 fail-closed）、严格鉴权灰度开关（`FOOD_STRICT_AUTH`，默认关）、上传体积上限（`FOOD_MAX_UPLOAD_MB`，默认 50MB，超限 413 且不落盘）、令牌吊销 / 刷新轮替 / 限速防爆破（`POST /api/auth/revoke|refresh|ban|unban`）、SSO/OIDC(JWT) 可选适配器（`codes/sso.py`，本地凭据优先）、增量重建（数据 hash 检测，变了才重建）、Docker 一条命令部署（`docker compose up -d`）、结构化日志 + 哈希链审计账本。
 
+全库 `/api` 路由 **67 条**（`scripts/check_route_reachability.py` 的统计口径：前端可达 14、测试/文档可达 59、allowlist 5，无新增断链）。路由族按域拆在 `codes/routes/`，`api_server.py` 只做装配。
+
 ## Web 前端
 
-`web/` 是 Svelte5 + Vite 的完整应用，浅色工业风。CSV 上传 → 本体建模 → 自然语言问答 → 知识图谱结构图 → 分析看板，全流程可视化。前端展示证据溯源（答案为什么是这个数）、结构化答案、迷你 KPI 卡片、诊断式看板，logo 区显示代码版本。另含**本体自演进面板**：待确认候选（每条可选归属类）、确认/拒绝、历史与回退（版本号、已拒绝数、「回退到上一版」）。
+`web/` 是 Svelte5 + Vite 的完整应用，浅色工业风。CSV 上传 → 本体建模 → 自然语言问答 → 知识图谱结构图 → 分析看板，全流程可视化。前端展示证据溯源（答案为什么是这个数）、结构化答案、迷你 KPI 卡片、诊断式看板，logo 区显示代码版本。另含**本体自演进面板**：待确认候选（每条可选归属类）、确认/拒绝、历史与回退（版本号、已拒绝数、「回退到上一版」），以及**公理与推理面板**：改公理集、跑推理、试问（`AxiomPanel.svelte`）。
 
 ```bash
 cd web
@@ -451,7 +565,7 @@ npm start            # http://localhost:3001
 
 ## 实测数据
 
-以下数字均为仓库内 benchmark 实测（标准答案从源数据用确定性逻辑计算，不手写）。**已用 18 个行业合成数据集 + UCI 公开数据集做全行业验证**（阀门/化工/机械加工/船舶/环保/食品/图书/能源电站/示例能源电力/汽车零部件/电子/家电/纺织/塑料/医疗器械/家具/五金/AI4I 预测性维护），换行业只换词典与 schema，规则引擎与检索链路代码不动。
+以下数字均为仓库内 benchmark 实测（标准答案从源数据用确定性逻辑计算，不手写）。**已用 19 个行业合成数据集 + UCI 公开数据集做全行业验证**，共 **21 个已注册知识库**（阀门、化工、机械制造、船舶、环保工程、食品溯源、图书库存、能源站、汽车零部件、电子元件、家电、纺织服装、塑料制品、医疗器械、家具、五金加工、波纹管、地震勘探、通用制造，另含 AI4I 预测性维护公开数据集与 1 个示例电力库）。换行业只换词典、schema 与公理集，规则引擎与检索链路代码不动。
 
 | 领域 | 数据集 | 规模 | 评测问题 | 本体命中率 |
 |------|--------|------|----------|-----------|
@@ -463,20 +577,20 @@ npm start            # http://localhost:3001
 
 对照：裸 LLM（不加本体、直接把数据喂给模型）同批问题命中 7/9 = 78%，差的恰好是计算类（平均值、总和），详见[方法论文-本体vs裸LLM](docs/方法论文-本体vs裸LLM.md)。
 
-其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；20 万实体 SQLite 图持久化实测（写入 1.58s / 加载 1.76s / 67MB）；pytest 29 项全过（CI 自动运行）。
+其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；20 万实体 SQLite 图持久化实测（写入 1.58s / 加载 1.76s / 67MB）；**pytest 178 项全过 + 2 项 skip（CI 与本地自检门都跑这条）**。公理推理：valve 17 条公理推出 194 条、food 23 条公理推出 22 条，两轮内到不动点，纯标准库。
 
 复现：
 
 ```bash
 cd codes
-python csv_to_owl.py data/ai4i.csv output/ai4i.nt
-python benchmark.py data/ai4i.csv
-python csv_to_owl.py data/library_inventory.csv output/library_inventory.nt
-python benchmark.py data/library_inventory.csv
-python csv_to_owl.py data/energy_station.csv output/energy_station.nt
-python benchmark.py data/energy_station.csv
-python csv_to_owl.py data/food_products.csv output/food_products.nt
-python benchmark.py data/food_products.csv
+python csv_to_owl.py data_ai4i/ai4i.csv output/ai4i.nt
+python benchmark.py data_ai4i/ai4i.csv
+python csv_to_owl.py data_library/library_inventory.csv output/library_inventory.nt
+python benchmark.py data_library/library_inventory.csv
+python csv_to_owl.py data_energy_station/energy_station.csv output/energy_station.nt
+python benchmark.py data_energy_station/energy_station.csv
+python csv_to_owl.py data_food/food_products.csv output/food_products.nt
+python benchmark.py data_food/food_products.csv
 python valve_demo.py
 ```
 
@@ -484,20 +598,23 @@ python valve_demo.py
 
 **问答评测集**（`scripts/eval_qa.py`，确定性生成，标准答案全部由真实 CSV 算出，零人工标注、不调模型）：8 个行业 KB、共 **331 问**（可答 250 + 无答案 81），五类问法（普通属性 / 类型词作主语 / 多实体多表 / 否定或比较 / 无答案）。判分把 **未命中（诚实拒答）≠ 误答（有答案但答错）≠ 编造** 分列。
 
-实测基线（`scripts/eval_qa_baseline.json`，v0.5.0）：命中率 **63.2%（158/250）**、未命中 22.4%、**误答率 14.4%**、**编造 0**（无答案 81 题中正确拒绝 40；10-02 起的判分口径「去假命中」把原先算命中的 4 条回归为未命中，故未命中率上升而不是能力退化）。误答率曾是最大短板；逐 KB 分维度明细见基线 JSON 的 `per_kb.<kb>.by_category`。
+历史地板（v0.5.0，已不再写在基线文件里，留在这里作对照）：命中率 **63.2%（158/250）**、未命中 22.4%、**误答率 14.4%**、**编造 0**（无答案 81 题中正确拒绝 40；10-02 起的判分口径「去假命中」把原先算命中的 4 条回归为未命中，故未命中率上升而不是能力退化）。误答率曾是最大短板。
 
-> v0.6.0（2026-11-08）在同一套题上做到 250/250、误答 0，见上文「本机当前基线」。这组 v0.5.0 数字保留作对照——它记录了修之前的地板在哪。
+> `scripts/eval_qa_baseline.json` 现在存的是 **v0.6.0（2026-11-10 复核）** 的实测：250/250、误答 0、编造 0、空答 0、无答案 81 题全部正确拒答。它由 `run_all_gates.py` 的回归门自动落盘，**不要手改**——它就是这个门要比对的参照物。逐 KB 分维度明细在 `per_kb.<kb>.by_category`。
 
 > 口径说明：该基线是 `ontology_qa_v3.answer` 的 in-process 口径（规则 + 本体这一确定性地基），**不含** LLM 润色 / 文档 RAG 融合 / GraphRAG 与混合检索兜底层。
 
-**九道自检门**（一把跑全部门，纯标准库，各门自起临时端口并收尾）：
+**十道自检门**（一把跑全部门，纯标准库，各门自起临时端口并收尾）：
 
 ```bash
-python scripts/run_all_gates.py          # 全部（含最慢的评测基线）
-python scripts/run_all_gates.py --fast   # 跳过评测基线
+python scripts/run_all_gates.py          # 全部 10 门（含最慢的评测基线，约 1 分钟）
+python scripts/run_all_gates.py --fast   # 跳过评测基线，9 门
 ```
 
-门目：KB 注册表与词典分层 · 商用加固（鉴权/方言/审计链）· 编排上半截 · 问答信封与未命中 · 模型建议层 · 本体自演进（人在环：候选不污染词典 / 人拍板并入 / 幂等 / 回退对称 / 现场逐字节还原） · 边界自检（甲方痕迹/依赖）· 仓库单测（pytest）· 问答评测基线（回归门）。**v0.5.0 当前 9 门全绿。**
+门目：KB 注册表与词典分层 · 商用加固（鉴权/方言/审计链）· 编排上半截 · 问答信封与未命中 · 模型建议层 · 本体自演进（人在环：候选不污染词典 / 人拍板并入 / 幂等 / 回退对称 / 现场逐字节还原）· 本体检查（5 类核查·打分制） · 边界自检（甲方痕迹/依赖）· 仓库单测（pytest）· 问答评测基线（回归门）。
+
+> v0.6.0 实测：pytest **178 项全过 + 2 项 skip**、评测基线 250/250、其余八门全 PASS。
+> 提醒一句：在带「批量删除确认」的系统级守卫下跑，pytest 跑完后的临时目录清理会被拦，该门会返回非 0——测试本身是全过的（用 `--junitxml` 可以核实 0 失败）。
 
 ## 模型配置
 
@@ -529,14 +646,17 @@ python scripts/run_all_gates.py --fast   # 跳过评测基线
 5. **开源算法原子层 + 闭源编排**：算法原子开源可自部署，被闭源编排层按需调度，数据不出厂
 6. **零依赖可部署**：核心路径纯标准库，能带到任何现场
 7. **本体可运维、且人在环**：本体必须能被企业自己改（自定义 + 自演进），但自动只到「待确认区」——并入词典、长节点一律人拍板；每次变更版本 +1、全程留痕、词典与演化节点可一起回退
+8. **宁可少推，也不推错**：公理端点对不上就跳过并记账，撞到矛盾只报告不改既有状态，种子认不出的行业给空公理集加一条跳过原因。推理产物单独落盘，不回头污染本体文件
 
 ## 文档
 
 - [方法论文-本体vs裸LLM](docs/方法论文-本体vs裸LLM.md)：实证论文，本体规则引擎 100% vs 裸 LLM 78%（+22pp）
+- [本体公理集与小型推理机](docs/本体公理集与小型推理机-20261110.md)：跨行业种子怎么生成、公理有哪几种、问答怎么接，以及推理机第一次跑就撞出来的三个导出器问题
 - [泛化方法论](docs/泛化方法论.md)：schema 驱动建模 + 本体驱动混合检索 + 本体约束，多领域 benchmark 实证
 - [方法论-两阶段泛化建模](docs/方法论-两阶段泛化建模.md)：9 大行业横向验证提炼的通用建模方法论
 - [部署](docs/部署.md)：小型企业部署指南（API + APP + 语音）
 - [新机器部署验收](docs/新机器部署验收.md)：全新机器逐项走通「部署→配置→启动→建模→问答→评测→知识库→资产」的验收清单
+- [本体与词典的关系](docs/本体与词典的关系.md)：本体管结构与关系，词典管叫法，两者边界
 - [开源调研](docs/开源调研.md)：本体/知识图谱开源生态调研
 - [规模化](docs/规模化.md)：从内存图到图数据库的升级路径
 - [逻辑推理与可解释](docs/逻辑推理与可解释-设计.md)：轻量 + 确定性 + 可解释设计
@@ -576,13 +696,13 @@ start.bat      # Windows
 
 ## 版本
 
-当前版本 **v0.5.0**。版本历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 **v0.6.0**。版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
-0.5.x 为当前版本线（本体自定义 + 本体自演进：人在环的候选提报 / 并入 / 回退，含端到端自检门）；0.4.x 为多租户与行级隔离 + 鉴权加固 + 令牌吊销/刷新与限速 + SSO 适配 + 自助建模目录浏览/自动匹配 + 建模质量与合规治理；0.3.x 为问答解析层修复 + 词典资产闭环 + 版本号统一为单一事实源；0.2.x 为 schema 驱动重构 + 检索/评测/上传/前端增强；0.1.x 为 schema 驱动重构基线；2.9.x 及更早为重构前的能力演进。
+0.6.x 为当前版本线（公理集与小型推理机：跨行业种子按数据里真实的边生成公理集、零依赖前向链推理机、前端「公理与推理」页可改可跑可试问、问答链路接入 `mode=axiom` 并带依据）；0.5.x 为本体自定义 + 本体自演进（人在环的候选提报 / 并入 / 回退，含端到端自检门）；0.4.x 为多租户与行级隔离 + 鉴权加固 + 令牌吊销/刷新与限速 + SSO 适配 + 自助建模目录浏览/自动匹配 + 建模质量与合规治理；0.3.x 为问答解析层修复 + 词典资产闭环 + 版本号统一为单一事实源；0.2.x 为 schema 驱动重构 + 检索/评测/上传/前端增强；0.1.x 为 schema 驱动重构基线；2.9.x 及更早为重构前的能力演进。
 
 ## 开源与闭源：开源算法原子层 + 闭源编排层
 
-**本仓库是开源算法原子层，甲方可自行下载、独立部署运行。** 工厂本体建模、规则问答（本体认知原子）、GraphRAG 与混合检索（rag 原子）、数据事件（事件原子）等原子能力，全部开源可自部署，换任何行业数据即用，且可被闭源侧编排器通过 REST 原子接口按需组合调度。
+**本仓库是开源算法原子层，甲方可自行下载、独立部署运行。** 工厂本体建模、公理集与小型推理机、规则问答（本体认知原子）、GraphRAG 与混合检索（rag 原子）、数据事件（事件原子）等原子能力，全部开源可自部署，换任何行业数据即用，且可被闭源侧编排器通过 REST 原子接口按需组合调度。
 
 **配套的闭源是开发方（我们）服务甲方用的编排层**——负责建模编排、人在环确认、反馈学习、交付打包，**服务完甲方即走，闭源代码不留存甲方**。闭源不承载算法实现，算法全在开源侧。甲方拿到的是：可独立运行的开源算法原子 + 交付产物（定制语义资产 + 报告），不依赖闭源服务也能长期自维护。
 
@@ -601,7 +721,9 @@ start.bat      # Windows
 ## 诚实边界
 
 - **能力边界**：规则引擎覆盖结构化查询（数量/极值/平均/过滤/范围/计数）；开放式/关系/模糊问题走 GraphRAG 或 LLM 兜底，命中率不保证
-- **本体定位**：轻量 JSON schema，非 W3C OWL 推理本体。输出 N-Triples 仅为标准序列化，不涉及推理机
+- **本体定位**：轻量 JSON schema + 一层人可读的公理集，**不是 W3C OWL/RDFS 完整推理体系**。推理机只做前向链（RDFS 继承 / domain-range / 属性链 / 单值 / 不相交 / 业务规则），没有反向链、没有 sameAs、不做基数求解；撞到矛盾只报告不修；产物写 `output/reason/` 与 `closure.nt`，**不写回** `output/<kb>.nt`
+- **公理集覆盖面**：种子靠表名里的词认角色，认不出的行业生成的是空公理集 + 一条跳过原因，不硬编。目前只有 valve / food 两个库实际生成并验证过推理效果（+194 / +22 条），其余 19 个注册库还没跑过 `generate`
+- **命名空间处理**：数据里「类」和「对象属性」不在同一个 `#` 前缀时（食品库就是这样），按局部名做**唯一**匹配回退到数据里真实的 IRI，回退明细写进报告的 `prefix_fallbacks`；有歧义就不推
 - **数据形态**：最适配结构化台账（单表/多表 CSV）；不处理非结构化文本，无大规模语义检索（种子定位是子串匹配 + 同义词扩展）
 - **规模**：内存图为主，台账级；20 万实体可用 SQLite 图持久化过渡，不适合百万级实体图
 - **词典校对**：自动词典偶有误判，关键字段需人工确认；本体自演进的候选质量取决于提取器——LLM 不可用时降级为 n-gram 滑窗，会切出「已入库」「华北」这类碎片，必须人工筛；本仓库内该能力目前只经自检门验证，尚未沉淀真实并入成果（现有别名仍来自正常建库与人工维护）
