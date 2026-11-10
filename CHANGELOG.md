@@ -48,6 +48,12 @@
 - 版本号统一到 **0.6.0**：`codes/run.py` 的 `__version__`、`codes/e2e_test.py` 的版本断言、README 徽章、本文件。
 - 新增 `docs/本体公理集与小型推理机-20261110.md`。
 - `scripts/eval_qa_baseline.json` 刷新为 2026-11-10 实跑结果（331 题、命中 250/250、误答 0、编造 0）。
+- README 二次逐项核查（数字 / 路径 / 命令 / 链接 / 与代码一致性），修掉 9 处残留：
+  - **文档指向不存在的代码**：`graph_store.py`（SQLite 图持久化）已在「代码极简化」重构删除，README 仍把它列为「周边能力 · 保留可用」，诚实边界还写「20 万实体可用 SQLite 过渡」；`docs/规模化.md` 第 25 行仍教人跑 `python graph_store.py`。现全部标明为历史设计记录，`docs/泛化方法论.md` 的 1.58s/1.76s/67MB 也同步标注，并修掉该文的 `1066 行 NT` → 1065。
+  - **跑不通的命令**：`python run.py setup 数据库配置.json 表名` 会把 JSON 当数据表读并报错，改为实测可用的 `python db_loader.py '<JSON连接配置>'`（临时 SQLite 库实跑 `✅ 读表 equipment: 1 行`）；贡献指南里的 `python -m pytest tests`（仓库根无 `tests/`）改为 `cd codes && python -m pytest tests` 或 `python -m pytest codes/tests`。
+  - **与代码不符的配置/数字**：模型配置示例 `ornith:latest`、`.../v1/chat/completions` 换成仓库实际的 `writer-agent:latest`、`.../v1` 并补 `embedding` 段；「泛化自 29 个行业 KB」无出处且与 21 个注册库冲突，改按 `kbs.json` 实况表述；推理耗时写死 `0.01s`（实测 0.04s）改「毫秒级」；删掉无出处的「约 2 分钟」「12 个属性」「约 1 分钟」。
+  - **口径与措辞**：路由 14/59/5 三个来源有交叉，注明不是相加关系；`benchmark.py` 的 61 题与 `eval_qa.py` 的 331 题注明是两套评测集；五条 axiom 问答按实跑逐字校准（含 evidence 4/4/3/1）；「第[诚实边界]节」措辞修正。
+  - 核查结论：18 个相对链接 + 3 张图 + 1 个锚点全部有效；六道检查门与 `pre_push_scan` 全 PASS；pytest junit 180 用例 0 失败 0 错误 2 skip；开头四段输出、四条问答、`run.py test` 3/3、五条 axiom 问答、推理 194 条均在干净检出上逐字复现。
 
 ## [0.5.0] - 2026-10-12
 

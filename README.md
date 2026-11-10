@@ -63,7 +63,7 @@ B001 的原材料（2 条）：密封圈、螺栓
 # 4. 公理集推理：沿数据里真实存在的边推跨表关系（17 条公理，纯标准库）
 $ python axiom_reason.py --nt output/valve.nt --schema config/ontology_schema_valve.json \
       --axioms config/axioms/valve.json --out-dir output/reason/valve
-推理完成：原始 1065 条 → 新增 194 条（2 轮，0.01s）
+推理完成：原始 1065 条 → 新增 194 条（2 轮，毫秒级）
   公理 17 条（派生 6 / 链 2 / 单值 2 / 不相交 4 / 业务规则 3）
   ⚠ 引用断裂 30 条（已在内存修正，原文件未动）
 ```
@@ -113,7 +113,7 @@ $ python axiom_reason.py --nt output/valve.nt --schema config/ontology_schema_va
 
 轻，所以快。换一个工厂，换一份 schema、一份词典、一份公理集，代码不动。
 
-**诚实定位**：适用场景是中小工厂、台账级结构化数据（单表或多表 CSV）。不是通用 AI 平台，不是大规模图数据库方案，不处理非结构化文本。本体是受限 schema，回答能力限定在结构化查询模板之内。能力边界写在第[诚实边界](#诚实边界)节。
+**诚实定位**：适用场景是中小工厂、台账级结构化数据（单表或多表 CSV）。不是通用 AI 平台，不是大规模图数据库方案，不处理非结构化文本。本体是受限 schema，回答能力限定在结构化查询模板之内。能力边界见[诚实边界](#诚实边界)。
 
 ## 与主流路线的区别
 
@@ -200,12 +200,14 @@ output/reason/<kb>/closure.nt  原图 + 推导事实（不写回 *.nt）
 
 ```bash
 # valve 库实测（POST /api/ask）
-P004 用了哪些原料   → mode=axiom  气动球阀 Q641F-40P 的用料：阀杆、阀体铸件、螺栓、密封圈（共 4 项）
-R001 被哪些产品用到 → mode=axiom  阀体铸件 关联到：球阀 Q41F-16P…（4 项，反向）
-哪些产品暂停发货     → mode=axiom  按公理 BR-02，暂停发货的有：…（3 个）
-P004 的质检记录      → mode=axiom  Q023（1 项）
+P004 用了哪些原料   → mode=axiom  气动球阀 Q641F-40P 的用料：密封圈、阀杆、阀体铸件、螺栓（共 4 项）
+R001 被哪些产品用到 → mode=axiom  阀体铸件 关联到：弹簧式安全阀 A42Y-16C、升降式止回阀 H41H-16C、球阀 Q41F-16P、气动球阀 Q641F-40P（共 4 项，反向）
+哪些产品暂停发货     → mode=axiom  按公理 BR-02，暂停发货的有：弹簧式安全阀 A42Y-16C、对夹蝶阀 D371X-10、升降式止回阀 H41H-16C（共 3 个）
+P004 的质检记录      → mode=axiom  气动球阀 Q641F-40P 的质检记录：Q023（共 1 项）
 有多少台设备         → mode=rule   有 10 台设备（公理不插手）
 ```
+
+以上五条均走正式 `/api/ask` 实跑；列举顺序可能因哈希遍历略有不同，条数与内容不变，前四条 `evidence` 分别为 4 / 4 / 3 / 1 条。
 
 ### 三条命令跑通闭环
 
@@ -370,16 +372,22 @@ CSV / JSON / SQLite 用标准库实现，零第三方依赖。
 
 ### 厂区数据库对接
 
-`db_loader.py` 直连厂区 ERP/数据库读表建模（MySQL / PostgreSQL），配置连接信息即可：
+`db_loader.py` 直连厂区 ERP/数据库读表（MySQL / PostgreSQL / SQLite）。它的 CLI 只收 **DSN 串或 JSON 连接配置**，不是 `run.py setup` 的数据文件参数——`setup` 会把 JSON 当数据表读，喂连接配置会报「JSON 无数据行」：
 
 ```bash
-python run.py setup 数据库配置.json 表名   # 或用代码直连 load_db
+cd codes
+python db_loader.py '{"db_type":"sqlite","database":"mes.db","table":"equipment"}'
 ```
+
+（`database` 换成实际库路径；SQLite 用文件路径，MySQL/PostgreSQL 填 `host` / `port` / `user` / `password` / `database`，`table` 必填。）
+
+或在代码里取回三元组，再交给建模流程：
 
 ```python
 from db_loader import load_db
-rows = load_db({"db_type": "mysql", "host": "127.0.0.1", "port": 3306,
-                "user": "root", "password": "***", "database": "mes", "table": "equipment"})
+name, headers, rows = load_db({"db_type": "mysql", "host": "127.0.0.1", "port": 3306,
+                               "user": "root", "password": "***", "database": "mes",
+                               "table": "equipment"})
 ```
 
 前端「数据库接入」面板可配 MySQL/PostgreSQL 连接后一键建模。MySQL 需 `pip install pymysql`，PostgreSQL 需 `pip install psycopg2-binary`，均为可选依赖。
@@ -399,7 +407,7 @@ codes/industrial_dict/          ← 公共层（开源算法资产，纯领域�
 codes/industrial_dict_loader.py  ← 合并加载器（load_dict 自动调用）
 ```
 
-**当前侧重**：阀门 / 精细化工 / 地球物理三大方向，泛化自 29 个行业 KB 真实数据。
+**当前侧重**：阀门 / 精细化工 / 地球物理三大方向，从仓库内多行业 KB 的合成数据与行业标准归纳而来（当前 `codes/config/kbs.json` 注册 21 个库；`index.json` 描述的是「大行业收敛版」的合并规则）。
 **扩展**：新增维度 = 在 `industrial_dict/` 加 JSON 文件，loader 自动合并。
 
 ### ⚖️ 开源边界（公共词典策略）
@@ -467,7 +475,9 @@ data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自
 | `api_server.py` | REST API：问答、正/反向溯源、扫码、统计、管理、知识库/评测/资产契约端点 |
 | `web/` | Svelte5 前端：CSV 上传 → 建模 → 问答 → 证据溯源 → 知识图谱/分析看板 |
 
-周边能力（2.x 时代沉淀，保留可用）：`csv_to_owl.py`/`multi_table.py`（无 schema 的单表/多表建本体兼容路径）、`evidence.py`（证据提取）、`graph_store.py`（SQLite 图持久化）、`mcp_server.py`（MCP server，AI agent 可调用）、`voice_assistant.py`（语音助手）、`data_import.py`/`data_quality.py`/`monitor.py`（数据接入/质量校验/看门狗）、`new_kb.py`（新知识库骨架）、`agents/lexicon_agent.py`（自动词典生成）、`config/`（模型配置 + 词典 + schema + 多租户/SSO 配置）。
+周边能力（2.x 时代沉淀，保留可用）：`csv_to_owl.py`/`multi_table.py`（无 schema 的单表/多表建本体兼容路径）、`evidence.py`（证据提取）、`mcp_server.py`（MCP server，AI agent 可调用）、`voice_assistant.py`（语音助手）、`data_import.py`/`data_quality.py`/`monitor.py`（数据接入/质量校验/看门狗）、`new_kb.py`（新知识库骨架）、`agents/lexicon_agent.py`（自动词典生成）、`config/`（模型配置 + 词典 + schema + 多租户/SSO 配置）。
+
+> `graph_store.py`（SQLite 图持久化）已在「代码极简化」重构中移除，**当前代码树不含该实现**。`docs/规模化.md` 里的升级路径与 20 万实体实测是历史设计记录，不要照着跑命令。
 
 商业化鉴权与自助建模（v0.4.0）：`tenant.py`（多租户解析 + 请求级租户上下文）、`db_dialect.py`/`db_loader.py`（行级隔离单点，缺租户 fail-closed）、`token_guard.py`（令牌吊销 / 刷新轮替 / 限速状态层）、`sso.py`（SSO/OIDC-JWT 适配器，LDAP 为接口占位）、`audit_chain.py`（哈希链审计账本，带 tenant）、`schema_ontology.py` 的类层次 / 定义 / 具名子类派生内核、`config/tenants.json` + `config/sso.example.json`（配置样例，真实配置 gitignore）。
 
@@ -501,7 +511,7 @@ python run.py plugin remove my_plugin           # 移除
 
 ### UCI AI4I 预测性维护（公开数据集）
 
-1 万行真实制造设备传感器数据，14 列。自动建模时间约 2 分钟，12 个属性中文名自动生成。覆盖数量/极值/范围/统计/组合/过滤计数全类型提问，benchmark 61/61 = 100%。
+1 万行真实制造设备传感器数据，14 列。建模时属性中文名与查询词典由 `_build_lexicon` 自动生成。覆盖数量/极值/范围/统计/组合/过滤计数全类型提问，benchmark 61/61 = 100%。
 
 ### 阀门厂（合成数据）
 
@@ -558,7 +568,7 @@ python api_server.py          # http://localhost:8000
 
 工程化能力：角色化鉴权（`FOOD_ADMIN_KEY`/`FOOD_READ_KEY`，默认 fail-closed：未配置或 key 不匹配一律 401；key 可走环境变量或 `config/api_keys.json`）、多租户与行级隔离（`config/tenants.json` 租户注册表 + 数据访问层强制租户条件，缺上下文 fail-closed）、严格鉴权灰度开关（`FOOD_STRICT_AUTH`，默认关）、上传体积上限（`FOOD_MAX_UPLOAD_MB`，默认 50MB，超限 413 且不落盘）、令牌吊销 / 刷新轮替 / 限速防爆破（`POST /api/auth/revoke|refresh|ban|unban`）、SSO/OIDC(JWT) 可选适配器（`codes/sso.py`，本地凭据优先）、增量重建（数据 hash 检测，变了才重建）、Docker 一条命令部署（`docker compose up -d`）、结构化日志 + 哈希链审计账本。
 
-全库 `/api` 路由 **67 条**（`scripts/check_route_reachability.py` 的统计口径：前端可达 14、测试/文档可达 59、allowlist 5，无新增断链）。路由族按域拆在 `codes/routes/`，`api_server.py` 只做装配。
+全库 `/api` 路由 **67 条**（`scripts/check_route_reachability.py` 的统计口径：前端可达 14、测试/文档可达 59、allowlist 5；前两项是同一批路由上的**重叠子集**（一条路由可同时被前端与测试引用），第三项是 allowlist 文件条目数，三者口径不同，**不能相加**，无新增断链）。路由族按域拆在 `codes/routes/`，`api_server.py` 只做装配。
 
 ## Web 前端
 
@@ -585,7 +595,9 @@ npm start            # http://localhost:3001
 
 对照：裸 LLM（不加本体、直接把数据喂给模型）同批问题命中 7/9 = 78%，差的恰好是计算类（平均值、总和），详见[方法论文-本体vs裸LLM](docs/方法论文-本体vs裸LLM.md)。
 
-其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；20 万实体 SQLite 图持久化实测（写入 1.58s / 加载 1.76s / 67MB）；**pytest 178 项全过 + 2 项 skip（CI 与本地自检门都跑这条）**。公理推理：valve 17 条公理推出 194 条、food 23 条公理推出 22 条，两轮内到不动点，纯标准库。
+> 这张表用的是 `benchmark.py` 的题集（ai4i 61 题等），与下一节 `scripts/eval_qa.py` 的 331 题是**两套不同的评测集**，题目数与判分口径都不同，不要混用。
+
+其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；**pytest 178 项全过 + 2 项 skip（CI 与本地自检门都跑这条）**。公理推理：valve 17 条公理推出 194 条、food 23 条公理推出 22 条，两轮内到不动点，纯标准库。（20 万实体 SQLite 图持久化是 2.x 时代的历史实测，实现已移除，不计入当前能力。）
 
 复现：
 
@@ -615,7 +627,7 @@ python valve_demo.py
 **十道自检门**（一把跑全部门，纯标准库，各门自起临时端口并收尾）：
 
 ```bash
-python scripts/run_all_gates.py          # 全部 10 门（含最慢的评测基线，约 1 分钟）
+python scripts/run_all_gates.py          # 全部 10 门（含最慢的评测基线）
 python scripts/run_all_gates.py --fast   # 跳过评测基线，9 门
 ```
 
@@ -632,11 +644,17 @@ python scripts/run_all_gates.py --fast   # 跳过评测基线，9 门
 {
   "active": "cloud",
   "models": {
-    "local": { "type": "ollama", "base_url": "http://127.0.0.1:11434/api/generate", "model": "ornith:latest", "api_key": "" },
-    "cloud": { "type": "openai", "base_url": "https://api.deepseek.com/v1/chat/completions", "model": "deepseek-chat", "api_key": "" }
-  }
+    "local": { "type": "ollama", "base_url": "http://127.0.0.1:11434/api/generate",
+               "model": "writer-agent:latest", "api_key": "" },
+    "cloud": { "type": "openai", "base_url": "https://api.deepseek.com/v1",
+               "model": "deepseek-chat", "api_key": "" }
+  },
+  "embedding": { "type": "ollama", "base_url": "http://127.0.0.1:11434",
+                 "model": "nomic-embed-text", "api_key": "" }
 }
 ```
+
+（省略各模型的 `name` 与顶层 `_comment`，其余字段与仓库文件一致；`active` 合法值为 `local` / `cloud`。）
 
 规则能答的走规则（省 token、快、准、可复现），规则未命中才走 LLM。本地 Ollama 可全离线运行，数据不出厂。
 
@@ -682,7 +700,7 @@ start.bat      # Windows
 欢迎提 issue 和 PR。
 
 - **Bug 报告**：附复现命令（数据文件 + 问题 + 期望/实际输出）
-- **PR 要求**：代码 + 对应测试；跑通 `python -m pytest tests`；涉及问答能力的改动，附 benchmark 复现结果
+- **PR 要求**：代码 + 对应测试；`cd codes && python -m pytest tests`（或在仓库根跑 `python -m pytest codes/tests`）；涉及问答能力的改动，附 benchmark 复现结果
 - **入库数据一律用合成数据**：仓库不接收任何真实工厂数据
 - **保持词典驱动**：不要在规则引擎里硬编码具体中文词，字段语义走 lexicon
 - 提问模板类改动，先看 `ontology_qa_v3.py` 的模板顺序注释，避免同类劫持回归
@@ -718,7 +736,7 @@ start.bat      # Windows
 - **公理集覆盖面**：种子靠表名里的词认角色，认不出的行业生成的是空公理集 + 一条跳过原因，不硬编。目前只有 valve / food 两个库实际生成并验证过推理效果（+194 / +22 条），其余 19 个注册库还没跑过 `generate`
 - **命名空间处理**：数据里「类」和「对象属性」不在同一个 `#` 前缀时（食品库就是这样），按局部名做**唯一**匹配回退到数据里真实的 IRI，回退明细写进报告的 `prefix_fallbacks`；有歧义就不推
 - **数据形态**：最适配结构化台账（单表/多表 CSV）；不处理非结构化文本，无大规模语义检索（种子定位是子串匹配 + 同义词扩展）
-- **规模**：内存图为主，台账级；20 万实体可用 SQLite 图持久化过渡，不适合百万级实体图
+- **规模**：内存图为主，台账级；SQLite 图持久化（`graph_store.py`）已在重构中移除，当前代码树**没有** 10 万–100 万实体的过渡方案，`docs/规模化.md` 保留的是历史设计记录，不适合百万级实体图
 - **词典校对**：自动词典偶有误判，关键字段需人工确认；本体自演进的候选质量取决于提取器——LLM 不可用时降级为 n-gram 滑窗，会切出「已入库」「华北」这类碎片，必须人工筛；本仓库内该能力目前只经自检门验证，尚未沉淀真实并入成果（现有别名仍来自正常建库与人工维护）
 - **LLM 稳定性**：本地小模型偶发空响应，生产建议用更强模型
 - **鉴权**：严格鉴权开关（`FOOD_STRICT_AUTH`）**默认关闭**——默认部署下本体结构与图端点仍可匿名读；多进程/多实例部署下，令牌吊销名单与限速计数为本地状态文件，**多实例不共享**；MySQL/PostgreSQL 行级隔离**只有代码、未在真库验证**；LDAP 适配器仅为接口占位（未实现）；SSO 只落地 JWT 直验（HS256 / RS256），未做完整 OAuth2 授权码流程
