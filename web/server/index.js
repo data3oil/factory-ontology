@@ -899,7 +899,7 @@ function ontologyFresh(dir, kb) {
 
   // ── API: 代码版本（读 codes/run.py 的 __version__，单一事实源）──
   if (url === '/api/ontology/version') {
-    let version = '0.5.0';
+    let version = '0.6.1';
     try {
       const runSrc = readFileSync(join(__dirname, '..', '..', 'codes', 'run.py'), 'utf-8');
       const m = runSrc.match(/__version__\s*=\s*["']([^"']+)["']/);

@@ -5,7 +5,7 @@
 
 **工厂本体驱动的数据问答框架。** 把结构化台账变成可自然语言提问的语义知识图谱，CSV 进，答案出，每个答案都带证据。
 
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.6.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![CI](https://github.com/data3oil/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/data3oil/factory-ontology/actions)
@@ -707,9 +707,9 @@ start.bat      # Windows
 
 ## 版本
 
-当前版本 **v0.6.0**。版本历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本 **v0.6.1**。版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
-0.6.x 为当前版本线（公理集与小型推理机：跨行业种子按数据里真实的边生成公理集、零依赖前向链推理机、前端「公理与推理」页可改可跑可试问、问答链路接入 `mode=axiom` 并带依据）；0.5.x 为本体自定义 + 本体自演进（人在环的候选提报 / 并入 / 回退，含端到端自检门）；0.4.x 为多租户与行级隔离 + 鉴权加固 + 令牌吊销/刷新与限速 + SSO 适配 + 自助建模目录浏览/自动匹配 + 建模质量与合规治理；0.3.x 为问答解析层修复 + 词典资产闭环 + 版本号统一为单一事实源；0.2.x 为 schema 驱动重构 + 检索/评测/上传/前端增强；0.1.x 为 schema 驱动重构基线；2.9.x 及更早为重构前的能力演进。
+0.6.x 为当前版本线（0.6.1 起含证据层：答案附原文行区间与四态判定；公理集与小型推理机：跨行业种子按数据里真实的边生成公理集、零依赖前向链推理机、前端「公理与推理」页可改可跑可试问、问答链路接入 `mode=axiom` 并带依据）；0.5.x 为本体自定义 + 本体自演进（人在环的候选提报 / 并入 / 回退，含端到端自检门）；0.4.x 为多租户与行级隔离 + 鉴权加固 + 令牌吊销/刷新与限速 + SSO 适配 + 自助建模目录浏览/自动匹配 + 建模质量与合规治理；0.3.x 为问答解析层修复 + 词典资产闭环 + 版本号统一为单一事实源；0.2.x 为 schema 驱动重构 + 检索/评测/上传/前端增强；0.1.x 为 schema 驱动重构基线；2.9.x 及更早为重构前的能力演进。
 
 ## 开源与闭源：开源算法原子层 + 闭源编排层
 
