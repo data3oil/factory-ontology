@@ -151,6 +151,10 @@ def check_default_vs_batch2(cases, b2):
     for c in cases:
         e2 = b2.envelope_from_result(dict(c["result"]), "知识库")
         e3 = ask_new.envelope_from_result(dict(c["result"]), "知识库")
+        # 0.6.1 新增的证据层两个只读字段不参与本门对照（批 2 参照快照没有它们）
+        for _k in ("evidence_cites", "evidence_verdict"):
+            e2.pop(_k, None)
+            e3.pop(_k, None)
         bad, n = diff_fields(e2, e3)
         total_fields += n
         same_fields += (n - len(bad))
@@ -207,6 +211,11 @@ def check_enabled(cases, b2):
         o2, n2 = dict(off), dict(on)
         o2.pop("advisory", None)
         n2.pop("advisory", None)
+        # 0.6.1 起信封恒定带证据层两个只读字段（evidence_cites / evidence_verdict）；
+        # 参照实现 b2 是批 2 的快照、没有这两个键。它们与模型判定无关，故不纳入本门对照。
+        for _k in ("evidence_cites", "evidence_verdict"):
+            o2.pop(_k, None)
+            n2.pop(_k, None)
         bad, _tot = diff_fields(o2, n2)
         if not bad:
             ans_same += 1
