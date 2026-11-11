@@ -220,7 +220,7 @@
                                     // | lexasset | evolve | orch
   // ─── 导航分区（3 主区 + 设置区）；activeTab 仍是内部真相源，十个分支一律不动 ───
   // 一级区 → 页签：「建本体」落在数据建模页，建模三步仍走设置区的自助建模与本体演进
-  const NAV_MAP = { build: 'model', ask: 'query', dashboard: 'dashboard', delivery: 'assets' };
+  const NAV_MAP = { build: 'model', ask: 'query', dashboard: 'dashboard', delivery: 'assets', evidence: 'evidence' };
   // 交付与迁移是一级区，内部两个页签（版本与交付 / 词典），两条都可达
   const DELIVERY_TABS = { delivery: 'assets', lexicon: 'lexasset' };
   const SETTINGS_ENTRIES = ['model', 'selfmodel', 'evolve', 'axioms', 'knowledge', 'eval', 'orch', 'enterprise'];
@@ -247,7 +247,7 @@
     landingPref = v === 'dashboard' ? 'dashboard' : 'ask';
     try { localStorage.setItem(LANDING_KEY, landingPref); } catch (e) { /* fail-open: 存不了就只作用于本次会话 */ }
   }
-  const NAV_LABELS = { ask: '知识问答', dashboard: '数据看板', delivery: '交付与迁移' };
+  const NAV_LABELS = { ask: '知识问答', dashboard: '数据看板', delivery: '交付与迁移', evidence: '证据检索' };
   const ENTRY_LABELS = { model: '数据建模', selfmodel: '自助建模', evolve: '本体演进（人确认）', knowledge: '知识库管理', eval: '评测基线', orch: '本体编排', enterprise: '企业与账号' };
   let navArea = $state('ask');         // build | ask | dashboard | delivery
   // 高亮跟着页签走：从设置区直接进「数据建模」时，左侧也应显示在「1 建本体」

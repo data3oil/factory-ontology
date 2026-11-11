@@ -66,6 +66,13 @@
     }
   }
 
+  // 原文片段里的 markdown 记号在列表里没有意义，显示时抹平（不改库里的原文）
+  const clean = (t) => String(t || '')
+    .replace(/^\s*#{1,6}\s*/gm, '')
+    .replace(/\|/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
   function onKeydown(e) {
     if (e.key === 'Enter') doSearch();
   }
@@ -77,7 +84,7 @@
 
 <section class="ev-wrap">
   <div class="ev-head">
-    <div class="ev-title">证据检索<span class="ev-sub">问一句话，给原文所在的行区间；判定只给四态，不做生成</span></div>
+    <div class="ev-title">输入一句现场问法<span class="ev-sub">给原文所在的行区间；判定只给四态，不做生成</span></div>
     {#if status && status.built}
       <div class="ev-meta">
         文档 {status.docs} · 段 {status.segs} · 日期 {status.date_min} 至 {status.date_max} ·
@@ -123,7 +130,7 @@
             <span class="ev-score">相关度 {r.score}</span>
           </div>
           {#if r.heading}<div class="ev-heading">{r.heading}</div>{/if}
-          <div class="ev-snippet">{r.snippet}</div>
+          <div class="ev-snippet">{clean(r.snippet)}</div>
         </div>
       {/each}
     </div>

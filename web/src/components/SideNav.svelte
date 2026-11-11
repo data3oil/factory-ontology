@@ -20,6 +20,7 @@
     { area: 'ask', step: '2', label: '知识问答' },
     { area: 'dashboard', step: '3', label: '数据看板' },
     { area: 'delivery', step: '4', label: '交付与迁移' },
+    { area: 'evidence', step: '5', label: '证据检索' },
   ];
 
   const GROUPS = [
@@ -31,7 +32,6 @@
     ] },
     { title: '知识库', items: [
       { key: 'knowledge', label: '知识库管理' },
-      { key: 'evidence', label: '证据检索' },
     ] },
     { title: '模型与质量', items: [
       { key: 'eval', label: '评测基线' },
