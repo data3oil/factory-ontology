@@ -8,6 +8,7 @@
   import AnalysisResult from './components/AnalysisResult.svelte';
   import EvalPanel from './components/EvalPanel.svelte';
   import KnowledgePanel from './components/KnowledgePanel.svelte';
+  import EvidencePanel from './components/EvidencePanel.svelte';
   import AssetPanel from './components/AssetPanel.svelte';
   import SelfModelPanel from './components/SelfModelPanel.svelte';
   import LexiconAssetPanel from './components/LexiconAssetPanel.svelte';
@@ -1725,6 +1726,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <div class="pane-title">知识库管理<span class="pane-sub">上传文档，构建企业知识库</span></div>
       <div class="dashboard-body">
         <KnowledgePanel kb={currentKb} />
+      </div>
+    </section>
+    {:else if activeTab === 'evidence'}
+    <!-- ─── 证据检索（原文出处，只读）─── -->
+    <section class="pane pane-full">
+      <div class="pane-title">证据检索<span class="pane-sub">给原文所在的行区间与四态判定，不做生成</span></div>
+      <div class="dashboard-body">
+        <EvidencePanel />
       </div>
     </section>
     {:else if activeTab === 'assets'}

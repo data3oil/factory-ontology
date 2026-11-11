@@ -305,6 +305,38 @@ def normalize_envelope_evidence(ev_list):
     return out
 
 
+def _evidence_db_path():
+    """证据层库路径（与 evidence_kb 的默认一致，可用 env 覆盖）。"""
+    home = os.environ.get("EVIDENCE_KB_HOME") or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "evidence")
+    name = os.environ.get("EVIDENCE_KB_KB") or "default"
+    return os.path.join(home, name + ".db")
+
+
+def attach_evidence_cites(out, max_items=3):
+    """把证据层的原文出处挂到信封上（只新增键，不动任何老字段）。
+
+    - 未建证据库 / 未装 evidence_kb / 检索异常：一律 return 原对象，逐字段不变；
+    - 命中时只新增 evidence_cites（path + 行区间 + 片段）与 evidence_verdict（四态）。
+    """
+    try:
+        q = str(out.get("question") or "").strip()
+        if not q:
+            return out
+        db = _evidence_db_path()
+        if not os.path.exists(db):
+            return out
+        import evidence_kb
+        rows = evidence_kb.search(db, q, max_items)
+        if not rows:
+            return out
+        out["evidence_cites"] = rows
+        out["evidence_verdict"] = evidence_kb.judge(q, rows).get("state")
+        return out
+    except Exception as e:                                   # noqa: BLE001
+        out["evidence_error"] = "%s: %s" % (type(e).__name__, e)
+        return out
+
 def envelope_from_result(result, kb_name="知识库"):
     """把 /api/ask 的既有返回包成统一信封，但**只新增字段、绝不删改老字段**（向后兼容）。
 
@@ -344,4 +376,7 @@ def envelope_from_result(result, kb_name="知识库"):
     except Exception as _adv_err:
         # 接线失败不静默：如实写进返回值，免得界面看着像没事。
         out["advisory_error"] = "%s: %s" % (type(_adv_err).__name__, _adv_err)
+    # 证据层融合（2026-11-11）：只新增 evidence_cites / evidence_verdict 两个键；
+    # 未建库时本调用是 no-op，输出与接线前逐字段一致。
+    out = attach_evidence_cites(out)
     return out

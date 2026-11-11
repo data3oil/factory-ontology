@@ -147,3 +147,13 @@ scripts/_after.json
 
 # 运行时配置：含基座签发的令牌，永不入库
 config/base.json
+
+# 证据层索引库（运行态，按机器与语料生成，不入库）
+codes/data/evidence/
+codes/api_server.py.bak_preevidence_*
+
+# 本次证据层改造的改动前备份
+codes/ask_service.py.bak_prefusion_*
+web/App.svelte.bak_preevidence_*
+web/src/components/SideNav.svelte.bak_preevidence_*
+web/server/index.js.bak_preevidence_*

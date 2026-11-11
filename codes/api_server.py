@@ -3299,7 +3299,7 @@ _sys.modules.setdefault('api_server', _sys.modules[__name__])
 # ── 路由族挂载（P1-1 拆分）：各族已移入 codes/routes/<family>_routes.py ──
 import importlib as _importlib  # noqa: E402
 
-_ROUTE_FAMILIES = ['audit', 'axiom', 'eval', 'evolve', 'export', 'flows', 'industry', 'knowledge', 'standard', 'stats', 'trace']
+_ROUTE_FAMILIES = ['audit', 'axiom', 'eval', 'evolve', 'export', 'flows', 'industry', 'knowledge', 'standard', 'stats', 'trace', 'evidence']
 
 for _fam in _ROUTE_FAMILIES:
     _m = _importlib.import_module('routes.%s_routes' % _fam)

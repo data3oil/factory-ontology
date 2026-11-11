@@ -352,7 +352,8 @@ function ontologyFresh(dir, kb) {
   // ── API: 标准合规/导出前缀代理（C1）—— /api/standard/* 原样转发到后端同路径 ──
   // 复用现有代理写法（同 ontology.js 的 API_URL/X-API-Key 口径）；此前该前缀未被代理，
   // 客户端拿到的是首页 HTML（表现为合规面板空）。
-  if (url.startsWith('/api/standard/')) {
+  // 证据层（2026-11-11）：/api/evidence/* 与 /api/standard/* 同一套代理写法
+  if (url.startsWith('/api/standard/') || url.startsWith('/api/evidence/')) {
     try {
       const cfg = backendConfig();
       const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
@@ -371,7 +372,7 @@ function ontologyFresh(dir, kb) {
       });
       res.end(text);
     } catch (err) {
-      writeErr(502, { ok: false, error: `代理 /api/standard/ 失败：${String(err.message || err)}` });
+      writeErr(502, { ok: false, error: `代理 ${url.split('?')[0]} 失败：${String(err.message || err)}` });
     }
     return;
   }

@@ -31,6 +31,7 @@
     ] },
     { title: '知识库', items: [
       { key: 'knowledge', label: '知识库管理' },
+      { key: 'evidence', label: '证据检索' },
     ] },
     { title: '模型与质量', items: [
       { key: 'eval', label: '评测基线' },
