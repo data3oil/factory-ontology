@@ -7,8 +7,9 @@ import json
 import os
 import sys
 
-sys.path.insert(0, r"D:/factory-ontology/codes")
-os.chdir(r"D:/factory-ontology/codes")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+os.chdir(_HERE)
 
 RESULT = {
     "ok": True,
@@ -31,14 +32,16 @@ def run(home):
 
 
 if __name__ == "__main__":
-    with_db = run(r"D:/factory-ontology/codes/data/evidence")
-    without_db = run(r"C:/Users/zjjem/AppData/Local/hermes/cache/scratch/no_such_dir")
+    with_db = run(os.path.join(_HERE, "data", "evidence"))
+    without_db = run(os.path.join(_HERE, "_no_such_evidence_dir"))   # 不存在的目录：验证无库时形状仍恒定
     a, b = set(with_db), set(without_db)
     print("有库键数 %d ｜ 无库键数 %d" % (len(a), len(b)))
     print("新增键：", sorted(a - b))
     print("丢失键：", sorted(b - a))
+    # 两个证据键的值随环境变化（有库=列表，无库=null），属设计如此；其余键必须逐字段一致。
+    EVID = {"evidence_cites", "evidence_verdict", "evidence_error"}
     same = all(json.dumps(with_db.get(k), sort_keys=True, default=str)
-               == json.dumps(without_db.get(k), sort_keys=True, default=str) for k in (b - (a - b)))
+               == json.dumps(without_db.get(k), sort_keys=True, default=str) for k in sorted(b - EVID))
     print("老字段逐字段一致：", same)
     if "evidence_cites" in with_db:
         top = with_db["evidence_cites"][0]

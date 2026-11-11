@@ -2,10 +2,12 @@
 """造证据层题集：先校验 must 在库中同段共现，不合格的当场剔除；另造一组库里确实没有的拒答题。"""
 import io
 import json
+import os
 import sqlite3
 
-DB = r"D:/factory-ontology/codes/data/evidence/default.db"
-OUT = r"D:/factory-ontology/codes/tests/fixtures/evidence_questions.json"
+_HERE = os.path.dirname(os.path.abspath(__file__))
+DB = os.path.join(_HERE, "data", "evidence", "default.db")
+OUT = os.path.join(_HERE, "tests", "fixtures", "evidence_questions.json")
 
 CAND = [
     ("本体公理有哪几种", ["公理"]),
