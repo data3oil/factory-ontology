@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""余下路由族的行为契约回归门（为 P1-1 拆分收口而建，2026-10-02）。
+"""
+/api/ask 顶层键在 2026-11-11 显式增加 evidence_cites / evidence_verdict（证据层融合，无库时为 null）。
+余下路由族的行为契约回归门（为 P1-1 拆分收口而建，2026-10-02）。
 
 口径（有意如此，别扩成"什么都测"）：
   * **读端点**：真调，钉 `status` + 响应**顶层键集合**（键集合变了 = 契约变了，立刻红）。
@@ -61,8 +63,8 @@ CONTRACTS = [
     ("assets_snapshot_bad_kb", "POST", "/api/assets/snapshot", 'key', {'kb': '__no_such_kb__'}, (200,), ['elapsed_s', 'error', 'ok']),
     ("assets_rollback_noauth", "POST", "/api/assets/rollback", None, {'kb': 'food'}, (401,), ['detail']),
     ("kbs_examples_noauth", "POST", "/api/kbs/food/examples", None, {}, (401,), ['detail']),
-    ("ask_food", "POST", "/api/ask", 'key', {'question': '乳制品的数量', 'kb': 'food'}, (200,), ['advisory', 'answer', 'confidence', 'coverage', 'engines', 'evidence', 'evidence_trace', 'hit', 'kb', 'mode', 'no_basis', 'ok', 'question', 'reason', 'structured']),
-    ("ask_miss", "POST", "/api/ask", 'key', {'question': '完全无关xyz', 'kb': 'food'}, (200,), ['advisory', 'answer', 'confidence', 'engines', 'evidence', 'evidence_trace', 'hit', 'kb', 'mode', 'no_basis', 'ok', 'question', 'reason', 'structured']),
+    ("ask_food", "POST", "/api/ask", 'key', {'question': '乳制品的数量', 'kb': 'food'}, (200,), ['advisory', 'answer', 'confidence', 'coverage', 'engines', 'evidence', 'evidence_cites', 'evidence_trace', 'evidence_verdict', 'hit', 'kb', 'mode', 'no_basis', 'ok', 'question', 'reason', 'structured']),
+    ("ask_miss", "POST", "/api/ask", 'key', {'question': '完全无关xyz', 'kb': 'food'}, (200,), ['advisory', 'answer', 'confidence', 'engines', 'evidence', 'evidence_cites', 'evidence_trace', 'evidence_verdict', 'hit', 'kb', 'mode', 'no_basis', 'ok', 'question', 'reason', 'structured']),
     ("ask_noauth", "POST", "/api/ask", None, {'question': '乳制品的数量'}, (401,), ['detail']),
     ("auth_state", "GET", "/api/auth/state", 'admin', None, (200,), ['active_bans', 'ban_rows', 'config', 'consumed_rows', 'db_bytes', 'db_path', 'fail_rows', 'ok', 'refresh_rows', 'revoked_rows', 'state_dir', 'tokens_rows']),
     ("auth_sso_status", "GET", "/api/auth/sso/status", 'admin', None, (200,), ['config_path', 'enabled', 'ok', 'providers']),

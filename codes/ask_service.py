@@ -319,6 +319,10 @@ def attach_evidence_cites(out, max_items=3):
     - 未建证据库 / 未装 evidence_kb / 检索异常：一律 return 原对象，逐字段不变；
     - 命中时只新增 evidence_cites（path + 行区间 + 片段）与 evidence_verdict（四态）。
     """
+    # 形状恒定：无论证据库在不在，这两个键都在（缺失时为 null）。
+    # 这样 /api/ask 的顶层键集合不随环境漂移，契约门不会时红时绿。
+    out["evidence_cites"] = None
+    out["evidence_verdict"] = None
     try:
         q = str(out.get("question") or "").strip()
         if not q:

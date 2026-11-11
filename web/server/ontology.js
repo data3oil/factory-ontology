@@ -910,6 +910,8 @@ export async function askOntology(question, kb, deepRecall = false) {
       return {
         ok: true, answer: String(d.answer).trim(), mode: d.mode, kb: d.kb || kb,
         evidence: d.evidence || null,
+        evidence_cites: d.evidence_cites || null,   // 证据层：原文出处 [{path,line_from,line_to,doc_date,heading,snippet}]
+        evidence_verdict: d.evidence_verdict || null, // 证据层四态判定 SUPPORTED/WEAK/NOT_FOUND
         engines: d.engines || null,          // 参与召回的引擎(rule/logical/graph/bm25/vector/doc)
         confidence: d.confidence || null,    // high/medium/low/none
         no_basis: d.no_basis,                // 是否无依据(空证据)

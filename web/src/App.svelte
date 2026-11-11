@@ -9,6 +9,7 @@
   import EvalPanel from './components/EvalPanel.svelte';
   import KnowledgePanel from './components/KnowledgePanel.svelte';
   import EvidencePanel from './components/EvidencePanel.svelte';
+  import EvidenceCites from './components/EvidenceCites.svelte';
   import AssetPanel from './components/AssetPanel.svelte';
   import SelfModelPanel from './components/SelfModelPanel.svelte';
   import LexiconAssetPanel from './components/LexiconAssetPanel.svelte';
@@ -305,7 +306,9 @@ let defaultBusy = $state(false);   // 默认数据建模中
   let evidence = $state(null);     // 问答证据溯源
   let evidenceOpen = $state(false);
   let deepRecall = $state(false);  // 深度召回开关: 关=确定性命中秒回; 开=命中后仍跑图谱/混合/文档
-  let recallMeta = $state(null);   // 召回元信息 {deep, mode, engines[], confidence, n}
+  let recallMeta = $state(null);
+  let cites = $state(null);        // 证据层融合回来的原文出处
+  let citesVerdict = $state('');   // SUPPORTED / WEAK / NOT_FOUND   // 召回元信息 {deep, mode, engines[], confidence, n}
   // 本体标准合规（GB/T 48000.3）
   let compliance = $state(null);
   let complianceLoading = $state(false);
@@ -934,7 +937,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     if (q.length > 200) { setStatus('err', '问题过长，请控制在 200 字以内'); return; }
     question = ''; asking = true; status = 'asking';
     answer = ''; answerHTML = null; evidence = null; evidenceOpen = false; analysis = null;
-    recallMeta = null;
+    recallMeta = null; cites = null; citesVerdict = '';
     setStatus('info', `查询：${q}`);
     try {
       if (isAnalyzeQuestion(q)) {
@@ -962,6 +965,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           answer = a || '（无结果）';
           answerHTML = renderAnswerHTML(a);
           evidence = res.evidence || null;
+          cites = Array.isArray(res.evidence_cites) ? res.evidence_cites : null;
+          citesVerdict = res.evidence_verdict || '';
           // 后端没带回溯源字段时不要编：宁可说「这次没有带回溯源信息」，也不给一个凭空的低可信度
           const hasProv = !!(res.mode || (res.engines && res.engines.length) || res.confidence != null || res.evidence);
           recallMeta = hasProv
@@ -1696,6 +1701,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               evidenceCount={(recallMeta && recallMeta.n) || 0}
               evidenceHtml={evidence ? renderEvidence(evidence) : ''}
             />
+            <EvidenceCites cites={cites} verdict={citesVerdict} />
           {:else}
             <div class="result-empty">{#if kbsLoaded && currentKb}当前知识库「{kbList.find(k => k.key === currentKb)?.name || currentKb}」已就绪，输入中文问题开始查询。{/if}</div>
           {/if}
