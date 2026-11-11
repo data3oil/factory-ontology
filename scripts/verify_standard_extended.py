@@ -131,7 +131,7 @@ def spawn_backend(port, log):
     env["FOOD_ADMIN_KEY"] = ADMIN_KEY
     env["FOOD_READ_KEY"] = READ_KEY
     env["PYTHONIOENCODING"] = "utf-8"
-    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="hermes-verify-ext-")
+    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="kb-verify-ext-")
     _auth_dirs.append(env["FOOD_AUTH_STATE_DIR"])
     f = open(log, "wb")
     p = subprocess.Popen([PY, os.path.join(CODES, "api_server.py"), "--port", str(port)],
@@ -141,7 +141,7 @@ def spawn_backend(port, log):
 
 
 def make_temp_data():
-    d = tempfile.mkdtemp(prefix="hermes-ext-data-")
+    d = tempfile.mkdtemp(prefix="kb-ext-data-")
     for fn, (txt, _col, _cnt) in _TABLES.items():
         with open(os.path.join(d, fn), "w", encoding="utf-8", newline="") as f:
             f.write(txt)

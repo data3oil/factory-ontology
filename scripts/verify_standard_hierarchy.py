@@ -111,7 +111,7 @@ def spawn_backend(port, log):
     env["FOOD_ADMIN_KEY"] = ADMIN_KEY
     env["FOOD_READ_KEY"] = READ_KEY
     env["PYTHONIOENCODING"] = "utf-8"
-    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="hermes-verify-hier-")
+    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="kb-verify-hier-")
     _auth_dirs.append(env["FOOD_AUTH_STATE_DIR"])
     f = open(log, "wb")
     p = subprocess.Popen([PY, os.path.join(ROOT, "codes", "api_server.py"), "--port", str(port)],
@@ -137,7 +137,7 @@ def make_temp_data():
     sm_batches / sm_batch_items 共享词干 batch（生产域）→ 派生 BatchGroup；
     sm_customers 命名单例 → 直接挂业务域类。
     """
-    d = tempfile.mkdtemp(prefix="hermes-hier-data-")
+    d = tempfile.mkdtemp(prefix="kb-hier-data-")
     with open(os.path.join(d, "sm_batches.csv"), "w", encoding="utf-8", newline="") as f:
         f.write("id,product,quantity,status\nB01,P1,120,running\nB02,P2,80,done\n")
     with open(os.path.join(d, "sm_batch_items.csv"), "w", encoding="utf-8", newline="") as f:

@@ -121,7 +121,7 @@ def spawn_backend(port, log):
     env["PYTHONIOENCODING"] = "utf-8"
     # 隔离限速/防爆破状态（否则反复用错 key 会命中仓库共享的 var/auth_state 临时封禁 → 429，
     # 掩盖真正的 401，使 C2 用例变成 flaky）。每次起服务用独立临时状态目录。
-    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="hermes-verify-authstate-")
+    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="kb-verify-authstate-")
     _auth_dirs.append(env["FOOD_AUTH_STATE_DIR"])
     f = open(log, "wb")
     p = subprocess.Popen([PY, os.path.join(ROOT, "codes", "api_server.py"), "--port", str(port)],

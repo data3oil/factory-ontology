@@ -40,7 +40,7 @@ PATTERNS = [
         r"(?<![A-Za-z0-9:/])[A-Za-z]:[\\/]+(?:Users|workspace|Desktop|factory-ontology|knowledge"
         r"|Python\d{2,3}(?![0-9])|data(?![a-z.]))",
         re.I)),
-    ("用户名", re.compile(r"(?i)\bzjjem\b|C:[\\/]+Users[\\/]+[A-Za-z0-9._-]+")),
+    ("用户名", re.compile(r"(?i)C:[\\/]+Users[\\/]+[A-Za-z0-9._-]+|/home/[A-Za-z0-9._-]+")),
     ("内网IP", re.compile(
         r"(?<![\d.])(?:10\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}(?![\d.])")),
     ("内部项目名", re.compile(r"获客飞轮|组织主体舆情|企业人才系统|企业内训|客讯引擎")),

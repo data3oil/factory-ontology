@@ -114,7 +114,7 @@ def main():
     env["FOOD_ADMIN_KEY"] = ADMIN_KEY
     env["FOOD_READ_KEY"] = READ_KEY
     env["PYTHONIOENCODING"] = "utf-8"
-    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="hermes-apply-ext-")
+    env["FOOD_AUTH_STATE_DIR"] = tempfile.mkdtemp(prefix="kb-apply-ext-")
     logp = os.path.join(CODES, "output", "_apply_ext_backend.log")
     be = subprocess.Popen([PY, os.path.join(CODES, "api_server.py"), "--port", str(port)],
                           cwd=ROOT, env=env, stdout=open(logp, "wb"), stderr=subprocess.STDOUT)
