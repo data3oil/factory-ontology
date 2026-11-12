@@ -265,8 +265,8 @@ def _doc_rag_fallback(question, kb):
             return {"ok": True, "mode": "kb_rag", "answer": ans,
                     "evidence": _norm_doc_evidence(ev), "engines": ["doc"],
                     "structured": None, "no_basis": False, "kb": kb}
-    except Exception:
-        pass
+    except Exception as e:
+        safe_log.swallow("_ask_kb_rag", e)
     return None
 
 

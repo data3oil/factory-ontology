@@ -9,3 +9,4 @@
 # —— 编排与示例：只给运维 / FDE 用，界面另有入口 ——
 /api/flows/{flow_id}/run      流程编排执行（编排页只读状态，执行走 CLI 与运维脚本）
 /api/kbs/{kb}/examples        知识库示例问题读写（前端问答页改用 /api/ontology/examples）
+/api/evidence/rebuild   证据索引重建（运维用，需 key，界面不设入口）
