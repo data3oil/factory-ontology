@@ -340,6 +340,61 @@ function ontologyFresh(dir, kb) {
     return;
   }
 
+  // ── API: admin.html 运维后台旧路径代理（断链修复）──
+  // admin.html 是内网运维后台（无 BFF 登录态），路径是旧后端时代的：
+  // /api/stats、/api/app-config、/api/ontology/structure、/api/admin/audit、/api/admin/upload。
+  // 此前这些路径在 BFF 无路由 → 落到 SPA fallback 返回首页 HTML（HTTP 200 假活，页面全部"加载失败"）。
+  // 这里统一代理到 api_server：读操作用 read key；audit/upload 是管理操作，用 admin key（后端强制要求）。
+  // 置于鉴权门禁之前：该页走后端 key 鉴权，不依赖 BFF 会话。
+  const ADMIN_PROXY_MAP = {
+    '/api/stats': '/api/stats',
+    '/api/app-config': '/api/app-config',
+    '/api/ontology/structure': '/api/ontology/structure',
+    '/api/admin/audit': '/api/admin/audit',
+    // admin 页的图谱走这里：后端归 /api/ontology/graph，换名避开 BFF 登录门禁
+    '/api/admin/graph': '/api/ontology/graph',
+  };
+  const adminTarget = ADMIN_PROXY_MAP[url];
+  if (req.method === 'GET' && adminTarget) {
+    try {
+      const cfg = backendConfig();
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const key = url === '/api/admin/audit' ? (cfg.adminKey || cfg.key) : cfg.key;
+      const headers = {};
+      if (key) headers['X-API-Key'] = key;
+      const resp = await fetch(cfg.url + adminTarget + qs, { method: 'GET', headers });
+      const text = await resp.text();
+      res.writeHead(resp.status, {
+        'Content-Type': resp.headers.get('content-type') || 'application/json;charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      });
+      res.end(text);
+    } catch (err) {
+      writeErr(502, { ok: false, error: `代理 ${url} 失败：${String(err.message || err)}` });
+    }
+    return;
+  }
+  if (req.method === 'POST' && url === '/api/admin/upload') {
+    try {
+      const cfg = backendConfig();
+      const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const raw = await readRawBody(req, 60 * 1024 * 1024);
+      const headers = { 'Content-Type': req.headers['content-type'] || 'application/octet-stream' };
+      const key = cfg.adminKey || cfg.key;
+      if (key) headers['X-API-Key'] = key;
+      const resp = await fetch(cfg.url + url + qs, { method: 'POST', headers, body: raw });
+      const text = await resp.text();
+      res.writeHead(resp.status, {
+        'Content-Type': resp.headers.get('content-type') || 'application/json;charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      });
+      res.end(text);
+    } catch (err) {
+      writeErr(502, { ok: false, error: '代理 /api/admin/upload 失败：' + String(err.message || err) });
+    }
+    return;
+  }
+
   // ═══ 鉴权门禁：以下全部业务端点需登录 ═══
   const isAuthPath = url.startsWith('/api/auth/');
   if (!isAuthPath && (url.startsWith('/api/ontology/') || url.startsWith('/api/enterprise/') || url === '/api/enterprise' || url.startsWith('/api/eval/') || url.startsWith('/api/standard/'))) {

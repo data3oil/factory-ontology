@@ -1,6 +1,6 @@
 /* 食品溯源 APP 离线缓存 Service Worker */
 const CACHE = "food-kb-v1";
-const CORE = ["/", "/manifest.json", "/icon.svg"];
+const CORE = ["/food_app/", "/food_app/manifest.json", "/food_app/icon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

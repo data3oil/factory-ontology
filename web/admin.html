@@ -64,7 +64,7 @@
   <pre id="audit">加载中…</pre>
 </div>
 
-<script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script src="/assets/echarts.min.js"></script>
 <script>
 const BASE='';
 async function j(u){const r=await fetch(BASE+u);const d=await r.json();if(!r.ok)throw new Error(d.detail||d.error||('HTTP '+r.status));return d;}
@@ -90,7 +90,7 @@ async function load(){
       `<b style="font-size:13px">对象属性关系：</b><div style="font-size:12px;margin:4px 0">${o.object_properties.join(' · ')}</div>`;
   }catch(e){el('ontology').textContent='加载失败: '+e.message;}
   try{
-    const o=await j('/api/ontology/graph');
+    const o=await j('/api/admin/graph');
     if(typeof echarts!=='undefined'){
       const chartEl=el('biggraph');
       const colors={Food_products:'#0d9488',Food_raw_materials:'#14b8a6',Food_batches:'#7c3aed',Food_batch_ingredient:'#a78bfa',Food_qc:'#ef4444',Food_equipment:'#10b981',Food:'#f59e0b'};
