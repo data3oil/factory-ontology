@@ -1680,7 +1680,14 @@ def _nt_property_decls(entities, relations, data, eid_to_cls, L, ns):
 
 
 def _nt_category_hierarchy(entities, data, eid_to_cls, L, ns):
-    """类别类层级 + 类型体系(subClassOf)：实体含 category 列 → Category 类 + isA。"""
+    """类别类层级 + 类型体系(subClassOf)：实体含 category 列 → Category 类 + isA。
+
+    类别类与成员类都补 rdfs:label（2026-11-18）：成员类的 IRI 局部名是
+    `_ascii_local(取值)`，中文会被编码成 uXXXX（如 生物农药 → u751fu7269u519cu836f）。
+    这个编码是刻意设计的（可逆、确定、可移植），但 nt 层若不带 label，
+    读的人只看到一串 uXXXX，不知道是"生物农药"。生成的类名无从反查。
+    与 `_nt_dimension_classes` 保持一致：那边早就带 label，这边漏了。
+    """
     for eid, ent in entities.items():
         cls = eid_to_cls[eid]
         cls_uri = ent.get("iri") or (ns + cls)
@@ -1690,12 +1697,20 @@ def _nt_category_hierarchy(entities, data, eid_to_cls, L, ns):
         cat_cls = f"{cls}Category"
         L.append(f"<{ns}{cat_cls}> {RDF_TYPE} {OWL_CLASS} .")
         L.append(f"<{ns}{cat_cls}> {RDFS_SUBCLASS} <{cls_uri}> .")
+        L.append(f"<{ns}{cat_cls}> {RDFS_LABEL} {_q('%s类别' % (ent.get('label') or cls))} .")
+        # 同一类别值在多行重复出现时只发一次三元组（去重保序）：
+        # 原实现按行遍历，3 行同类别就写 3 份完全相同的 owl:Class/subClassOf 声明。
+        # RDF 语义上重复三元组无害，但文件里全是重复块，读起来像生成器失控。
+        seen = set()
         for row in data[table]:
             cat = row.get("category")
-            if cat:
-                cat_uri = f"{ns}{cat_cls}_{_ascii_local(cat)}"
-                L.append(f"<{cat_uri}> {RDF_TYPE} {OWL_CLASS} .")
-                L.append(f"<{cat_uri}> {RDFS_SUBCLASS} <{ns}{cat_cls}> .")
+            if not cat or cat in seen:
+                continue
+            seen.add(cat)
+            cat_uri = f"{ns}{cat_cls}_{_ascii_local(cat)}"
+            L.append(f"<{cat_uri}> {RDF_TYPE} {OWL_CLASS} .")
+            L.append(f"<{cat_uri}> {RDFS_SUBCLASS} <{ns}{cat_cls}> .")
+            L.append(f"<{cat_uri}> {RDFS_LABEL} {_q(str(cat))} .")
 
 
 def _nt_dimension_classes(entities, data, eid_to_cls, L, ns, schema):
