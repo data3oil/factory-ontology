@@ -141,6 +141,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # verify_advisory 要拿 git e197585:codes/ask_service.py 当"批 2 真实实现"基准。
+          # 浅克隆（默认 fetch-depth: 1）里没有这个提交，基准就取不到——
+          # 2026-11-18 首次接入时正因此报 AttributeError。这里要全历史。
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

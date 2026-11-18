@@ -358,6 +358,16 @@ def main():
     print("项目: %s" % ROOT)
 
     b2 = load_batch2_module(args.snapshot)
+    if b2 is None:
+        # 拿不到基准就别往下跑：后面的用例全都要拿 b2 逐字段对照，
+        # 缺了只能抛 AttributeError（2026-11-18 CI 浅克隆上就是这么炸的）。
+        # 这里明确失败，并把补救办法写出来——宁可红，不要含糊。
+        print("\n结果: FAIL（基准不可用）")
+        print("  取不到 git %s:codes/ask_service.py。" % args.snapshot)
+        print("  最常见原因：CI 浅克隆（actions/checkout 默认 fetch-depth: 1），")
+        print("  历史里没有该提交。修法：checkout 加 fetch-depth: 0，")
+        print("  或本机 `git fetch --unshallow` 后重跑。")
+        return 1
     kbs = load_kbs()
     cases = build_cases(kbs, args.kb)
     print("用例: %d 题（批 1 评测集 fixture）" % len(cases))
