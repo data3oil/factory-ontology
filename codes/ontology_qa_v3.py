@@ -685,6 +685,34 @@ def _find_enum(dict_data, q, which, data=None):
     return None, None
 
 
+# 「在问数量吗」的统一判据。
+# 为什么要统一：CQ 实测（2026-11-18）里「设备中有几台在运行」「乳制品有几个」
+# 「质检不合格的记录有几条」全部拒答，而把量词换成「多少」就答得出。同一语义只因
+# 量词不同就一答一拒，说明缺的是**问法覆盖**，不是数据或推理能力。
+# 量词必须与"几"连用才算数：「几号阀」「几个月的」里的"几"不是计数意图，
+# 所以只认 几+量词 的固定搭配，不认裸"几"。
+_COUNT_Q_RE = re.compile(
+    r"(多少|数量|总数|共计|合计"
+    r"|几(?:个|台|条|批|种|家|单|张|份|次|位|名|套|只|辆|间|户|门|块|根|米|吨|升))")
+
+
+def _is_count_q(q):
+    """问句是否在问"数量"（覆盖口语量词：几个/几台/几条/几批/几种/几家/几单）。"""
+    return bool(_COUNT_Q_RE.search(q or ""))
+
+
+# 「多少/几」后面跟单位或名词时，"多少毫米""几台"整个 token 不是**取值**，
+# 而是疑问短语。取值过滤分支若不认这点，会把"口径最大的阀门是多少毫米"错答成
+# 「有 0 条（口径为多少毫米）」—— 把"回答的形状"当成"过滤的值"用。
+_INTERROG_PREFIX = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁", "多长", "多大", "多重")
+
+
+def _is_interrogative(tok):
+    """token 是否是疑问短语（而非可过滤的取值）。"""
+    t = str(tok or "").strip()
+    return (not t) or any(t.startswith(w) for w in _INTERROG_PREFIX)
+
+
 def _extract_nums(q):
     return [float(x) for x in re.findall(r'(\d+(?:\.\d+)?)', q)]
 
@@ -1035,20 +1063,111 @@ def _enum_value_in_data(q, data, aliases):
     return None, None
 
 
+def _value_variants(v):
+    """枚举值的口语变体。'维护中' → {维护中, 在维护}；'已交付' → {已交付}。
+
+    为什么要变体：台账写「维护中」，人问「在维护」。只认原值会漏掉一半口语问法，
+    而"在X"和"X中"是中文里同一个状态最常见的两种说法。
+
+    🔴 只认「在+词干」，**不认裸词干**：`生产中` 的裸词干是"生产"，
+    而"生产批次一共有多少批"里恰好有"生产" —— 一度让批次总数被答成
+    「有 2 批生产中的」。裸词干是动词/名词的高频词素，必须要求"在"这个状态标记。
+    """
+    out = {v}
+    stem = re.sub(r"(中|状态|态)$", "", v)
+    if len(stem) >= 2 and stem != v:
+        out.add("在" + stem)
+    return out
+
+
+_VEQ_SAMPLE = 2000      # 建"列→取值"索引时最多看这么多行
+
+
+def _value_eq_in_question(q, rows, aliases=None, max_distinct=40):
+    """在给定记录里找"哪一列的哪个取值出现在问句里"，返回 (列, 值, 命中条数)。
+
+    为什么需要：业务提问常把过滤条件直接写成一个值，而不是"列=值"：
+      质检不合格的有几条 / 已交付的订单有多少 / 设备中有几台在维护 / 压力等级 PN16 的产品有几个
+    这些值各自在不同列（result / delivery_status / status / pressure_grade），
+    只认 status 一列永远覆盖不全 —— CQ 实测里这类题全部答成 0 或全表总数。
+
+    只认**枚举型列**：distinct 值不超过 max_distinct、值短（2–16 字）、非纯数字。
+    编号/名称/数值列一律跳过，否则"P001""电动闸阀 Z941T-16"会被当成过滤条件。
+    多列同时命中时取值最长的那个（更具体）：问句写"不合格"时，
+    "不合格"(3字) 必须压过同列的"合格"(2字)。
+
+    性能：建索引只抽样前 _VEQ_SAMPLE 行。枚举列的取值范围在小样本里就稳定了，
+    而本库动辄上万行（ai4i 一万条），全量扫每题多花几十毫秒。
+    命中后的**计数仍然全量**，所以答案不受抽样影响。
+    """
+    if not rows or not q:
+        return None
+    cols = {}
+    for i, rec in enumerate(rows.values()):
+        if i >= _VEQ_SAMPLE:
+            break
+        for col in rec:
+            low = col.lower()
+            if low == "id" or low.endswith("_id"):
+                continue                      # 主键/外键是编号，不是业务取值
+            vs = cols.setdefault(col, set())
+            if len(vs) > max_distinct:
+                continue                      # 已经溢出，不必再收
+            v = str(_field(rec, col, aliases) or "").strip()
+            if v:
+                vs.add(v)
+    best = None
+    for col, vs in cols.items():
+        if not vs or len(vs) > max_distinct:
+            continue                          # 非枚举列（如名称、日期）
+        for v in vs:
+            if not (2 <= len(v) <= 16) or re.fullmatch(r"[\d.\-]+", v):
+                continue
+            for cand in _value_variants(v):
+                if cand and cand in q:
+                    key = (len(v), len(cand))
+                    if best is None or key > best[0]:
+                        best = (key, col, v)
+                    break
+    if not best:
+        return None
+    _k, col, val = best
+    n = sum(1 for rec in rows.values()
+            if str(_field(rec, col, aliases) or "").strip() == val)
+    return col, val, n
+
+
 def _find_agg_attr(D, q):
     """聚合/分组属性检测(词典驱动, 不硬编码词)。
     返回 (en字段, 中文属性, 模式) 或 (None,None,None)。
     - 模式 "group": '各X' 分组计数 (各车间/各类型/各状态)
-    - 模式 "dist" : 'X分布' 枚举分布 (状态分布/类型分布/车间分布)
+    - 模式 "dist" : 'X分布' / '分布在哪些X' 枚举分布 (状态分布/客户分布在哪些地区)
+
+    🔴 实体名不能当分组字段：`attr_cn2en` 里"客户"→customer_id，
+    而「客户分布在哪些地区」问的是**按地区分组**，不是"按客户分组"。
+    把实体名放进来，会按 8 个客户各分一组 → 输出「客户分布:」（空）。
+    实体词只能用来限定范围（_entity_subset），不能当分组键 —— 与 _find_enum 同一原则。
     """
     ac2e = D.get("attr_cn2en", {}) or {}
+    _ents = {str(k) for k in (D.get("entity_cn2en") or {})}
+    _ents |= {str(k) for k in (get_entity_cn2uri() or {})}
     # 先找 '各X'(分组计数): 车间/类型/状态等
     for cn, en in sorted(ac2e.items(), key=lambda x: len(x[0]), reverse=True):
+        if cn in _ents:
+            continue
         if "各" + cn in q:
             return en, cn, "group"
     # 再找 'X分布'(枚举分布)
     for cn, en in sorted(ac2e.items(), key=lambda x: len(x[0]), reverse=True):
+        if cn in _ents:
+            continue
         if cn + "分布" in q:
+            return en, cn, "dist"
+    # 'X分布在哪些Y' / '有哪些Y'：句末的 Y 才是分组字段（"客户分布在哪些地区"→地区）
+    for cn, en in sorted(ac2e.items(), key=lambda x: len(x[0]), reverse=True):
+        if cn in _ents:
+            continue
+        if re.search(r"(哪些|哪几种|什么样的)\s*" + re.escape(cn), q):
             return en, cn, "dist"
     return None, None, None
 
@@ -1646,6 +1765,9 @@ def answer(q, data, D):
         _bf_eq
         or any(k in q for k in ("总", "合计", "总和", "平均", "均值"))
         or _EXTREME.search(q)
+        # "发生机器故障的记录有多少条" / "随机故障发生了多少次" —— 这也是数值意图，
+        # 只是量词不是"台/个"。缺这一条，三个故障列的问句全部拒答（CQ 实测 3 题）。
+        or _is_count_q(q)
     )
     if _is_bool_field and _bf_num_intent:
         _bf_cname = _bf_attr_cn or cn2cn.get(_bf_attr_en, _bf_attr_en)
@@ -1679,6 +1801,15 @@ def answer(q, data, D):
                 return "%s的记录: %s (%s=%s)" % (
                     ("最大" if _is_max_v else "最小") + _bf_cname,
                     _display_name(_best[0], aliases, default=""), _bf_cname, _best[1])
+        if _is_count_q(q) and not re.search(r"(多少|几)\s*种", q):
+            # 布尔字段的"有多少条 / 发生多少次" = 该列取 1 的条数。
+            # 没有这条分支时，这类问句能识别出字段（_find_attr 正确）却无处返回，
+            # 一路落到拒答 —— 不是数据缺，是**没有出口**。
+            # 🔴 排除"多少种/几种"：「机器故障有多少种」问的是**干了哪几类故障**（distinct），
+            # 不是"发生了几条"。混为一谈会把 2 种答成 339 条（331 题基线实测误答）。
+            _vals_b = [_num(_field(d, _bf_attr_en, aliases)) for d in data.values()]
+            _n1 = sum(1 for v in _vals_b if v is not None and float(v) == 1)
+            return "%s 的记录有 %d 条" % (_bf_cname, _n1)
 
     # ---- 组合: [状态]的[类型] (报警的焊接机器人) ----
     st_en, st_cn = _find_enum(D, q, "status", data)
@@ -1754,10 +1885,36 @@ def answer(q, data, D):
     # 问句里直接点了类型值（"H类机器有多少台"）时，这句是**类型过滤计数**，
     # 不是实体总数。不先认出来，会被下面的"机器有多少"当成"全部机器"答 10000。
     _dv_ty, _dv_cn = _enum_value_in_data(q, data, aliases)
+    # 问句里点了一个**枚举取值**（"已交付的订单有多少单"/"待检的批次有几批"/"华东的客户有几个"）
+    # → 这是过滤计数，不是实体总数。不算这一条，本分支会用"订单"+"有多少"抢先答成全表 20 单。
+    # 只算一次（循环内重复调用等于对一万行数据扫 N 遍）。
+    _ent_veq = _value_eq_in_question(q, _entity_subset(q, D, data), aliases) \
+        if _is_count_q(q) else None
+    # 枚举识别与"类型值是否真存在"每题只算一次。原来放在循环内，本库有几个实体词
+    # 就重复扫几遍全表（ai4i 一万行 × 13 个实体词 → 单题多花 ~0.4s）。
+    _t_en, _t_cn = _find_enum(D, q, "type")
+    _s_en, _s_cn = _find_enum(D, q, "status", data)
+    _z_en, _z_cn = _find_enum(D, q, "zone")
+    # 类型词必须是**本库真实存在的取值**才有资格挡住实体总数。
+    # 实测：type_cn2en 里混进了实体名（valve 的「阀门」→valve），于是
+    # "阀门产品一共有多少个型号" 被当成"类型=阀门"的过滤计数而跳过本分支，
+    # 最后落到拒答。同理 ai4i 台账里没有"产品"这种类，也不能拿它挡。
+    _ty_real = bool(_t_en) and any(
+        _type_matches(_d, _t_en, aliases) for _d in data.values())
     for cn in sorted(_entity_map, key=len, reverse=True):
-        if (re.search(r'多少[台个条艘本家位名间张份套批辆只头棵户门]?' + cn, q)  # 有多少台设备 / 有多少家供应商
-                or re.search(cn + r'(总数|共有多少|有多少|共多少)', q)  # 设备总数 / 炮点总数
-                or re.search(r'共\s*多少\s*' + cn, q)):   # 共多少设备
+        if (re.search(r'多少[台个条艘本家位名间张份套批辆只头棵户门]?' + re.escape(cn), q)  # 有多少台设备 / 有多少家供应商
+                or re.search(re.escape(cn) + r'(总数|共有多少|有多少|共多少)', q)  # 设备总数 / 炮点总数
+                or re.search(r'共\s*多少\s*' + re.escape(cn), q)   # 共多少设备
+                # 「X 一共有多少 Y」—— 中文最自然的实体计数语序：实体词在前、量词在后。
+                # 原三条只管「多少X」「X总数」「共多少X」，这种语序一条都不命中，
+                # 于是"生产批次一共有多少批"掉到末尾兜底，答成「一共有 105 条记录」（全库行数）。
+                # 中间只允许"一共/总共/合计/共/有"，不允许夹实词 —— 否则
+                # "质检不合格的记录有多少条" 会因为"质检"命中而抢先答成质检表总行数 24。
+                # 但"多少"后面不能是**货币/度量单位**：「价格最高的产品多少钱」问的是价格，
+                # 不是"有几个产品」。不排除的话这句会被答成「有 8 个产品」（CQ 实测回归）。
+                or re.search(re.escape(cn) + r'\s*(?:一共|总共|合计|总计|共)?\s*有?\s*'
+                             r'(?:多少|几)[台个条艘本批种家位名间张份套只辆户门]?'
+                             r'(?![元钱块天升毫千克吨米度年时分秒倍斤两])', q)):
             # 跨行业泛化守卫：被状态/类型/区域词修饰时跳过实体总数（走下方过滤计数）。
             # 关键: 直接用完整问句判定，但排除"命中的枚举词恰好等于实体词本身"的情况。
             # 若先把实体词 replace 掉，类型词含实体词时（"试压设备"含"设备"）会被破坏成"试压"，
@@ -1788,12 +1945,10 @@ def answer(q, data, D):
                 continue
             if _dv_ty:
                 continue
-            _t_en, _t_cn = _find_enum(D, q, "type")
-            _s_en, _s_cn = _find_enum(D, q, "status", data)
-            _z_en, _z_cn = _find_enum(D, q, "zone")
-            if ((_t_en and _t_cn != cn)
+            if ((_t_en and _t_cn != cn and _ty_real)
                     or (_s_en and _s_cn != cn)
-                    or (_z_en and _z_cn != cn)):
+                    or (_z_en and _z_cn != cn)
+                    or _ent_veq):          # 问句点了枚举取值 → 是过滤计数，不是实体总数
                 continue
             uri_sub = _entity_map[cn]
             _hit = _note_rows(_inst_rows(data, uri_sub),
@@ -1850,12 +2005,28 @@ def answer(q, data, D):
                        "类型", lambda d: next((str(d.get(_c) or "").strip()
                                              for _c in _ty_cols if str(d.get(_c) or "").strip()), ""))
             return "共有 %d 种%s" % (len(_ty_vals), "类型")
+
+    # ---- 取值即过滤：问句里直接点了某个枚举值（"质检不合格的有几条" / "已交付的订单有多少"）----
+    # 放在状态计数**之前**：CQ 实测里"质检不合格"的值落在 result 列、"已交付"落在
+    # delivery_status 列、"待检"落在 quality_status 列 —— 只认 status 一列，
+    # 这三种问法要么答 0、要么答成全表总数。由数据自己认"值在哪一列"才是通解。
+    # 极值问句不走这里（"价格最高的"该给记录名，不是条数）。
+    if _is_count_q(q) and not _EXTREME.search(q):
+        _veq_sub = _entity_subset(q, D, data)
+        _veq = _value_eq_in_question(q, _veq_sub, aliases)
+        if _veq:
+            _veq_col, _veq_val, _veq_n = _veq
+            _note_rows([(nm, d) for nm, d in _veq_sub.items()
+                        if str(_field(d, _veq_col, aliases) or "").strip() == _veq_val],
+                       "%s=%s" % (_veq_col, _veq_val))
+            return "有 %d %s%s的" % (_veq_n, _measure_for(q), _veq_val)
+
     st_en, st_cn = _find_enum(D, q, "status", data)
     # "合格"这类词可能同时是别的属性的值（原料的 qc_result），被 status 值表误收。
     # 于是"原料中质检结果为合格的有多少条"在这里被 status 分支抢走 → 在原料表上找
     # status=合格 → 答 0（正确答案 9）。问句里点名了别的属性时，让给下面的通用过滤分支。
     _pre_attr, _ = _find_attr(D, q)
-    if st_en and ("多少" in q or "数量" in q) and (not _pre_attr or str(_pre_attr) == "status"):
+    if st_en and _is_count_q(q) and (not _pre_attr or str(_pre_attr) == "status"):
         sub = _entity_subset(q, D, data)  # 实体消歧: 只在该实体类实例中过滤
         n = sum(1 for d in sub.values() if _status_matches(d, st_en, aliases, D))
         return "有 %d %s%s的" % (n, _measure_for(q), st_cn)
@@ -1868,8 +2039,10 @@ def answer(q, data, D):
     _af_val = re.search(r'(?:为|是|＝|=)\s*([^\s的，,。?？、]+)', q)
     # 疑问词不能被当成过滤值（"功率为多少" → 会捕获"多少" → 错答"有 0 条"）
     _af_stop = ("多少", "什么", "几", "哪些", "哪种", "几何", "如何", "怎样", "谁")
-    if _af_attr and _af_val and _af_val.group(1).strip() not in _af_stop \
-            and ("多少" in q or "数量" in q or "几条" in q or "几台" in q):
+    # 用 _is_interrogative 而非"整词等于"：`是多少毫米` / `是几台` 捕获到的是
+    # "多少毫米"、"几台"，整词比对判不过，于是被当成合法取值 → 答「有 0 条」。
+    if _af_attr and _af_val and not _is_interrogative(_af_val.group(1)) \
+            and _is_count_q(q):
         _af_target = _af_val.group(1).strip()
         _af_sub = _entity_subset(q, D, data)
 
@@ -1932,7 +2105,7 @@ def answer(q, data, D):
     _emap_t = dict(get_entity_cn2uri()); _emap_t.update(D.get("entity_cn2en", {}) or {})
     _ty_is_entity = any(str(v).lower() in data and str(v).lower() in str(ty_en).lower()
                         for v in _emap_t.values())
-    if ty_en and ("多少" in q or "数量" in q) and not _ty_is_entity and not _EXTREME.search(q):
+    if ty_en and _is_count_q(q) and not _ty_is_entity and not _EXTREME.search(q):
         sub = _entity_subset(q, D, data)
         _tm = _note_rows([(k, d) for k, d in sub.items() if _type_matches(d, ty_en, aliases)],
                          ty_cn, lambda d: ty_en)

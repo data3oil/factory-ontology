@@ -25,6 +25,7 @@
 """
 import os
 import json
+import re
 from collections import Counter
 
 # ═══════════ 数据加载（复用 factory data_loader 接口）═══════════
@@ -337,6 +338,70 @@ def _cn_dim(col: str) -> str:
         "region": "区域", "zone": "区域", "area": "区域", "location": "位置",
         "workshop": "车间", "plant": "厂区", "site": "站点", "district": "区",
     }.get(col.lower(), col)
+
+
+# ═══════════ N 元关系（关联表）形式化 ═══════════
+# 通用元数据列：出现在关联表里也不改变"这是关联表"的性质（审计/备注类）
+_ASSOC_META_ATTRS = {
+    "id", "created_at", "updated_at", "timestamp", "date", "time", "remark",
+    "note", "description", "comment", "operator", "creator", "created_by",
+}
+
+
+def _assoc_iri_value(v) -> str:
+    """关联键值 → IRI 安全片段（ASCII、无歧义、空值有稳定占位）。"""
+    s = _ascii_local(str(v).strip()) if v is not None else ""
+    return re.sub(r"[^A-Za-z0-9_.\-]", "_", s) or "x"
+
+
+def association_meta(ent: dict, relations: list, data: dict) -> dict:
+    """判定实体是否为关联表，并给出 N 元关系的形式化元数据（纯读，不改输入）。
+
+    判据只看结构、与行业无关：
+      · 参与列 = 该表声明的对象关系所对应的外键列（去重保序）
+      · 自身实质属性 = 实体属性 - 主键列 - 参与列 - 通用元数据列
+      · 参与列 >= 2 且无实质属性 → 关联表，arity = 参与列数
+
+    为什么 arity 要分档：
+      · arity == 2：表达一次二元关联，折叠成 父→目标 直连边不改变语义（只是少一跳）；
+      · arity >= 3：表达一条 N 元关系——"这一组参与方共同构成一次关联行为"。折叠会把
+        一个 N 元事实拆成 N 条互不相干的二元边，"谁和谁同时出现"的共现语义随之丢失，
+        对"某批次同时用了哪几种原料"这类问法是实质性损失，因此永不折叠。
+
+    返回 {is_association, arity, participants[(col,target_eid,label)], has_own_columns,
+          own_columns, foldable, key_cols}；非关联表只返回 is_association=False。
+    """
+    table = ent.get("table")
+    if not table or table not in data or not data[table]:
+        return {"is_association": False}
+    cols = list(data[table][0].keys())
+    colset = set(cols)
+    key = ent.get("key") or _primary_key_col(data[table])
+    parts, seen = [], set()
+    for r in relations:
+        ft, fc = fk_parts(r.get("fk"))
+        if ft != table or not fc or fc not in colset or fc in seen:
+            continue
+        seen.add(fc)
+        parts.append((fc, r.get("to"), r.get("label") or fc))
+    if len(parts) < 2:
+        return {"is_association": False}
+    attr_names = [a.get("name") for a in ent.get("attributes", []) if isinstance(a, dict)]
+    own = [n for n in attr_names
+           if n in colset and n != key and n not in seen and n not in _ASSOC_META_ATTRS]
+    arity = len(parts)
+    return {
+        "is_association": True,
+        "arity": arity,
+        "participants": parts,
+        "has_own_columns": bool(own),
+        "own_columns": own,
+        # 只有二元且无自身信息时才允许折叠（折叠等价于改写成两条二元边）
+        "foldable": arity == 2 and not own,
+        # 稳定性：主键若恰好是某个参与列（无独立主键的连接表），必须改用参与者组合键。
+        # 否则 IRI 会退化成"该父实体的第 N 行"，行序一变 IRI 就漂移，跨版本无法对齐。
+        "key_cols": ([key] if key and key not in seen else sorted(seen)),
+    }
 
 
 def _infer_relations_llm(data: dict, rules_rels: list, model_key: str = None) -> list:
@@ -1342,6 +1407,47 @@ def _pascal(name: str) -> str:
     return "".join(p[:1].upper() + p[1:] for p in parts) if parts else "Item"
 
 
+def _ascii_local(s: str) -> str:
+    """局部名 → ASCII 安全形式（非 ASCII 字符编码为 uXXXX，可逆、确定、无碰撞）。
+
+    为什么需要：Turtle 局部名不允许中文。`Valve_batches__已入库` 直接进 IRI 会产出
+    `o:ValveBatches已入库`，这种 IRI 不可移植（部分解析器直接报错），也无法在标准工具里往返。
+    ASCII 字符原样保留，所以既有纯英文的 IRI 完全不变 —— 只修含中文的那部分。
+    """
+    out = []
+    for ch in str(s):
+        out.append(ch if ord(ch) < 128 else "u%04x" % ord(ch))
+    return "".join(out)
+
+
+# 业务域中文名 → 英文标识符（通用词表，非行业硬编码）。
+# 单一数据源：ontology_export 直接复用本表，避免两套命名规则把 TBox 与 A-Box 的域类 IRI 拆成两个。
+DOMAIN_EN = {
+    "生产域": "Production", "制造域": "Manufacturing", "销售域": "Sales",
+    "采购域": "Procurement", "供应域": "Supply", "质量域": "Quality",
+    "库存域": "Inventory", "仓储域": "Warehouse", "设备域": "Equipment",
+    "财务域": "Finance", "人力域": "Hr", "研发域": "Rnd",
+    "物流域": "Logistics", "客户域": "Customer", "原料域": "Material",
+    "工艺域": "Process", "运维域": "Maintenance", "安全域": "Safety",
+    "合规域": "Compliance", "能源域": "Energy",
+}
+
+
+def _cls_local(name) -> str:
+    """类名 → 合法 Turtle 局部名（TBox 与 A-Box 共用，保证同一类只有一套 IRI）。
+
+    已收录业务域中文 → 英文标识符；ASCII 名 → PascalCase；其余 → PascalCase 后 ASCII 编码。
+    """
+    n = str(name or "").strip()
+    if not n:
+        return "BusinessObject"
+    if n in DOMAIN_EN:
+        return DOMAIN_EN[n]
+    if re.match(r"^[A-Za-z_][A-Za-z0-9_\-]*$", n):
+        return _pascal(n)
+    return _ascii_local(_pascal(n))
+
+
 def fill_iris(schema: dict) -> dict:
     """按命名空间自动补全实体/属性的 iri（国标表1/表2 的 IRI 描述项）。
 
@@ -1353,13 +1459,13 @@ def fill_iris(schema: dict) -> dict:
         if not e.get("iri"):
             # 与 to_nt 的 eid_to_cls 保持一致(表名 capitalize)，避免类 URI 与实例引用不一致
             local = str(e["table"]).capitalize() if e.get("table") else _pascal(e.get("id", ""))
-            e["iri"] = ns + local
+            e["iri"] = ns + _ascii_local(local)
         for a in e.get("attributes", []):
             if not a.get("iri"):
-                a["iri"] = ns + _local_name(a.get("name", ""))
+                a["iri"] = ns + _ascii_local(_local_name(a.get("name", "")))
     for r in schema.get("relations", []):
         if not r.get("iri"):
-            r["iri"] = ns + _local_name(r.get("id", "rel"))
+            r["iri"] = ns + _ascii_local(_local_name(r.get("id", "rel")))
     schema["_ns"] = m
     return schema
 
@@ -1444,7 +1550,7 @@ def _local_name(col: str) -> str:
 def _q(v) -> str:
     return '"%s"' % str(v).replace("\\", "\\\\").replace('"', '\\"')
 
-def _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=None):
+def _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=None, relations=None, data=None):
     """类声明：本体头 + 根类 + 每实体 owl:Class（label / skos:definition / subClassOf）。
 
     覆盖 GB/T 48000.3 §5.3-5.5：类声明、中文 label、中文定义、类层次派生。
@@ -1460,19 +1566,21 @@ def _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=None):
         nm = n.get("name")
         if not nm:
             continue
-        cls = _pascal(nm)
+        cls = _cls_local(nm)
         if cls in declared:
             continue
         L.append(f"<{ns}{cls}> {RDF_TYPE} {OWL_CLASS} .")
         L.append(f"<{ns}{cls}> {RDFS_LABEL} {_q(n.get('label') or nm)} .")
         if n.get("parent"):
-            L.append(f"<{ns}{cls}> {RDFS_SUBCLASS} <{ns}{_pascal(n['parent'])}> .")
+            _pcls2 = _cls_local(n["parent"])
+            if _pcls2 != cls:  # 防自环：统一命名后 parent 可能映射成自身
+                L.append(f"<{ns}{cls}> {RDFS_SUBCLASS} <{ns}{_pcls2}> .")
         declared.add(cls)
     # 显式 parent 但非已声明实体的父类（如 BusinessObject / 领域类）→ 单独声明为 owl:Class
     for ent in entities.values():
         p = ent.get("parent")
         if p and p not in entities:
-            pcls = _pascal(p)
+            pcls = _cls_local(p)
             if pcls not in declared:
                 L.append(f"<{ns}{pcls}> {RDF_TYPE} {OWL_CLASS} .")
                 L.append(f"<{ns}{pcls}> {RDFS_LABEL} {_q(p)} .")
@@ -1487,8 +1595,30 @@ def _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=None):
             L.append(f"<{cls_uri}> <http://www.w3.org/2002/07/owl#equivalentClass> {ent['equivalent_class']} .")
         p = ent.get("parent")
         if p:
-            pcls = eid_to_cls.get(p) or _pascal(p)
-            L.append(f"<{cls_uri}> {RDFS_SUBCLASS} <{ns}{pcls}> .")
+            pcls = eid_to_cls.get(p) or _cls_local(p)
+            if f"<{ns}{pcls}>" != cls_uri:  # 防自环
+                L.append(f"<{cls_uri}> {RDFS_SUBCLASS} <{ns}{pcls}> .")
+    # 关联表 → 显式声明为 Association 子类，并把 arity 写进定义。
+    # 让"这是一条 N 元关系"成为图里的形式化事实，而不是只能从边的条数反推。
+    if relations is not None and data:
+        assoc_root = False
+        for eid, ent in entities.items():
+            meta = association_meta(ent, relations, data)
+            if not meta.get("is_association"):
+                continue
+            if not assoc_root:
+                L.append(f"<{ns}Association> {RDF_TYPE} {OWL_CLASS} .")
+                L.append(f"<{ns}Association> {RDFS_LABEL} {_q('关联')} .")
+                L.append(f"<{ns}Association> {SKOS_DEFINITION} "
+                         f"{_q('表示一次关联行为：其实例的参与方由指向各方的对象属性给出')} .")
+                assoc_root = True
+            cls_uri = ent.get("iri") or (ns + eid_to_cls[eid])
+            if not ent.get("parent"):
+                L.append(f"<{cls_uri}> {RDFS_SUBCLASS} <{ns}Association> .")
+            if not ent.get("definition"):
+                names = "、".join(str(p[2]) for p in meta["participants"])
+                L.append(f"<{cls_uri}> {SKOS_DEFINITION} "
+                         f"{_q('%d 元关联：参与方为%s' % (meta['arity'], names))} .")
 
 
 def _nt_property_decls(entities, relations, data, eid_to_cls, L, ns):
@@ -1563,13 +1693,72 @@ def _nt_category_hierarchy(entities, data, eid_to_cls, L, ns):
         for row in data[table]:
             cat = row.get("category")
             if cat:
-                cat_uri = f"{ns}{cat_cls}_{cat}"
+                cat_uri = f"{ns}{cat_cls}_{_ascii_local(cat)}"
                 L.append(f"<{cat_uri}> {RDF_TYPE} {OWL_CLASS} .")
                 L.append(f"<{cat_uri}> {RDFS_SUBCLASS} <{ns}{cat_cls}> .")
 
 
-def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
-    """实例 + 数据/对象属性（FK join，明细实体按行建实例）。"""
+def _nt_dimension_classes(entities, data, eid_to_cls, L, ns, schema):
+    """人确认过的类型维度（schema["dimensions"]）→ TBox 类型类 + 枚举成员类。
+
+    与 `_nt_category_hierarchy` 的分工：那边是"有 category 列就自动提"，覆盖面窄且无审阅；
+    这边只认人在 `schema["dimensions"]` 里明确声明的维度（由 scripts/suggest_types.py
+    出候选、人改 approved 后落库），覆盖压力等级/连接方式/质检结果等全部类型维度。
+
+    只增类声明，**不改实例属性的写法**（属性仍是字面量）。理由：类型类是为了让
+    "有哪些等级/哪些种类"能从 TBox 直接查，而不是靠字符串匹配；改实例属性会波及
+    全部下游问答，收益不抵风险。
+    """
+    dims = schema.get("dimensions") or []
+    if not dims:
+        return
+    for d in dims:
+        eid, col = d.get("entity"), d.get("column")
+        ent = entities.get(eid)
+        if not ent or not col:
+            continue
+        table = ent.get("table")
+        if table not in data or not data[table] or col not in data[table][0]:
+            continue
+        cls = eid_to_cls.get(eid, eid)
+        type_cls = "%s_%sType" % (cls, _ascii_local(col))
+        L.append(f"<{ns}{type_cls}> {RDF_TYPE} {OWL_CLASS} .")
+        L.append(f"<{ns}{type_cls}> {RDFS_LABEL} {_q(d.get('label') or col)} .")
+        L.append(f"<{ns}{type_cls}> {SKOS_DEFINITION} "
+                 f"{_q('%s 的取值类型：来自表 %s 的 %s 列' % (ent.get('label') or eid, table, col))} .")
+        vals = d.get("values")
+        if not vals:
+            vals = sorted({str(r.get(col)).strip() for r in data[table] if r.get(col) not in (None, "")})
+        for v in vals:
+            mem = f"{type_cls}_{_ascii_local(str(v))}"
+            L.append(f"<{ns}{mem}> {RDF_TYPE} {OWL_CLASS} .")
+            L.append(f"<{ns}{mem}> {RDFS_SUBCLASS} <{ns}{type_cls}> .")
+            L.append(f"<{ns}{mem}> {RDFS_LABEL} {_q(str(v))} .")
+
+
+def _nt_instances(entities, relations, data, eid_to_cls, L, ns, subclasses=None):
+    """实例 + 数据/对象属性（FK join，明细实体按行建实例）。
+
+    subclasses（人确认落库的具名子类）：实例按分类列取值归入对应子类，补一条 rdf:type。
+    这是 README 自认缺口「具名子类未做实例级归类」的落地——此前只把枚举值提升成类，
+    具体实例没有归到子类下，子类在图上是个空壳。
+    """
+    # 实体 id → 实际类 IRI（子类实体的 iri 由 fill_iris 生成，含 ASCII 编码，不能用原始 id 拼）
+    eid_to_iri = {eid: (ent.get("iri") or (ns + eid_to_cls[eid])) for eid, ent in entities.items()}
+    # 具名子类归类表：优先用 schema["subclasses"]；缺失时从实体自身（kind=subclass 带
+    # subclass_column/value）重建 —— 导出层会做 json 深拷贝，不能假设该旁路字段一定还在。
+    subs = list(subclasses or [])
+    if not subs:
+        for eid, ent in entities.items():
+            if ent.get("kind") == "subclass" and ent.get("parent") and ent.get("subclass_column"):
+                subs.append({"name": eid, "parent": ent.get("parent"),
+                             "column": ent.get("subclass_column"),
+                             "value": ent.get("subclass_value")})
+    subs_by_parent = {}
+    for sc in subs:
+        if sc.get("parent") and sc.get("column") and sc.get("value") is not None:
+            subs_by_parent.setdefault(sc["parent"], []).append(sc)
+
     for eid, ent in entities.items():
         cls_uri = ent.get("iri") or (ns + eid_to_cls[eid])
         table = ent.get("table")
@@ -1579,13 +1768,19 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
         detail = ent.get("detail", False)
         rels_of_table = [r for r in relations if (r.get("fk") or "").startswith(table + ".")]
         rel_cols = {fk_parts(r["fk"])[1] for r in rels_of_table}
+        # N 元关系形式化：arity >= 3 的关联表永不折叠（折叠会丢掉参与方共现语义）；
+        # 无独立主键的关联表改用参与者组合键生成 IRI，消除行序依赖。
+        assoc = association_meta(ent, relations, data)
+        is_nary = bool(assoc.get("is_association") and assoc.get("arity", 0) >= 3)
+        stable_cols = assoc.get("key_cols") if (assoc.get("is_association") and len(assoc.get("key_cols") or []) > 1) else None
         # 纯连接表(多对多中间表): 只有主键 + 外键, 没有自身列。
         # 通用判据, 域无关 —— 这类表若建成 N-ary 实体, 检索要多跳一层(父→连接实体→目标)
         # 且引入无信息节点, 反而降低精度; 直接把非主键外键提升为 父→目标 直连边。
         # 一旦该表出现自身列(用量/时间/操作人…), own_attrs 非空, 自动回到 N-ary 建实体。
+        # 前提仍是 arity == 2：三元以上的"直连"不是简化，是语义改写，故排除。
         own_attrs = [a["name"] for a in ent.get("attributes", [])
                      if a["name"] != key and a["name"] not in rel_cols]
-        if detail and not own_attrs:
+        if detail and not own_attrs and not is_nary:
             parent_rel = next((r for r in rels_of_table if fk_parts(r["fk"])[1] == key), None)
             if parent_rel:
                 pcls = eid_to_cls.get(parent_rel["to"], parent_rel["to"])
@@ -1604,14 +1799,26 @@ def _nt_instances(entities, relations, data, eid_to_cls, L, ns):
             continue
         seen_ids = set()
         for i, row in enumerate(data[table]):
-            kid = row.get(key) or f"{i+1}"
+            if stable_cols:
+                # 组合键：参与者取值按列名排序拼接，与行序无关，增删行不改变既有实体的 IRI
+                kid = "-".join(_assoc_iri_value(row.get(c)) for c in stable_cols)
+            else:
+                kid = row.get(key) or f"{i+1}"
             if str(kid) in seen_ids:
                 kid = f"{kid}_{i}"
             seen_ids.add(str(kid))
-            inst_uri = f"{cls_uri}_{kid}" + (f"@{i}" if detail else "")
+            # 组合键已唯一标识这条关联，再叠行序号会让 IRI 随行序漂移
+            inst_uri = f"{cls_uri}_{kid}" + (f"@{i}" if (detail and not stable_cols) else "")
             L.append(f"<{inst_uri}> {RDF_TYPE} <{cls_uri}> .")
+            # 具名子类实例归类：按分类列取值把实例归入子类（人在环确认过的才在 subclasses 里）
+            for sc in subs_by_parent.get(eid, ()):
+                col, val = sc["column"], sc["value"]
+                if col in row and str(row.get(col)) == str(val):
+                    sub_iri = eid_to_iri.get(sc["name"])
+                    if sub_iri and sub_iri != cls_uri:
+                        L.append(f"<{inst_uri}> {RDF_TYPE} <{sub_iri}> .")
             if "category" in row and row.get("category"):
-                L.append(f"<{inst_uri}> <{ns}hasCategory> <{ns}{eid_to_cls[eid]}Category_{row['category']}> .")
+                L.append(f"<{inst_uri}> <{ns}hasCategory> <{ns}{eid_to_cls[eid]}Category_{_ascii_local(row['category'])}> .")
             for attr in ent.get("attributes", []):
                 aname = attr["name"]
                 if aname == key or aname in rel_cols:
@@ -1673,10 +1880,12 @@ def to_nt(data: dict, schema: dict, outpath: str = None) -> list:
     # 实体 ID -> 类局部名（用表名风格，与 multi_table 下游兼容）
     eid_to_cls = {eid: (ent.get("table", eid).capitalize() if ent.get("table") else eid)
                   for eid, ent in entities.items()}
-    _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=schema.get("class_hierarchy"))
+    _nt_class_decls(entities, eid_to_cls, L, ns, m, class_hierarchy=schema.get("class_hierarchy"),
+                    relations=relations, data=data)
     _nt_property_decls(entities, relations, data, eid_to_cls, L, ns)
     _nt_category_hierarchy(entities, data, eid_to_cls, L, ns)
-    _nt_instances(entities, relations, data, eid_to_cls, L, ns)
+    _nt_dimension_classes(entities, data, eid_to_cls, L, ns, schema)
+    _nt_instances(entities, relations, data, eid_to_cls, L, ns, subclasses=schema.get("subclasses"))
     if outpath:
         with open(outpath, "w", encoding="utf-8") as f:
             f.write("\n".join(L) + "\n")
