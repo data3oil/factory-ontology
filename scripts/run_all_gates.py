@@ -21,12 +21,19 @@ GATES = [
     ("问答信封与未命中", ["scripts/verify_qa_envelope.py"]),
     ("模型建议层", ["scripts/verify_advisory.py"]),
     ("本体自演进（人在环）", ["scripts/verify_ontology_evolve.py"]),
+    ("本体 IRI 完整性（悬空/域值域/ASCII）", ["scripts/verify_iri_integrity.py"]),
+    ("本体建模坑 lint（OOPS!）", ["scripts/verify_oops.py"]),
+    ("SHACL 实例校验", ["scripts/verify_shacl.py"]),
+    ("词典碎片与跨库对齐", ["scripts/verify_lexicon_align.py"]),
     ("本体检查（5 类核查·打分制）", ["codes/ontology_check.py"]),
     ("边界自检（甲方痕迹/依赖）", ["scripts/check_boundary.py"]),
     ("仓库单测", ["-m", "pytest", "codes/tests", "-q"]),
 ]
 SLOW_GATES = [
     ("问答评测基线（回归门）", ["scripts/eval_qa.py"]),
+    ("能力问题 CQ 基线（业务口径）", ["scripts/verify_cq_baseline.py"]),
+    ("留出域泛化（实验，不阻断）", ["scripts/eval_holdout.py"]),
+    ("OQuaRE 结构度量（打分，不阻断）", ["scripts/ontology_oquare.py"]),
 ]
 
 

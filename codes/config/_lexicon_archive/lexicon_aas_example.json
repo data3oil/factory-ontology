@@ -1,0 +1,103 @@
+{
+  "description": "AAS 台账词典（make_lexicon_aas.py 从 ledger 自动生成，勿手改）",
+  "attr_cn2en": {
+    "额定功率": "RatedPower_kW",
+    "运行功率": "RunningPower_kW",
+    "排气温度": "Temperature_C",
+    "运行小时数": "RunningHours_h",
+    "投用年份": "InstallYear",
+    "厂商名": "ManufacturerName",
+    "型号": "ModelNumber",
+    "序列号": "SerialNumber",
+    "出口温度": "Temperature_C",
+    "风机功率": "FanPower_kW",
+    "介质温度": "Temperature_C",
+    "冷却水温": "Temperature_C"
+  },
+  "attr_en2cn": {
+    "RatedPower_kW": "额定功率",
+    "RunningPower_kW": "运行功率",
+    "Temperature_C": "排气温度",
+    "RunningHours_h": "运行小时数",
+    "InstallYear": "投用年份",
+    "ManufacturerName": "厂商名",
+    "ModelNumber": "型号",
+    "SerialNumber": "序列号",
+    "FanPower_kW": "风机功率"
+  },
+  "status_cn2en": {},
+  "type_cn2en": {
+    "空压机": "空压机",
+    "冷干机": "冷干机",
+    "过滤器": "过滤器",
+    "储气罐": "储气罐",
+    "冷却塔": "冷却塔"
+  },
+  "zone_cn2en": {},
+  "synonym_map": {
+    "额定功率": [
+      "功率",
+      "额定功率(kW)",
+      "功率(kW)",
+      "额定功率kw"
+    ],
+    "排气温度": [
+      "出口温度",
+      "介质温度",
+      "冷却水温",
+      "温度",
+      "存储温度(℃)",
+      "温度(℃)",
+      "储温"
+    ],
+    "厂商名": [
+      "厂商",
+      "厂家",
+      "制造商",
+      "品牌",
+      "供应商"
+    ],
+    "设备": [
+      "储气罐",
+      "冷却塔",
+      "冷干机",
+      "空压机",
+      "过滤器"
+    ]
+  },
+  "entity_cn2en": {
+    "设备": "Demo_equipment"
+  },
+  "numeric_fields": {
+    "额定功率": "RatedPower_kW",
+    "运行功率": "RunningPower_kW",
+    "排气温度": "Temperature_C",
+    "运行小时数": "RunningHours_h",
+    "投用年份": "InstallYear",
+    "出口温度": "Temperature_C",
+    "风机功率": "FanPower_kW",
+    "介质温度": "Temperature_C",
+    "冷却水温": "Temperature_C"
+  },
+  "field_aliases": {
+    "deviceName": [
+      "deviceName",
+      "device_name",
+      "name",
+      "设备名称"
+    ],
+    "deviceType": [
+      "deviceType",
+      "device_type",
+      "type",
+      "设备类型"
+    ]
+  },
+  "units": {
+    "RatedPower_kW": "kW",
+    "RunningPower_kW": "kW",
+    "Temperature_C": "C",
+    "RunningHours_h": "h",
+    "FanPower_kW": "kW"
+  }
+}
