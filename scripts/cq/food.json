@@ -1,0 +1,137 @@
+{
+  "kb": "food",
+  "version": "1.0",
+  "description": "食品制造 · 能力问题（CQ）验收基线。golden 由 data_food 的 CSV 直接统计得出，不看引擎输出。",
+  "baseline_hit": 12,
+  "questions": [
+    {
+      "id": "CQ-01",
+      "question": "食品产品一共有多少种？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "8"
+        ]
+      },
+      "source": "food_products.csv 行数 = 8"
+    },
+    {
+      "id": "CQ-02",
+      "question": "产品品类有哪些？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "乳制品",
+          "烘焙食品",
+          "速冻食品",
+          "果汁饮品"
+        ]
+      },
+      "source": "food_products.category distinct"
+    },
+    {
+      "id": "CQ-03",
+      "question": "保质期最长的产品是多少天？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "180"
+        ]
+      },
+      "source": "max(food_products.expiry_days) = 180"
+    },
+    {
+      "id": "CQ-04",
+      "question": "乳制品有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "3"
+        ]
+      },
+      "source": "count(food_products.category == '乳制品') = 3"
+    },
+    {
+      "id": "CQ-05",
+      "question": "生产批次一共有多少批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "9"
+        ]
+      },
+      "source": "food_batches.csv 行数 = 9"
+    },
+    {
+      "id": "CQ-06",
+      "question": "状态为 running 的批次有几批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "7"
+        ]
+      },
+      "source": "count(food_batches.status == 'running') = 7"
+    },
+    {
+      "id": "CQ-07",
+      "question": "质检不合格的记录有几条？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "1"
+        ]
+      },
+      "source": "count(food_qc.result == '不合格') = 1"
+    },
+    {
+      "id": "CQ-08",
+      "question": "价格最高的产品多少钱？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "18"
+        ]
+      },
+      "source": "max(food_products.price) = 18.0"
+    },
+    {
+      "id": "CQ-09",
+      "question": "设备中有几台在运行？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "6"
+        ]
+      },
+      "source": "count(food_equipment.status == 'running') = 6"
+    },
+    {
+      "id": "CQ-10",
+      "question": "原料质检不合格的有几种？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "1"
+        ]
+      },
+      "source": "count(food_raw_materials.qc_result == '不合格') = 1"
+    },
+    {
+      "id": "CQ-11",
+      "question": "产品的卡路里含量是多少？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "food_products 无卡路里/营养成分字段"
+    },
+    {
+      "id": "CQ-12",
+      "question": "生产这批酸奶的操作工是谁？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "food_batches 只有 team（班组），无操作工个人字段"
+    }
+  ]
+}
