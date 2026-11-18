@@ -30,7 +30,8 @@
     "specvalue": "spec_value",
     "材质": "material",
     "价格": "price",
-    "库存qty": "stock_qty"
+    "库存qty": "stock_qty",
+    "役龄": "device_age_years"
   },
   "attr_en2cn": {
     "id": "编号",
@@ -46,7 +47,7 @@
     "status": "状态",
     "temp_c": "温度(℃)",
     "vibration_mm_s": "振动(mm/s)",
-    "device_age_years": "deviceageyears",
+    "device_age_years": "役龄",
     "maintainer": "maintainer",
     "product_id": "产品编号",
     "customer_id": "客户编号",

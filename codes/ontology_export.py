@@ -51,15 +51,7 @@ _SHACL_BY_TYPE = {
 # 业务域中文名 → 英文标识符（通用词表，非业务硬编码）。
 # 为什么需要：Turtle 前缀名不允许中文，域类名必须转 ASCII；这张表覆盖的是
 # "业务域"这一层通用概念集，不绑定任何具体行业。未收录的走 _domain_id 兜底。
-_DOMAIN_EN = {
-    "生产域": "Production", "制造域": "Manufacturing", "销售域": "Sales",
-    "采购域": "Procurement", "供应域": "Supply", "质量域": "Quality",
-    "库存域": "Inventory", "仓储域": "Warehouse", "设备域": "Equipment",
-    "财务域": "Finance", "人力域": "Hr", "研发域": "Rnd",
-    "物流域": "Logistics", "客户域": "Customer", "原料域": "Material",
-    "工艺域": "Process", "运维域": "Maintenance", "安全域": "Safety",
-    "合规域": "Compliance", "能源域": "Energy",
-}
+_DOMAIN_EN = so.DOMAIN_EN  # 复用 schema_ontology 单一数据源
 
 
 def _domain_id(name: str) -> str:
@@ -90,6 +82,16 @@ def _local(iri: str, ns: str) -> str:
     if iri.startswith(ns):
         return iri[len(ns):]
     return f"<{iri}>"
+
+
+def _cls_name(name) -> str:
+    """父类/域类名 → 合法 Turtle 局部名。
+
+    直接复用 schema_ontology._cls_local —— 与 to_nt（A-Box）同一实现，
+    保证 TBox 与 A-Box 里同一个类只有一个 IRI（历史上这里用 _pascal 单独转，导致
+    ontology.ttl 写 Equipment、ontology-full.ttl 写 设备域，两层对不上）。
+    """
+    return so._cls_local(name)
 
 
 def build_ontology_ttl(schema: dict) -> str:
@@ -124,8 +126,9 @@ def build_ontology_ttl(schema: dict) -> str:
     # 显式 parent 声明的外部根（历史兼容）
     for p in sorted(set(roots)):
         if p not in domains:
-            L += [f"{prefix}:{so._pascal(p)} a owl:Class ;",
+            L += [f"{prefix}:{_cls_name(p)} a owl:Class ;",
                   f'    rdfs:label "{_esc(p)}"@zh .', ""]
+    _declared_root = {_cls_name(p) for p in roots}
     # 域类：挂到各自 parent（缺省 BusinessObject）之下
     parent_by_domain = {}
     for e in ents:
@@ -133,7 +136,16 @@ def build_ontology_ttl(schema: dict) -> str:
         if d and e.get("parent"):
             parent_by_domain.setdefault(d, e["parent"])
     for d, did in sorted(domains.items()):
-        sup = so._pascal(parent_by_domain.get(d) or "BusinessObject")
+        sup = _cls_name(parent_by_domain.get(d) or "BusinessObject")
+        # 域类不能继承自己：实体的 parent 常常就是它所在的域，统一命名后两者会映射成同一个
+        # IRI（如 parent=设备域 与域类 设备域 都成了 Equipment），直接写出 rdfs:subClassOf 自环。
+        if sup == did:
+            sup = "BusinessObject"
+        # 父类若不在本体的类集合里（Enterprise/BusinessObject 这类根），先补声明，避免悬空
+        if sup not in domains.values() and sup not in {_cls_name(p) for p in roots} and sup not in _declared_root:
+            L += [f"{prefix}:{sup} a owl:Class ;",
+                  f'    rdfs:label "{_esc(sup)}"@zh .', ""]
+            _declared_root.add(sup)
         L += [f"{prefix}:{did} a owl:Class ;",
               f"    rdfs:subClassOf {prefix}:{sup} ;",
               f'    rdfs:label "{_esc(d)}"@zh .', ""]
@@ -144,7 +156,7 @@ def build_ontology_ttl(schema: dict) -> str:
         # 有 domain 就挂域类（三层：根→域→实体）；无则退回显式 parent
         sup = domains.get(str(e.get("domain") or "").strip())
         if not sup and e.get("parent"):
-            sup = so._pascal(e["parent"])
+            sup = _cls_name(e["parent"])
         if sup:
             body.append(f"    rdfs:subClassOf {prefix}:{sup}")
         body.append(f'    rdfs:label "{_esc(e.get("label") or e["id"])}"@zh')
@@ -152,6 +164,24 @@ def build_ontology_ttl(schema: dict) -> str:
             body.append(f'    skos:definition "{_esc(e["definition"])}"@zh')
         L.append(" ;\n".join([body[0]] + [f"    {b.strip()}" if not b.strip().startswith("    ") else b for b in body[1:]]) + " .")
         L.append("")
+    # 实体 id / 表名 → 类局部名（与类声明同一规则）。
+    # 为什么必须共用：类声明用 _local(e["iri"])（来自 fill_iris 的 table.capitalize()，
+    # 保留下划线如 Valve_batches），而 domain/range 若用 _pascal() 会转成驼峰 ValveBatches，
+    # 两个 IRI 对不上 → rdfs:domain 指向不存在的类（推理机只能跳过）。这是真实回归过的缺陷。
+    cls_by_key = {}
+    for e in ents:
+        loc = _local(e["iri"], ns)
+        cls_by_key[e["id"]] = loc
+        if e.get("table"):
+            cls_by_key[str(e["table"])] = loc
+            cls_by_key[str(e["table"]).capitalize()] = loc
+
+    def _cls_ref(name) -> str:
+        n = str(name)
+        if n in cls_by_key:
+            return cls_by_key[n]
+        return _cls_name(n)
+
     # 属性
     for e in sorted(schema.get("entities", []), key=lambda x: x["id"]):
         cls = _local(e["iri"], ns)
@@ -173,8 +203,8 @@ def build_ontology_ttl(schema: dict) -> str:
     for r in sorted(schema.get("relations", []), key=lambda x: str(x.get("id"))):
         rel = _local(r.get("iri") or (ns + str(r["id"])), ns)
         L.append(f"{prefix}:{rel} a owl:ObjectProperty ;")
-        L.append(f"    rdfs:domain {prefix}:{so._pascal(str(r['from']))} ;")
-        L.append(f"    rdfs:range {prefix}:{so._pascal(str(r['to']))} ;")
+        L.append(f"    rdfs:domain {prefix}:{_cls_ref(r['from'])} ;")
+        L.append(f"    rdfs:range {prefix}:{_cls_ref(r['to'])} ;")
         L.append(f'    rdfs:label "{_esc(r.get("label", "关联"))}"@zh' +
                  (f' ;\n    skos:definition "{_esc(r["definition"])}"@zh' if r.get("definition") else "") + " .")
         L.append("")
@@ -242,7 +272,7 @@ def _axioms(schema: dict, ns: str, prefix: str) -> list:
         e = ent_by_id.get(eid)
         if not e:
             continue
-        enum_cls = f"{so._pascal(attr)}Enum"
+        enum_cls = f"{_cls_name(attr)}Enum"
         vals = " ".join(f'"{_esc(v)}"' for v in c["values"])
         L += [f"{prefix}:{enum_cls} a owl:Class ;",
               f"    owl:oneOf ( {vals} ) ;",
@@ -330,16 +360,26 @@ def build_jsonld(schema: dict) -> str:
            "range": "rdfs:range", "owl:versionIRI": "http://www.w3.org/2002/07/owl#versionIRI"}
     graph = [{"@id": ns, "@type": "owl:Ontology",
               "label": m["label"], "owl:versionIRI": {"@id": m["version_iri"]}}]
+    # 实体 id / 表名 → 类 IRI（与 Turtle 的类声明一致，避免 JSON-LD 与 Turtle 不等价）
+    cls_iri = {}
+    for e in schema.get("entities", []):
+        cls_iri[e["id"]] = e["iri"]
+        if e.get("table"):
+            cls_iri[str(e["table"])] = e["iri"]
+            cls_iri[str(e["table"]).capitalize()] = e["iri"]
+
+    def _iri_ref(name) -> str:
+        return cls_iri.get(str(name), ns + _cls_name(str(name)))
     for e in schema.get("entities", []):
         node = {"@id": e["iri"], "@type": "owl:Class", "label": e.get("label") or e["id"]}
         if e.get("definition"):
             node["definition"] = e["definition"]
         if e.get("parent"):
-            node["subClassOf"] = {"@id": ns + so._pascal(e["parent"])}
+            node["subClassOf"] = {"@id": ns + _cls_name(e["parent"])}
         graph.append(node)
     # 根类（被 parent 引用但自身不是实体）也须入图 —— 否则 JSON-LD 与 Turtle 不等价(少一个类)
     declared = {e.get("iri") for e in schema.get("entities", [])}
-    for puri in sorted({ns + so._pascal(e["parent"]) for e in schema.get("entities", []) if e.get("parent")}):
+    for puri in sorted({ns + _cls_name(e["parent"]) for e in schema.get("entities", []) if e.get("parent")}):
         if puri not in declared:
             graph.append({"@id": puri, "@type": "owl:Class", "label": puri.rsplit("#", 1)[-1]})
     # 属性节点（数据属性 + 对象属性）—— JSON-LD 需与 Turtle 等价，否则往返会丢属性
@@ -364,9 +404,9 @@ def build_jsonld(schema: dict) -> str:
                 "@type": "owl:ObjectProperty",
                 "label": r.get("label", "关联")}
         if r.get("from"):
-            node["domain"] = {"@id": ns + so._pascal(str(r["from"]))}
+            node["domain"] = {"@id": _iri_ref(r["from"])}
         if r.get("to"):
-            node["range"] = {"@id": ns + so._pascal(str(r["to"]))}
+            node["range"] = {"@id": _iri_ref(r["to"])}
         if r.get("definition"):
             node["definition"] = r["definition"]
         graph.append(node)

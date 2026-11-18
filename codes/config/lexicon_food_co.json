@@ -211,11 +211,7 @@
     "产品": "food_products",
     "质检": "food_qc",
     "原料": "food_raw_materials",
-    "供应商": "supplier",
-    "客户": "customer",
-    "订单": "order",
-    "销售": "sale",
-    "库存": "inventory"
+    "供应商": "supplier"
   },
   "numeric_fields": {
     "数量": "quantity",
@@ -263,5 +259,31 @@
     "压力异常": "abnormal_pressure",
     "温度异常": "abnormal_temperature",
     "流量异常": "abnormal_flow"
-  }
+  },
+  "_disabled_by_align": [
+    {
+      "map": "entity_cn2en",
+      "cn": "客户",
+      "was": "customer",
+      "reason": "本库无此表：food_batch_ingredient、food_batches、food_equipment、food_products、food_qc、food_raw_materials"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "订单",
+      "was": "order",
+      "reason": "本库无此表：food_batch_ingredient、food_batches、food_equipment、food_products、food_qc、food_raw_materials"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "销售",
+      "was": "sale",
+      "reason": "本库无此表：food_batch_ingredient、food_batches、food_equipment、food_products、food_qc、food_raw_materials"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "库存",
+      "was": "inventory",
+      "reason": "本库无此表：food_batch_ingredient、food_batches、food_equipment、food_products、food_qc、food_raw_materials"
+    }
+  ]
 }

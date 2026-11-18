@@ -2,22 +2,7 @@
   "description": "自动生成词典（multi_model, suggest_schema 推断 + LLM 语义聚类同义词 + data profiling 映射）",
   "attr_cn2en": {
     "编号": "id",
-    "contractno": "contract_no",
-    "customer": "customer",
-    "供应商": "supplier",
-    "金额": "amount",
-    "signdate": "sign_date",
-    "deliverdate": "deliver_date",
-    "payment状态": "payment_status",
-    "owner": "owner",
     "设备名称": "device_name",
-    "model": "model",
-    "尺寸(mm)": "size_mm",
-    "尺寸": "size_mm",
-    "pressurempa": "pressure_mpa",
-    "材质": "material",
-    "installdate": "install_date",
-    "warrantymonths": "warranty_months",
     "状态": "status"
   },
   "attr_en2cn": {
@@ -37,7 +22,8 @@
     "material": "材质",
     "install_date": "installdate",
     "warranty_months": "warrantymonths",
-    "status": "状态"
+    "status": "状态",
+    "equipment": "设备"
   },
   "status_cn2en": {
     "运行中": "运行中",
@@ -163,9 +149,8 @@
     ]
   },
   "entity_cn2en": {
-    "内部合同": "internal_contracts",
-    "设备": "internal_equipment",
-    "内部设备": "internal_equipment"
+    "设备": "equipment",
+    "内部设备": "equipment"
   },
   "numeric_fields": {
     "金额": "amount",
@@ -186,5 +171,103 @@
       "name"
     ]
   },
-  "value_fields": []
+  "value_fields": [],
+  "_disabled_by_align": [
+    {
+      "map": "entity_cn2en",
+      "cn": "内部合同",
+      "was": "internal_contracts",
+      "reason": "本库无此表：equipment、line、supplier"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "contractno",
+      "was": "contract_no",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "customer",
+      "was": "customer",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "供应商",
+      "was": "supplier",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "金额",
+      "was": "amount",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "signdate",
+      "was": "sign_date",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "deliverdate",
+      "was": "deliver_date",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "payment状态",
+      "was": "payment_status",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "owner",
+      "was": "owner",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "model",
+      "was": "model",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "尺寸(mm)",
+      "was": "size_mm",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "尺寸",
+      "was": "size_mm",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "pressurempa",
+      "was": "pressure_mpa",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "材质",
+      "was": "material",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "installdate",
+      "was": "install_date",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "warrantymonths",
+      "was": "warranty_months",
+      "reason": "本库无此列"
+    }
+  ]
 }

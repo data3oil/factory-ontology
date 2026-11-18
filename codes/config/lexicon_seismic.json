@@ -178,16 +178,7 @@
     "测线": "seis_lines",
     "产线": "seis_lines",
     "炮点": "seis_shots",
-    "班组": "seis_teams",
-    "产品": "product",
-    "客户": "customer",
-    "供应商": "supplier",
-    "批次": "batch",
-    "原料": "raw_material",
-    "订单": "order",
-    "销售": "sale",
-    "质检": "qc",
-    "库存": "inventory"
+    "班组": "seis_teams"
   },
   "numeric_fields": {
     "规格value": "spec_value",
@@ -236,5 +227,61 @@
     "压力异常": "abnormal_pressure",
     "温度异常": "abnormal_temperature",
     "流量异常": "abnormal_flow"
-  }
+  },
+  "_disabled_by_align": [
+    {
+      "map": "entity_cn2en",
+      "cn": "产品",
+      "was": "product",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "客户",
+      "was": "customer",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "供应商",
+      "was": "supplier",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "批次",
+      "was": "batch",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "原料",
+      "was": "raw_material",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "订单",
+      "was": "order",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "销售",
+      "was": "sale",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "质检",
+      "was": "qc",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "库存",
+      "was": "inventory",
+      "reason": "本库无此表：seis_equipment、seis_lines、seis_shots、seis_teams"
+    }
+  ]
 }

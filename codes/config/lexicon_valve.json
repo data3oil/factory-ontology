@@ -72,7 +72,8 @@
     "检查员": "checker",
     "检查日期": "check_date",
     "部件名称": "part_name",
-    "客户编号": "customer_id"
+    "客户编号": "customer_id",
+    "地区": "region"
   },
   "attr_en2cn": {
     "id": "编号",
@@ -359,9 +360,7 @@
     "批次配料": "valve_batch_ingredient",
     "批次原料": "valve_batch_ingredient",
     "质检": "valve_qc",
-    "供应商": "supplier",
-    "订单": "order",
-    "库存": "inventory"
+    "供应商": "supplier"
   },
   "numeric_fields": {
     "口径": "size_mm",
@@ -924,5 +923,19 @@
     "kept": 205,
     "added": 69
   },
-  "merged_from_previous": true
+  "merged_from_previous": true,
+  "_disabled_by_align": [
+    {
+      "map": "entity_cn2en",
+      "cn": "订单",
+      "was": "order",
+      "reason": "本库无此表：valve_batch_ingredient、valve_batches、valve_customers、valve_equipment、valve_products、valve_qc"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "库存",
+      "was": "inventory",
+      "reason": "本库无此表：valve_batch_ingredient、valve_batches、valve_customers、valve_equipment、valve_products、valve_qc"
+    }
+  ]
 }

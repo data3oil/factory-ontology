@@ -2,35 +2,18 @@
   "description": "自动生成词典（multi_model, suggest_schema 推断 + LLM 语义聚类同义词 + data profiling 映射）",
   "attr_cn2en": {
     "编号": "id",
-    "客户名称": "customer_name",
-    "区域": "region",
-    "行业": "industry",
-    "信用等级": "credit_level",
     "设备名称": "device_name",
     "设备类型": "device_type",
     "车间": "workshop",
-    "功率(kW)": "power_kw",
-    "功率": "power_kw",
     "状态": "status",
-    "振动(mm/s)": "vibration_mm_s",
-    "振动": "vibration_mm_s",
     "温度(℃)": "temp_c",
     "温度": "temp_c",
-    "电流(A)": "current_a",
-    "电流": "current_a",
     "型号代码": "model_code",
     "产品名称": "product_name",
     "类型": "type",
-    "材质": "material",
-    "尺寸(mm)": "size_mm",
-    "尺寸": "size_mm",
-    "precisiongrade": "precision_grade",
     "价格": "price",
     "产品编号": "product_id",
-    "客户编号": "customer_id",
-    "数量": "quantity",
-    "销售日期": "sale_date",
-    "金额": "amount"
+    "数量": "quantity"
   },
   "attr_en2cn": {
     "id": "编号",
@@ -57,7 +40,9 @@
     "customer_id": "客户编号",
     "quantity": "数量",
     "sale_date": "销售日期",
-    "amount": "金额"
+    "amount": "金额",
+    "chem_equipment": "设备",
+    "chem_products": "产品"
   },
   "status_cn2en": {
     "运行中": "运行中",
@@ -104,10 +89,8 @@
     ]
   },
   "entity_cn2en": {
-    "客户": "mach_customers",
-    "设备": "mach_equipment",
-    "产品": "mach_products",
-    "销售": "mach_sales"
+    "设备": "chem_equipment",
+    "产品": "chem_products"
   },
   "numeric_fields": {
     "功率": "power_kw",
@@ -134,5 +117,121 @@
       "name"
     ]
   },
-  "value_fields": []
+  "value_fields": [],
+  "_disabled_by_align": [
+    {
+      "map": "entity_cn2en",
+      "cn": "客户",
+      "was": "mach_customers",
+      "reason": "本库无此表：chem_batches、chem_equipment、chem_products、chem_raw_materials"
+    },
+    {
+      "map": "entity_cn2en",
+      "cn": "销售",
+      "was": "mach_sales",
+      "reason": "本库无此表：chem_batches、chem_equipment、chem_products、chem_raw_materials"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "客户名称",
+      "was": "customer_name",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "区域",
+      "was": "region",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "行业",
+      "was": "industry",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "信用等级",
+      "was": "credit_level",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "功率(kW)",
+      "was": "power_kw",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "功率",
+      "was": "power_kw",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "振动(mm/s)",
+      "was": "vibration_mm_s",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "振动",
+      "was": "vibration_mm_s",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "电流(A)",
+      "was": "current_a",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "电流",
+      "was": "current_a",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "材质",
+      "was": "material",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "尺寸(mm)",
+      "was": "size_mm",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "尺寸",
+      "was": "size_mm",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "precisiongrade",
+      "was": "precision_grade",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "客户编号",
+      "was": "customer_id",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "销售日期",
+      "was": "sale_date",
+      "reason": "本库无此列"
+    },
+    {
+      "map": "attr_cn2en",
+      "cn": "金额",
+      "was": "amount",
+      "reason": "本库无此列"
+    }
+  ]
 }
