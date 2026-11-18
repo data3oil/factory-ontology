@@ -69,8 +69,17 @@ def parse_dsn(dsn):
     m = _re.match(r"^sqlite://(?P<db>/.+)$", dsn, _re.I)
     if m:
         db = m.group("db")
-        # 统一路径：/C:/x → C:/x ; 多个前导 / 压缩为一个
-        db = _re.sub(r"^/+", "", db)
+        # SQLAlchemy 口径：`sqlite:///` 后第三个 `/` 是 URL 分隔符，不属于路径本身。
+        #   sqlite:///rel.db       → rel.db      （相对）
+        #   sqlite:///C:/x.db      → C:/x.db     （Windows 绝对）
+        #   sqlite:////tmp/x.db    → /tmp/x.db   （POSIX 绝对，多一个 / 表示根）
+        # 2026-11-18: 此前是 re.sub(r"^/+", "", db)，把**所有**前导 / 去掉。
+        # Windows 上 /C:/x 去掉正好对，Linux 上 /tmp/x 被吃成相对路径 tmp/x，
+        # 于是 db_loader 报 "SQLite 库不存在" —— CI 在 Linux 上跑到才知道。
+        if db.startswith("/"):
+            db = db[1:]                              # 去掉 URL 分隔符那一个
+        if _re.match(r"^/[A-Za-z]:[\\/]", db):       # sqlite:////C:/x 多写一个 / 的写法
+            db = db[1:]
         return ("sqlite", "", 0, "", "", db)
     # MySQL / PostgreSQL: driver://user:pass@host:port/db  (driver 前缀可省略)
     m = _re.match(
