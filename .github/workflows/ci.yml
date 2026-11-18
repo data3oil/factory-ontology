@@ -127,3 +127,28 @@ jobs:
           done
           echo "==== scripts/eval_qa.py (dry) ===="
           python scripts/eval_qa.py --dry || echo "[skip/fail] eval_qa.py --dry 返回非零"
+
+  gates:
+    # 全部自检门（17 道）—— 2026-11-18 接入为阻断门。
+    #
+    # 此前这 17 门只在开发机上手跑：干净检出时 6 门直接 FileNotFoundError
+    # （verify_qa_envelope / verify_advisory / eval_qa / verify_cq_baseline /
+    #  eval_holdout / 单测），因为评测门读 kbs.json 指向的 output/*.nt，
+    # 而生成物不入库。本机"全绿"一半靠 output/ 里的历史残留撑着。
+    #
+    # 所以顺序是：先按 kbs.json 预建全部本体（prebuild_nt.py，纯标准库、
+    # 不写词典、不改注册表、不调 LLM），再跑门。任一不过即失败。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: 预建各库本体（评测门的输入）
+        run: python scripts/prebuild_nt.py
+      - name: 全部自检门（17 道，任一不过即失败）
+        run: python scripts/run_all_gates.py

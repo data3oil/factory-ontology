@@ -124,12 +124,20 @@ def main():
     p_real = KR.probe_kb("valve")
     check("真实 KB 'valve' 探测为 ready（对照真库）",
           p_real["status"] == "ready", "data_dir=%s files=%d" % (p_real["data_dir"], p_real["data_file_count"]))
-    p_demo_power = KR.probe_kb("demo_power")
+    # 2026-11-18: 原来这里直接 probe 真实的 demo_power，断言"servable=False"，
+    # 等于隐含要求 output/demo_power.nt **不存在** —— 一旦按 kbs.json 预建了全部本体
+    # （CI 上必须预建，否则评测门 FileNotFound），这条就翻红。
+    # 改成临时注册一个"数据在、nt 指向不存在的路径"的库，与仓库有没有 output/ 无关。
+    KR.register_kb("verify_nt_missing", {"name": "缺本体KB",
+                                         "data_dir": "data_demo_power",
+                                         "nt": "output/_verify_no_such_nt.nt"})
+    p_demo_power = KR.probe_kb("verify_nt_missing")
     check("真实 KB 'demo_power' 数据在→data_ready=True、本体缺→servable=False（真实原因列出）",
           p_demo_power["data_ready"] is True and p_demo_power["servable"] is False
           and any("本体文件缺失" in m for m in p_demo_power["missing"]),
           "files=%d nt_exists=%s missing=%s"
           % (p_demo_power["data_file_count"], p_demo_power["nt_exists"], p_demo_power["missing"]))
+    KR.unregister_kb("verify_nt_missing")
 
     # ── T3 切库零重启 ───────────────────────────────────────────────────────
     print("\n[T3] 切库零重启（同进程连切）")
