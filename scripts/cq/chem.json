@@ -1,0 +1,136 @@
+{
+  "kb": "chem",
+  "version": "1.0",
+  "description": "精细化工 · 能力问题（CQ）验收基线。golden 由 data_chem 的 CSV 直接统计得出。",
+  "baseline_hit": 12,
+  "questions": [
+    {
+      "id": "CQ-01",
+      "question": "化工产品一共有多少个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "7"
+        ]
+      },
+      "source": "chem_products.csv 行数 = 7"
+    },
+    {
+      "id": "CQ-02",
+      "question": "产品类别有哪些？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "生物农药",
+          "除草剂",
+          "化学农药"
+        ]
+      },
+      "source": "chem_products.category distinct"
+    },
+    {
+      "id": "CQ-03",
+      "question": "生物农药有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "4"
+        ]
+      },
+      "source": "count(chem_products.category == '生物农药') = 4"
+    },
+    {
+      "id": "CQ-04",
+      "question": "产品纯度最高是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "41"
+        ]
+      },
+      "source": "max(chem_products.purity_pct) = 41.0"
+    },
+    {
+      "id": "CQ-05",
+      "question": "生产批次一共有多少批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "5"
+        ]
+      },
+      "source": "chem_batches.csv 行数 = 5"
+    },
+    {
+      "id": "CQ-06",
+      "question": "收率最高的一批是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "96"
+        ]
+      },
+      "source": "max(chem_batches.yield_pct) = 96.0"
+    },
+    {
+      "id": "CQ-07",
+      "question": "反应釜最大容量是多少升？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "10000"
+        ]
+      },
+      "source": "max(chem_equipment.capacity_l) = 10000"
+    },
+    {
+      "id": "CQ-08",
+      "question": "设备中有几台在维护？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "1"
+        ]
+      },
+      "source": "count(chem_equipment.status == '维护中') = 1"
+    },
+    {
+      "id": "CQ-09",
+      "question": "原料库存最大是多少千克？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "8000"
+        ]
+      },
+      "source": "max(chem_raw_materials.stock_kg) = 8000"
+    },
+    {
+      "id": "CQ-10",
+      "question": "待检的批次有几批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "1"
+        ]
+      },
+      "source": "count(chem_batches.quality_status == '待检') = 1"
+    },
+    {
+      "id": "CQ-11",
+      "question": "这个产品的分子式是什么？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "chem_products 无分子式/化学结构字段"
+    },
+    {
+      "id": "CQ-12",
+      "question": "反应釜上次检修是什么时候？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "chem_equipment 无检修记录/日期字段"
+    }
+  ]
+}

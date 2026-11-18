@@ -1,0 +1,123 @@
+{
+  "kb": "auto_parts",
+  "version": "1.0",
+  "description": "汽车零部件 · 能力问题（CQ）验收基线。golden 由 data_auto_parts 的 CSV 直接统计得出。",
+  "baseline_hit": 11,
+  "questions": [
+    {
+      "id": "CQ-01",
+      "question": "零部件产品一共有多少个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "12"
+        ]
+      },
+      "source": "products.csv 行数 = 12"
+    },
+    {
+      "id": "CQ-02",
+      "question": "在产的产品有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "9"
+        ]
+      },
+      "source": "count(products.status == '在产') = 9"
+    },
+    {
+      "id": "CQ-03",
+      "question": "订单一共有多少单？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "20"
+        ]
+      },
+      "source": "orders.csv 行数 = 20"
+    },
+    {
+      "id": "CQ-04",
+      "question": "已交付的订单有多少单？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "12"
+        ]
+      },
+      "source": "count(orders.delivery_status == '已交付') = 12"
+    },
+    {
+      "id": "CQ-05",
+      "question": "设备一共有多少台？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "10"
+        ]
+      },
+      "source": "equipment.csv 行数 = 10"
+    },
+    {
+      "id": "CQ-06",
+      "question": "设备役龄最长是多少年？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "15"
+        ]
+      },
+      "source": "max(equipment.device_age_years) = 15"
+    },
+    {
+      "id": "CQ-07",
+      "question": "客户一共有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "6"
+        ]
+      },
+      "source": "customers.csv 行数 = 6"
+    },
+    {
+      "id": "CQ-08",
+      "question": "华东地区的客户有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "5"
+        ]
+      },
+      "source": "count(customers.region == '华东') = 5"
+    },
+    {
+      "id": "CQ-09",
+      "question": "订单金额最大是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "85225"
+        ]
+      },
+      "source": "max(orders.amount) = 85225.0"
+    },
+    {
+      "id": "CQ-10",
+      "question": "产品的供应商是谁？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "auto_parts 无供应商表/字段"
+    },
+    {
+      "id": "CQ-11",
+      "question": "这个零部件的重量是多少？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "products 无重量字段（只有 spec_value）"
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "kb": "valve",
+  "version": "1.0",
+  "description": "阀门制造 · 能力问题（CQ）验收基线。问题是业务语言，golden 由 data_valve 的 CSV 直接统计得出（source 标明出处），不看引擎输出。改动建本/问答后跑本门，hit 不得低于 baseline，且不得出现编造。",
+  "baseline_hit": 13,
+  "questions": [
+    {
+      "id": "CQ-01",
+      "question": "阀门产品一共有多少个型号？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "8"
+        ]
+      },
+      "source": "valve_products.csv 行数 = 8"
+    },
+    {
+      "id": "CQ-02",
+      "question": "阀门类型有哪些？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "闸阀",
+          "球阀",
+          "蝶阀",
+          "截止阀",
+          "止回阀",
+          "安全阀"
+        ]
+      },
+      "source": "valve_products.csv type 列 distinct"
+    },
+    {
+      "id": "CQ-03",
+      "question": "口径最大的阀门是多少毫米？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "200"
+        ]
+      },
+      "source": "max(valve_products.size_mm) = 200"
+    },
+    {
+      "id": "CQ-04",
+      "question": "压力等级 PN16 的产品有几个？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "5"
+        ]
+      },
+      "source": "count(valve_products.pressure_grade == 'PN16') = 5"
+    },
+    {
+      "id": "CQ-05",
+      "question": "生产批次一共有多少批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "15"
+        ]
+      },
+      "source": "valve_batches.csv 行数 = 15"
+    },
+    {
+      "id": "CQ-06",
+      "question": "已入库的批次有多少批？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "9"
+        ]
+      },
+      "source": "count(valve_batches.status == '已入库') = 9"
+    },
+    {
+      "id": "CQ-07",
+      "question": "设备中有几台在运行？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "8"
+        ]
+      },
+      "source": "count(valve_equipment.status == '运行中') = 8"
+    },
+    {
+      "id": "CQ-08",
+      "question": "质检不合格的记录有多少条？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "6"
+        ]
+      },
+      "source": "count(valve_qc.result == '不合格') = 6"
+    },
+    {
+      "id": "CQ-09",
+      "question": "客户分布在哪些地区？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "华东",
+          "华北",
+          "华南",
+          "西南",
+          "东北",
+          "华中",
+          "西北"
+        ]
+      },
+      "source": "valve_customers.region distinct"
+    },
+    {
+      "id": "CQ-10",
+      "question": "供应商华东铸锻供应了几种原料？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "3"
+        ]
+      },
+      "source": "count(valve_raw_materials.supplier == '华东铸锻') = 3"
+    },
+    {
+      "id": "CQ-11",
+      "question": "原料库存最低是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "400"
+        ]
+      },
+      "source": "min(valve_raw_materials.stock) = 400"
+    },
+    {
+      "id": "CQ-12",
+      "question": "这批阀门的使用寿命是多少年？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "库内无寿命字段（temp_range 是温度范围，不是寿命）"
+    },
+    {
+      "id": "CQ-13",
+      "question": "阀门的供应商联系电话是多少？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "valve_raw_materials 只有 supplier 名称，无电话字段"
+    }
+  ]
+}

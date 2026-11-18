@@ -1,0 +1,112 @@
+{
+  "kb": "ai4i",
+  "version": "1.0",
+  "description": "设备预测性维护（AI4I 数据集）· 能力问题（CQ）验收基线。单表 10000 行，golden 由 CSV 直接统计得出。",
+  "baseline_hit": 10,
+  "questions": [
+    {
+      "id": "CQ-01",
+      "question": "一共有多少条设备记录？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "10000"
+        ]
+      },
+      "source": "ai4i.csv 行数 = 10000"
+    },
+    {
+      "id": "CQ-02",
+      "question": "发生机器故障的记录有多少条？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "339"
+        ]
+      },
+      "source": "sum(Machine_failure) = 339"
+    },
+    {
+      "id": "CQ-03",
+      "question": "转速最高是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "2886"
+        ]
+      },
+      "source": "max(Rotational_speed_) = 2886"
+    },
+    {
+      "id": "CQ-04",
+      "question": "扭矩最大是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "76.6"
+        ]
+      },
+      "source": "max(Torque_) = 76.6"
+    },
+    {
+      "id": "CQ-05",
+      "question": "刀具磨损最大是多少？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "253"
+        ]
+      },
+      "source": "max(Tool_wear_) = 253"
+    },
+    {
+      "id": "CQ-06",
+      "question": "产品类型 H 的记录有多少条？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "1003"
+        ]
+      },
+      "source": "count(Type == 'H') = 1003"
+    },
+    {
+      "id": "CQ-07",
+      "question": "随机故障发生了多少次？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "19"
+        ]
+      },
+      "source": "sum(RNF) = 19"
+    },
+    {
+      "id": "CQ-08",
+      "question": "热耗散故障发生了多少次？",
+      "expect": {
+        "mode": "all",
+        "values": [
+          "115"
+        ]
+      },
+      "source": "sum(HDF) = 115"
+    },
+    {
+      "id": "CQ-09",
+      "question": "操作这台机器的工人是谁？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "ai4i 表无操作工/人员字段"
+    },
+    {
+      "id": "CQ-10",
+      "question": "这台设备的采购价格是多少？",
+      "expect": {
+        "mode": "refuse"
+      },
+      "source": "ai4i 表无价格字段"
+    }
+  ]
+}
