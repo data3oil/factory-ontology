@@ -1,0 +1,48 @@
+{
+  "version": "0.1.0",
+  "label": "bellows 公理集（种子生成）",
+  "kb": "bellows",
+  "prefix": "http://factory.example/ontology#",
+  "note": "初始由跨行业种子按角色识别生成，路径取自该库数据里真实存在的边。可以随便改，改完点保存再跑推理。",
+  "derive": {
+    "domain_range": true,
+    "type_inheritance": true
+  },
+  "inverse_of": [],
+  "chains": [],
+  "functional": [
+    {
+      "id": "SEED-F-modelCode",
+      "prop": "modelCode",
+      "label": "modelCode 单值",
+      "definition": "属性名像编号，按单值处理，多值即数据冲突"
+    }
+  ],
+  "disjoint_with": [
+    {
+      "id": "SEED-D-equipment-product",
+      "classes": [
+        "Bell_equipment",
+        "Bell_products"
+      ],
+      "label": "equipment 与 product 不相交"
+    }
+  ],
+  "business_rules": [],
+  "seed_report": {
+    "roles": {
+      "equipment": [
+        "Bell_equipment"
+      ],
+      "product": [
+        "Bell_products"
+      ]
+    },
+    "skipped": [
+      "产品用料（product→material）：数据里找不到连通的边",
+      "产品质检记录（product→qc）：数据里找不到连通的边",
+      "质检规则：数据里没有读到合格/不合格这类取值，留空等人工填"
+    ]
+  },
+  "updated_at": "2026-11-20 07:06:02"
+}

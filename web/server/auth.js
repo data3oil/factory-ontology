@@ -191,13 +191,39 @@ export function login(username, password) {
   return { ok: true, token, user: publicUser(u) };
 }
 
-/** 受信登录（企业基座 SSO 用）：上游已确认身份，这里只签发本系统会话。
- *  只给已在 users.json 里的账号发会话，不自动建号——否则基座侧任意用户名都能进来。
- *  用户名映射走 server/sso_map.json（基座用户名 → 本系统用户名），未配置时按同名尝试。 */
+/** 受信登录（企业基座 SSO 用）：上游已确认身份，这里签发本系统会话。
+ *
+ *  账号策略（2026-11-19 修正）：基座 SSO 是**受信来源**（基座那边已经验过身份），
+ *  首次进入时按最小权限建一个本地账号（role=viewer、**无口令**、ssoOnly 标记），
+ *  并记审计。旧策略"只给已在 users.json 里的账号发会话"看着更安全，实际后果是
+ *  每个新用户在基座登录完、点名到本系统还要再登录一次——统一身份等于没做。
+ *  安全边界：建出来的账号 password hash 为空，走不了密码登录；只有基座 SSO 能进。
+ *  用户名映射走 server/sso_map.json（基座用户名 → 本系统用户名），未配置按同名。
+ */
 export function loginAs(username, source) {
   const users = loadUsers();
   const list = Object.values(users || {});
-  const u = users[username] || list.find((x) => x && x.username === username);
+  let u = users[username] || list.find((x) => x && x.username === username);
+  if (!u && source === 'base-sso') {
+    const salt = randomBytes(16).toString('hex');
+    u = {
+      username,
+      salt,
+      hash: '',                     // 无口令：密码登录必然失败，只有 SSO 能进
+      enterpriseName: '',
+      logo: '',
+      industry: '',
+      kb: 'ent_' + String(username).replace(/[^A-Za-z0-9_-]/g, '_'),
+      role: 'viewer',               // 最小权限，权限由管理员后续调整
+      ssoOnly: true,
+      createdAt: new Date().toISOString(),
+    };
+    users[username] = u;
+    saveUsers(users);
+    try {
+      console.log(`[sso] 首次进入，已建最小权限账号：${username}`);
+    } catch (e) { /* 日志失败不影响登录 */ }
+  }
   if (!u) return { ok: false, error: '本系统没有该账号：' + username };
   const token = randomBytes(32).toString('hex');
   sessions.set(token, { username: u.username, expires: Date.now() + SESSION_TTL });
