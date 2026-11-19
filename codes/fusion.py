@@ -1,4 +1,5 @@
 import json
+import os
 import re
 
 import safe_log
@@ -97,13 +98,27 @@ def _coverage(answer, evidence):
     return hit / float(len(toks))
 
 
-def fuse(question, candidates, cross_domain=False, kb='', schema=None):
+RRF_ENABLED = os.environ.get("FACTORY_USE_RRF", "1") == "1"  # 默认开；设 0 可回退到固定来源优先级
+
+
+def _rrf_prefer(cands):
+    """规则/公理类保持在前（确定性优先），其余按 RRF 排名。"""
+    rules = [c for c in cands if c.get("source") in _RULE_SOURCES and _ev(c)]
+    rest = [c for c in cands if c not in rules]
+    return rules + rrf_rank(rest)
+
+
+def fuse(question, candidates, cross_domain=False, kb='', schema=None, use_rrf=None):
     if cross_domain:
         return {'ok': True, 'mode': 'cross_domain', 'answer': _NO_DATA_ANSWER,
                 'evidence': [], 'engines': [], 'structured': None,
                 'no_basis': True, 'confidence': 'none', 'kb': kb}
 
     cands = [c for c in (candidates or []) if _valid(c)]
+    if use_rrf is None:
+        use_rrf = RRF_ENABLED
+    if use_rrf and len(cands) > 1:
+        cands = _rrf_prefer(cands)
     engines = []
     for c in cands:
         # 候选可用 engines 字段声明真实命中的引擎(如 hybrid → [bm25, vector]);

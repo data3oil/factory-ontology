@@ -1780,6 +1780,18 @@ def _enum_attr_values(q, data, D):
         if s2 not in seen:
             seen.append(s2)
     if not seen:
+        # 属性被建模成关系（product_id → producedIn 边）时，按目标 IRI 尾段枚举。
+        # 目标类由属性名反推（product_id → 含 product 的实体），尾段必须带数字才算编号。
+        stem = en_attr[:-3] if en_attr.endswith("_id") else en_attr
+        targets = [v for v in emap.values() if stem.lower() in str(v).lower()]
+        for _n, d in _inst_rows(data, emap[ent]):
+            for vv in d.values():
+                if isinstance(vv, str) and vv.startswith("http") \
+                        and any(str(t).lower() in vv.lower() for t in targets):
+                    tailv = vv.rsplit("#", 1)[-1].split("_")[-1]
+                    if any(ch.isdigit() for ch in tailv) and tailv not in seen:
+                        seen.append(tailv)
+    if not seen:
         return None
     return "%s有：%s" % (attr, "、".join(sorted(seen)[:30]))
 

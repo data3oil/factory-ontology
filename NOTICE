@@ -35,4 +35,12 @@ factory-ontology is licensed under Apache License 2.0 (see LICENSE).
      再由确定性执行器执行）。落地于 codes/logical_qa.py。
      此为机制级方法借鉴，非代码复制。
 
+## 数据集许可
+
+1. AI4I 2020 Predictive Maintenance Dataset（`codes/output/ai4i.nt` 的数据来源）
+   - 来源：UCI Machine Learning Repository，https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset
+   - 许可：Creative Commons Attribution 4.0 International (CC BY 4.0)
+   - 义务：再分发需保留署名与许可声明；本仓库随附本 NOTICE 即视为署名。
+   - 说明：该数据集是合成数据（非真实产线采集），用于压测与演示，不代表真实工厂分布。
+
 以上项目的许可全文见各来源仓库 LICENSE 文件。本项目的实现代码为独立原创。

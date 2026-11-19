@@ -126,6 +126,8 @@ def main() -> int:
             question, sparql, cls = item
             if (pat, sparql) in seen:
                 continue
+            # 先登记再验证：验证失败的查询若不入 seen，会被反复重试同一句。
+            seen.add((pat, sparql))
             # 每次 query 都要重新解析整份 NT，全量验证在 500 题时是 O(n^2)。
             # 每类前 10 条执行验证，其余按结构收录并标注 verified=False。
             verified = False
@@ -137,7 +139,6 @@ def main() -> int:
                 if res.get("error") or not res.get("rows"):
                     continue
                 verified = True
-            seen.add((pat, sparql))
             rows.append({"id": "%s-%03d" % (pat, got + 1), "pattern": pat, "class": cls,
                          "question": question, "sparql": sparql, "verified": verified,
                          "answer_vars": res.get("vars"), "answer_rows": len(res.get("rows") or []),

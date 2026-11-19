@@ -169,6 +169,9 @@ def main():
     ap.add_argument("--dry", action="store_true", help="只生成评测集，不调接口")
     ap.add_argument("--base", default=(os.environ.get("FACTORY_API_BASE") or "http://127.0.0.1:8000"))
     ap.add_argument("--out", default=None)
+    ap.add_argument("--keep-association", action="store_true",
+                    help="保留关联表（默认跳过：关联表按 N 元关系建模，没有逐行实例，"
+                         "对它们出\"有多少条记录\"是评测口径错误）")
     a = ap.parse_args()
 
     data_dir = os.path.join(CODES, f"data_{a.kb}")
@@ -176,6 +179,19 @@ def main():
         print(f"数据目录不存在: {data_dir}")
         return 2
     tables = load_tables(data_dir)
+    if not a.keep_association:
+        def _is_assoc(rows):
+            cols = list(rows[0].keys())
+            fks = [c for c in cols if c.endswith("_id") and c != "id"]
+            others = [c for c in cols if c not in fks and c != "id"]
+            # 两个以上外键、且几乎没有自己的实质属性，才算 N 元关系表；
+            # 销售单有金额/数量/日期，是事实表，不能跳过。
+            return len(fks) >= 2 and len(others) <= 1
+        skipped = [n for n, rows in tables.items() if rows and _is_assoc(rows)]
+        for n in skipped:
+            tables.pop(n)
+        if skipped:
+            print(f"跳过关联表 {len(skipped)} 张（N 元关系建模，无逐行实例）: {skipped}")
     global LEX_ENT, LEX_ATTR
     LEX_ENT, LEX_ATTR = load_lexicon(a.kb)
     print(f"中文名映射: 实体 {len(LEX_ENT)} 项, 属性 {len(LEX_ATTR)} 项")
