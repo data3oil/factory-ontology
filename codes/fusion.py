@@ -1,3 +1,4 @@
+import json
 import re
 
 import safe_log
@@ -236,3 +237,27 @@ if __name__ == '__main__':
     assert r['confidence'] == 'medium' and r['coverage'] == 0.5
 
     print('fusion.py self-test OK')
+
+# ── 倒数排名融合（RRF）──────────────────────────────────────────────
+# 多路候选各有一个顺序，直接按 score 比会把不同来源的分数量纲混在一起。
+# RRF 只看名次：score = Σ 1/(k + rank)，k=60 是文献里的常用取值
+# （Cormack et al. 2009）。来源内部顺序不变，来源之间按名次折算。
+RRF_K = 60
+
+
+def rrf_rank(candidates, k=RRF_K, group_key="source"):
+    """按来源分组做 RRF，返回按融合分降序的新列表（同一答案跨来源累加分）。"""
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for c in candidates:
+        if _valid(c):
+            groups[c.get(group_key) or "unknown"].append(c)
+    scores, reps = {}, {}
+    for _g, items in groups.items():
+        for rank, c in enumerate(items, start=1):
+            key = (c.get("answer"),
+                   json.dumps(c.get("evidence") or [], sort_keys=True,
+                              ensure_ascii=False, default=str))
+            scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank)
+            reps.setdefault(key, c)
+    return [reps[key] for key in sorted(scores, key=lambda x: -scores[x])]

@@ -1711,10 +1711,103 @@ def _relation_lookup(q, data, D):
     return None
 
 
+
+# ── 条件计数 / 属性枚举（P1 查询规划：把"X中Y为Z的有多少条"拆成 实体-属性-值 ──
+# 这三类句式原来会落到关系路径或全表计数上，答成"关联到…"或"一共 105 条"。
+# 放在关系查询之前，用严格句式匹配，避免误伤其他问法。
+_COND_COUNT_RE = re.compile(
+    r"(?P<ent>[\u4e00-\u9fa5]{2,10}?)(?:中|里|内)?(?P<attr>[\u4e00-\u9fa5]{2,12}?)"
+    r"(?:为|是|等于|=)\s*(?P<val>[^\s，。的]+)\s*的?"
+    r"(?:有多少|多少条|多少个|多少台|多少家|多少艘|多少本|多少件|多少种|有几条|有几个|有几台)")
+_ENUM_ATTR_RE = re.compile(
+    r"(?P<ent>[\u4e00-\u9fa5]{2,10}?)的(?P<attr>[\u4e00-\u9fa5]{2,12}?)"
+    r"(?:有哪些|都有哪些|分别是什么|是什么)")
+_ENTITY_COUNT_RE = re.compile(r"(?P<ent>[\u4e00-\u9fa5]{2,10}?)(?:一共|总共)?有多少条记录")
+
+
+def _entity_prefix(D):
+    m = dict(get_entity_cn2uri() or {})
+    m.update(D.get("entity_cn2en") or {})
+    return m
+
+
+def _cond_count(q, data, D):
+    m = _COND_COUNT_RE.search(q)
+    if not m:
+        return None
+    ent, attr, val = m.group("ent"), m.group("attr"), m.group("val")
+    emap = _entity_prefix(D)
+    if ent not in emap:
+        return None
+    en_attr = (D.get("attr_cn2en") or {}).get(attr)
+    if not en_attr:
+        return None
+    rows = [d for _n, d in _inst_rows(data, emap[ent])]
+    if not rows:
+        return None
+    n = 0
+    for d in rows:
+        v = _field(d, en_attr, D.get("field_aliases"))
+        if v is not None and str(v).strip().lower() == val.lower():
+            n += 1
+            continue
+        if v is None or not str(v).strip():
+            for vv in d.values():
+                if isinstance(vv, str) and vv.startswith("http") and "_" in vv:
+                    if vv.rsplit("#", 1)[-1].split("_")[-1].lower() == val.lower():
+                        n += 1
+                        break
+    return "符合条件共 %d 条" % n
+
+
+def _enum_attr_values(q, data, D):
+    m = _ENUM_ATTR_RE.search(q)
+    if not m:
+        return None
+    ent, attr = m.group("ent"), m.group("attr")
+    emap = _entity_prefix(D)
+    if ent not in emap:
+        return None
+    en_attr = (D.get("attr_cn2en") or {}).get(attr)
+    if not en_attr:
+        return None
+    seen = []
+    for _n, d in _inst_rows(data, emap[ent]):
+        v = _field(d, en_attr, D.get("field_aliases"))
+        if v is None or str(v).strip() == "":
+            continue
+        s2 = str(v).strip()
+        if s2 not in seen:
+            seen.append(s2)
+    if not seen:
+        return None
+    return "%s有：%s" % (attr, "、".join(sorted(seen)[:30]))
+
+
+def _entity_count(q, data, D):
+    m = _ENTITY_COUNT_RE.search(q)
+    if not m:
+        return None
+    ent = m.group("ent")
+    emap = _entity_prefix(D)
+    if ent not in emap:
+        return None
+    rows = list(_inst_rows(data, emap[ent]))
+    if not rows:
+        return None
+    return "%s共有 %d 条记录" % (ent, len(rows))
+
+
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
+
+    # P1 查询规划：条件计数 / 属性枚举 / 实体记录数，必须在关系查询之前。
+    for _fn in (_cond_count, _enum_attr_values, _entity_count):
+        _r = _fn(q, data, D)
+        if _r:
+            return _r
 
     # M15-9 关系类：与直查同层，理由同上——必须在任何兜底之前。
     # 先按本体 schema 走（domain/range 对得上就用那条边），再走旧的编号式关系问句。

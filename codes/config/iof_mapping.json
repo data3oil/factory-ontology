@@ -1,0 +1,59 @@
+{
+  "version": "0.1.0",
+  "date": "2026-11-20",
+  "target": "IOF Core Ontology (BFO 2020)",
+  "iri_prefix": "https://spec.industrialontologies.org/ontology/construct/",
+  "source": "https://github.com/iofoundry/ontology",
+  "license": "MIT",
+  "note": "IOF 用角色(role)表达上下文分类，本项目的 schema 把台账实体固化成类。因此多数映射是 closeMatch 而非等价，含义差异写在各条 note 里。",
+  "mappings": [
+    {
+      "local": "Valve_equipment",
+      "iof": "EquipmentRole",
+      "relation": "skos:closeMatch",
+      "note": "IOF 里设备是角色(EquipmentRole)，同一物理对象在不同情境下可承担别的角色；我们把台账中的设备固定为类。"
+    },
+    {
+      "local": "Valve_products",
+      "iof": "MaterialProductRole",
+      "relation": "skos:closeMatch",
+      "note": "产品是产出角色，不是材料类别。"
+    },
+    {
+      "local": "Valve_raw_materials",
+      "iof": "RawMaterialRole",
+      "relation": "skos:closeMatch",
+      "note": "原料是投入角色；IOF 另有 RawMaterial 类表示材料本身。"
+    },
+    {
+      "local": "Valve_batch_ingredient",
+      "iof": "MaterialComponent",
+      "relation": "skos:relatedMatch",
+      "note": "批次配料是批次与原料的关联记录，近似组件关系，不是严格的组成关系。"
+    },
+    {
+      "local": "Valve_batches",
+      "iof": "ManufacturingProcess",
+      "relation": "skos:closeMatch",
+      "note": "批次是过程实例；IOF 的 ManufacturingProcess 是过程类型，这里按实例-类型近似映射。"
+    },
+    {
+      "local": "Valve_qc",
+      "iof": "MeasurementProcess",
+      "relation": "skos:closeMatch",
+      "note": "质检是测量过程，质检单记录对应 MeasuredValueExpression。"
+    },
+    {
+      "local": "Valve_customers",
+      "iof": "Customer",
+      "relation": "skos:closeMatch",
+      "note": "客户角色；IOF 另有 CustomerRole。"
+    },
+    {
+      "local": "Valve_sales",
+      "iof": "SellingBusinessProcess",
+      "relation": "skos:relatedMatch",
+      "note": "销售单是业务过程的结果记录，不是过程本身。"
+    }
+  ]
+}

@@ -26,6 +26,9 @@ GATES = [
     ("SHACL 实例校验", ["scripts/verify_shacl.py"]),
     ("词典碎片与跨库对齐", ["scripts/verify_lexicon_align.py"]),
     ("本体检查（5 类核查·打分制）", ["codes/ontology_check.py"]),
+    ("本体逻辑一致性（唯一/单值/链环/不相交）",
+     ["codes/logic_check.py", "--schema", "codes/config/ontology_schema_valve.json",
+      "--nt", "codes/output/valve.nt", "--axioms", "codes/config/axioms/valve.json"]),
     ("边界自检（甲方痕迹/依赖）", ["scripts/check_boundary.py"]),
     ("仓库单测", ["-m", "pytest", "codes/tests", "-q"]),
 ]

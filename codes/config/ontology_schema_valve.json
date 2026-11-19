@@ -3459,5 +3459,19 @@
       "rule": "R2-命名词干",
       "evidence": "去库前缀'valve' 后表名共享前导词干 'batch'（成员表: valve_batch_ingredient、valve_batches）"
     }
+  ],
+  "disjoint": [
+    [
+      "Valve_products",
+      "Valve_customers"
+    ],
+    [
+      "Valve_equipment",
+      "Valve_raw_materials"
+    ],
+    [
+      "Valve_batches",
+      "Valve_sales"
+    ]
   ]
 }
