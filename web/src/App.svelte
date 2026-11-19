@@ -308,7 +308,10 @@ let defaultBusy = $state(false);   // 默认数据建模中
   let deepRecall = $state(false);  // 深度召回开关: 关=确定性命中秒回; 开=命中后仍跑图谱/混合/文档
   let recallMeta = $state(null);
   let cites = $state(null);        // 证据层融合回来的原文出处
-  let citesVerdict = $state('');   // SUPPORTED / WEAK / NOT_FOUND   // 召回元信息 {deep, mode, engines[], confidence, n}
+  let citesVerdict = $state('');   // SUPPORTED / WEAK / NOT_FOUND
+  // 2026-11-19 审计补（P2）：后端一直在算、BFF 曾经丢掉、前端从未显示的两个字段。
+  let advisory = $state(null);     // 模型建议：只建议，不改答案
+  let trace = $state(null);        // 证据链追溯   // 召回元信息 {deep, mode, engines[], confidence, n}
   // 本体标准合规（GB/T 48000.3）
   let compliance = $state(null);
   let complianceLoading = $state(false);
@@ -967,6 +970,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
           evidence = res.evidence || null;
           cites = Array.isArray(res.evidence_cites) ? res.evidence_cites : null;
           citesVerdict = res.evidence_verdict || '';
+          advisory = res.advisory || null;
+          trace = Array.isArray(res.evidence_trace) ? res.evidence_trace : null;
           // 后端没带回溯源字段时不要编：宁可说「这次没有带回溯源信息」，也不给一个凭空的低可信度
           const hasProv = !!(res.mode || (res.engines && res.engines.length) || res.confidence != null || res.evidence);
           recallMeta = hasProv
@@ -1702,6 +1707,23 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
               evidenceHtml={evidence ? renderEvidence(evidence) : ''}
             />
             <EvidenceCites cites={cites} verdict={citesVerdict} />
+            {#if advisory && (advisory.text || advisory.note || advisory.suggestion)}
+              <div class="advisory-note">
+                <span class="advisory-label">模型建议</span>
+                <span>{advisory.text || advisory.note || advisory.suggestion}</span>
+                <span class="advisory-hint">仅供参考，不改变上面的答案</span>
+              </div>
+            {/if}
+            {#if trace && trace.length}
+              <details class="trace-box">
+                <summary>证据链追溯（{trace.length} 步）</summary>
+                <ol class="trace-list">
+                  {#each trace as step, i}
+                    <li>{typeof step === 'string' ? step : (step.label || step.attr || step.kind || JSON.stringify(step))}</li>
+                  {/each}
+                </ol>
+              </details>
+            {/if}
           {:else}
             <div class="result-empty">{#if kbsLoaded && currentKb}当前知识库「{kbList.find(k => k.key === currentKb)?.name || currentKb}」已就绪，输入中文问题开始查询。{/if}</div>
           {/if}
@@ -2535,6 +2557,18 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .result-label { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; }
   .result-scroll { flex: 1; overflow-y: auto; }
+  .advisory-note {
+    margin: 8px 18px 0; padding: 8px 12px; border-radius: 8px;
+    background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.18);
+    font-size: 13px; line-height: 1.6; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
+  }
+  .advisory-label { font-weight: 600; color: #0d9488; }
+  .advisory-hint { color: var(--muted, #6b7280); font-size: 12px; }
+  .trace-box {
+    margin: 8px 18px 0; font-size: 13px;
+  }
+  .trace-box summary { cursor: pointer; color: var(--muted, #6b7280); }
+  .trace-list { margin: 6px 0 0 18px; line-height: 1.7; }
   .result-text {
     margin: 0; padding: 14px;
     font-family: 'Consolas', 'Menlo', monospace;

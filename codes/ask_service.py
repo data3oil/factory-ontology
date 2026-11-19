@@ -327,6 +327,14 @@ def attach_evidence_cites(out, max_items=3):
         q = str(out.get("question") or "").strip()
         if not q:
             return out
+        # 2026-11-19 审计修：数据类问句（规则/逻辑引擎算的计数、枚举、极值、聚合）
+        # 不该挂文档证据。原来一律挂，于是"有多少台设备"的证据栏显示
+        # 《词典资产闭环-规格.md》里开发者记录的错答案例，还标注"依据充分"。
+        # 对客户来说数据问答的出处应该是数据本身，不是开发者的设计文档。
+        # 只有文档类召回（doc/rag/向量）才挂原文出处。
+        _mode = str(out.get("mode") or "").lower()
+        if _mode and not any(k in _mode for k in ("doc", "rag", "vector", "bm25", "graph")):
+            return out
         db = _evidence_db_path()
         if not os.path.exists(db):
             return out

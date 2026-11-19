@@ -151,6 +151,30 @@ def schema(c):
     """)
 
 
+INTERNAL_DOC_MARKERS = (
+    "方法论", "词典资产闭环", "codeagent_qa_审查", "lexicon-mismatch",
+    "本地与远端差异", "task-", "审计-",
+)
+
+# 2026-11-19 审计：证据语料改为白名单。
+# 原因：docs/ 整个目录是开发者文档（实验记录、研究笔记、内部方案、设计稿），
+# 黑名单只能逐个挡，漏一个就把内部资料推到客户界面上（实测已发生两次：
+# 《词典资产闭环-规格.md》的错答案例、《方法论-两阶段泛化建模.md》的设计图）。
+# 白名单反过来：只有明确面向使用者的文档才进证据库，新增内部文档默认不进。
+#
+# 🔴 这是权宜。真正的解法是证据出处指向客户自己的台账数据（CSV 行 / 本体实例），
+# 而不是项目文档。那一步要改证据层的数据模型，不在本次修复范围内。
+PUBLIC_DOC_ALLOW = (
+    "部署.md",
+    "新机器部署验收.md",
+    "开源引擎运行手册.md",
+    "交付测试报告.md",
+    "测试方案.md",
+    "本体与词典的关系.md",
+    "插件框架.md",
+)
+
+
 def build(corpus, db, full=False, exclude=("__pycache__", ".git", "node_modules")):
     """建库（默认增量：只重建 mtime/size 变了的文档）。返回统计 dict。"""
     os.makedirs(os.path.dirname(os.path.abspath(db)), exist_ok=True)
@@ -169,6 +193,11 @@ def build(corpus, db, full=False, exclude=("__pycache__", ".git", "node_modules"
         dn[:] = [d for d in dn if not any(x in d for x in exclude) and not d.startswith(".")]
         for f in fn:
             if not f.endswith(".md"):
+                continue
+            # 2026-11-19 审计修：证据语料走白名单（见 PUBLIC_DOC_ALLOW）。
+            # docs/ 里绝大多数是开发者文档，黑名单挡不干净，实测两次把内部资料
+            # 推到了客户界面（错答案例、内部设计图）。只收明确对外的文档。
+            if f not in PUBLIC_DOC_ALLOW:
                 continue
             p = os.path.join(dp, f)
             try:

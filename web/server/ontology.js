@@ -936,6 +936,9 @@ export async function askOntology(question, kb, deepRecall = false) {
         // 2026-11-19 审计补：hit/reason/structured 是后端信封的核心字段，原来没透传，
         // 前端拿到 hit=undefined，判不出"命中/无据"，只能靠 no_basis 反推（两者不等价）。
         hit: d.hit, reason: d.reason || null, structured: d.structured || null,
+        // 2026-11-19 审计补（P2 能力闲置）：这两个字段后端一直在算、BFF 一直丢、前端一直没读。
+        // advisory = 模型建议（只建议不改答案）；evidence_trace = 证据链追溯。
+        advisory: d.advisory || null, evidence_trace: d.evidence_trace || null,
         evidence: d.evidence || null,
         evidence_cites: d.evidence_cites || null,   // 证据层：原文出处 [{path,line_from,line_to,doc_date,heading,snippet}]
         evidence_verdict: d.evidence_verdict || null, // 证据层四态判定 SUPPORTED/WEAK/NOT_FOUND
