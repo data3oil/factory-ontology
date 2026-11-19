@@ -1784,13 +1784,19 @@ def _enum_attr_values(q, data, D):
         # 目标类由属性名反推（product_id → 含 product 的实体），尾段必须带数字才算编号。
         stem = en_attr[:-3] if en_attr.endswith("_id") else en_attr
         targets = [v for v in emap.values() if stem.lower() in str(v).lower()]
+        # 编号前缀按属性名首字母推：product_id → P、raw_id → R、customer_id → C。
+        # 这套台账的实例编号就是这个约定；不符时退回"只认目标类名"，不硬猜。
+        prefix = stem[:1].upper() if stem else ""
         for _n, d in _inst_rows(data, emap[ent]):
             for vv in d.values():
-                if isinstance(vv, str) and vv.startswith("http") \
-                        and any(str(t).lower() in vv.lower() for t in targets):
-                    tailv = vv.rsplit("#", 1)[-1].split("_")[-1]
-                    if any(ch.isdigit() for ch in tailv) and tailv not in seen:
-                        seen.append(tailv)
+                if not (isinstance(vv, str) and vv.startswith("http")):
+                    continue
+                tailv = vv.rsplit("#", 1)[-1].split("_")[-1]
+                has_digit = any(ch.isdigit() for ch in tailv)
+                by_class = any(str(t).lower() in vv.lower() for t in targets)
+                by_prefix = bool(prefix) and tailv.startswith(prefix) and has_digit
+                if has_digit and (by_class or by_prefix) and tailv not in seen:
+                    seen.append(tailv)
     if not seen:
         return None
     return "%s有：%s" % (attr, "、".join(sorted(seen)[:30]))
@@ -1816,7 +1822,9 @@ def answer(q, data, D):
     cn2cn = D.get("attr_en2cn", {})
 
     # P1 查询规划：条件计数 / 属性枚举 / 实体记录数，必须在关系查询之前。
-    for _fn in (_cond_count, _enum_attr_values, _entity_count):
+    # 可用 FACTORY_QA_PLANNER=0 关闭，用于回归对比（关掉即回到改动前行为）。
+    for _fn in ((_cond_count, _enum_attr_values, _entity_count)
+                if os.environ.get("FACTORY_QA_PLANNER", "1") == "1" else ()):
         _r = _fn(q, data, D)
         if _r:
             return _r
