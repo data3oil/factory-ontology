@@ -3068,10 +3068,19 @@ def _set_active_kb(kb, nt_rel=None, lex_rel=None, source="build"):
     active_ontology.json 为准，BFF getCurrentKb 读同一文件，不再各存一份激活态）。
     """
     rec = {"kb": kb, "updated": datetime.now().isoformat(timespec="seconds"), "source": source}
+    # 2026-11-19 审计修：切库调用方（kb_active_set）不传 nt/lexicon，原实现就只写 kb，
+    # 于是持久态里出现「kb 是新的、nt 还是上一个库的」——/api/ask 用新库词典读旧库图，
+    # 不报错、只给错数字（实测 active_ontology.json: kb=seismic + nt=food_products.nt）。
+    # 改为：未显式给值时从注册表按 kb 补全，让三个字段永远同源。
+    _entry = KBS.get(kb) or {}
+    nt_rel = nt_rel or _entry.get("nt")
+    lex_rel = lex_rel or _entry.get("lexicon")
     if nt_rel:
         rec["nt"] = nt_rel
     if lex_rel:
         rec["lexicon"] = lex_rel
+    if _entry.get("table"):
+        rec["table"] = _entry["table"]
     try:
         sp, _err = _kb_ontology_schema(kb)
         if sp:

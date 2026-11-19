@@ -267,6 +267,16 @@ export function setCurrentKb(kb) {
   let st = {};
   try { if (existsSync(ACTIVE_FILE)) st = JSON.parse(readFileSync(ACTIVE_FILE, 'utf-8')) || {}; } catch (e) { st = {}; }
   st.kb = safe;
+  // 2026-11-19 审计修：原实现只改 kb，nt/lexicon 原样留着上一个库的值。
+  // 后果是持久态自相矛盾（实测 kb=seismic + nt=food_products.nt），后端 /api/ask
+  // 拿新库词典去读旧库的图，不报错、只给错数字。改为从注册表按 kb 补全三件套。
+  const entry = (loadKbs() || {})[safe] || {};
+  if (entry.nt) st.nt = entry.nt;
+  if (entry.lexicon) {
+    const lex = String(entry.lexicon);
+    st.lexicon = lex.startsWith('config/') ? lex : 'config/' + lex;
+  }
+  if (entry.table) st.table = entry.table;
   st.updated = new Date().toISOString();
   st.source = 'bff';
   try { writeFileSync(ACTIVE_FILE, JSON.stringify(st, null, 2), 'utf-8'); } catch (e) { /* 写失败忽略 */ }
@@ -923,6 +933,9 @@ export async function askOntology(question, kb, deepRecall = false) {
       const d = (r.data && r.data.answer != null) ? r.data : r;
       return {
         ok: true, answer: String(d.answer).trim(), mode: d.mode, kb: d.kb || kb,
+        // 2026-11-19 审计补：hit/reason/structured 是后端信封的核心字段，原来没透传，
+        // 前端拿到 hit=undefined，判不出"命中/无据"，只能靠 no_basis 反推（两者不等价）。
+        hit: d.hit, reason: d.reason || null, structured: d.structured || null,
         evidence: d.evidence || null,
         evidence_cites: d.evidence_cites || null,   // 证据层：原文出处 [{path,line_from,line_to,doc_date,heading,snippet}]
         evidence_verdict: d.evidence_verdict || null, // 证据层四态判定 SUPPORTED/WEAK/NOT_FOUND

@@ -992,6 +992,23 @@ def _inst_rows(data, prefix):
     return [(k, d) for k, d in data.items() if p in str(k).lower()]
 
 
+def _entity_label_in_q(q, D, data, fallback=""):
+    """问句里出现的实体类中文名 —— 用于把答案句补完整。
+
+    2026-11-19 审计：状态/取值过滤分支的模板是 "有 %d 台%s的"，结尾就断在"的"，
+    问 "有多少台运行中的设备" 答出 "有 5 台运行中的"，实体名丢了。前端直接展示，
+    读起来像半句话。这里按问句里实际出现的实体词补回，取不到时保持原样（不硬凑）。
+    """
+    try:
+        emap = _resolve_entity_map(D, data)
+    except Exception:
+        return fallback
+    for cn in sorted(emap or {}, key=len, reverse=True):
+        if cn and cn in q:
+            return cn
+    return fallback
+
+
 def _entity_subset(q, D, data):
     """实体消歧: 若问题含 entity_cn2en 的实体词(如"机组"), 返回该实体类的实例子集;
     否则返回全部。解决"运行中的机组"误匹配到设备(锅炉/发电机)而非机组。
@@ -2132,7 +2149,8 @@ def answer(q, data, D):
             _note_rows([(nm, d) for nm, d in _veq_sub.items()
                         if str(_field(d, _veq_col, aliases) or "").strip() == _veq_val],
                        "%s=%s" % (_veq_col, _veq_val))
-            return "有 %d %s%s的" % (_veq_n, _measure_for(q), _veq_val)
+            _ent_lbl = _entity_label_in_q(q, D, data)
+            return "有 %d %s%s的%s" % (_veq_n, _measure_for(q), _veq_val, _ent_lbl)
 
     st_en, st_cn = _find_enum(D, q, "status", data)
     # "合格"这类词可能同时是别的属性的值（原料的 qc_result），被 status 值表误收。
@@ -2142,7 +2160,8 @@ def answer(q, data, D):
     if st_en and _is_count_q(q) and (not _pre_attr or str(_pre_attr) == "status"):
         sub = _entity_subset(q, D, data)  # 实体消歧: 只在该实体类实例中过滤
         n = sum(1 for d in sub.values() if _status_matches(d, st_en, aliases, D))
-        return "有 %d %s%s的" % (n, _measure_for(q), st_cn)
+        _ent_lbl = _entity_label_in_q(q, D, data)
+        return "有 %d %s%s的%s" % (n, _measure_for(q), st_cn, _ent_lbl)
     # ── 2026-09-15 补：任意属性等值过滤计数 ──
     # "批次配料中原料编号为R007的有多少条" / "客户中信用等级为A的有多少条"
     # 旧版只实现了 status 枚举过滤（上一分支），普通属性（raw_id / credit_level / check_item）
@@ -2600,7 +2619,11 @@ def answer(q, data, D):
             return "符合条件共 %d 条" % _vc[0]
 
     # ---- 总数: 一共有多少条记录 ----
-    if ("一共" in q or "总共有" in q or "总共" in q) and ("记录" in q or "多少" in q):
+    # 2026-11-19 审计修：原条件是 (... ) and ("记录" in q or "多少" in q)，
+    # "多少"太宽 —— "空压机有多少台" 没有"一共/总共"，却被判成问全库总数，
+    # 答出"一共有 19 条记录"（19 是全库记录数，与空压机无关）。
+    # 这个分支只该答"全库有多少条记录"这类元查询，所以必须点到"记录/数据"。
+    if ("一共" in q or "总共有" in q or "总共" in q) and ("记录" in q or "数据" in q):
         # bug-A: out-of-KB 实体计数不得被静默答成全库总数。
         # 守卫复用 is_cross_domain_data_query/kb_vocab: 若该数据查询不含本KB任何领域词
         # (实体类/类型/状态/区域/属性), 说明问的是库外概念(如"多少个阀门") → 诚实提示, 不回全库条数。
@@ -2676,7 +2699,12 @@ def answer_envelope(q, data, D):
     else:
         err = ""
     if not ev:
-        return {"answer": text, "hit": False,
+        # 2026-11-19 审计修：原实现 hit=False 却把 text 原样放进 answer，
+        # 前端读到 answer 就展示"有 8 台运行中的"——无依据的数字照样出门，
+        # 直接违反"不可测不冒充"。现在 answer 换成无据话术，未验证原文只留 raw_answer
+        # （供排查/回放用，前端不展示），口径与 hit 一致。
+        return {"answer": "这条结论未能回溯到本体数据，暂不作为答案展示。",
+                "hit": False,
                 "reason": ("命中但无法回溯：答案未落在本体数据上" if not err
                            else "证据提取异常：%s" % err),
                 "evidence": [], "advisory": None, "raw_answer": text,

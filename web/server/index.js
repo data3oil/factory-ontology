@@ -17,8 +17,26 @@ const DIST_DIR = join(__dirname, '..', 'public');
 // ── 企业基座 SSO：一次性授权码 → 本系统身份 ──
 // 账号表不是一套：基座用户名经 server/sso_map.json 映射到本系统用户名，未配置按同名试。
 const SSO_MAP_FILE = join(__dirname, 'sso_map.json');
+// 一次性授权码的重复请求复用：浏览器对同一个 ?code= URL 会发起多次请求
+// （iframe 重载、刷新、预检），而基座那边的码是真一次性的，第二次必然 401
+// "授权码已使用"，登录就失败了。按 code 做 5 分钟幂等：同一码的重复请求
+// 复用第一次的结果，不降低安全性（码在基座侧仍然只用一次）。
+const _ssoCache = new Map();
+
 async function ssoFromBase(code) {
   if (!code) return { ok: false, error: 'no code' };
+  const hit = _ssoCache.get(code);
+  if (hit && Date.now() - hit.at < 300000) return hit.result;
+  const result = await _ssoExchange(code);
+  _ssoCache.set(code, { at: Date.now(), result });
+  if (_ssoCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of _ssoCache) if (now - v.at > 300000) _ssoCache.delete(k);
+  }
+  return result;
+}
+
+async function _ssoExchange(code) {
   const base = process.env.BASE_IDP || 'http://127.0.0.1:8790';
   const clientId = process.env.BASE_CLIENT_ID || 'ontology';
   try {
@@ -926,8 +944,10 @@ function ontologyFresh(dir, kb) {
     const user = req.user;
     const all = listKbs();
     const userKb = (user && user.kb) || '';
-    // 只保留当前用户的企业 kb
-    const kbs = (Array.isArray(all.kbs) ? all.kbs : []).filter(k => !userKb || k.key === userKb);
+    // 只保留当前用户的企业 kb —— 管理员例外（要能看全量并切换，否则界面上只有一个库，
+    // 2026-11-19 审计实测：admin 绑 seismic 时 kbs 列表只剩 1 条，无法切库）。
+    const kbs = (Array.isArray(all.kbs) ? all.kbs : [])
+      .filter(k => isAdmin(user) || !userKb || k.key === userKb);
     res.writeHead(200, { 'Content-Type': 'application/json;charset=utf-8' });
     res.end(JSON.stringify({ ok: true, kbs, current: userKb || all.current }));
     return;
@@ -940,6 +960,14 @@ function ontologyFresh(dir, kb) {
       if (!kb) {
         res.writeHead(400, { 'Content-Type': 'application/json;charset=utf-8' });
         res.end(JSON.stringify({ ok: false, error: 'kb 必填' }));
+        return;
+      }
+      // 2026-11-19 审计修：原来只判非空就写持久态，切到不存在的库也返回成功。
+      // 后端 /api/kb/active 是校验存在性的，BFF 这条路径没有 —— 补上，口径对齐。
+      const known = (listKbs().kbs || []).some(k => k.key === kb);
+      if (!known) {
+        res.writeHead(400, { 'Content-Type': 'application/json;charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: '未知知识库: ' + kb }));
         return;
       }
       setCurrentKb(kb);
