@@ -175,7 +175,12 @@ PUBLIC_DOC_ALLOW = (
 )
 
 
-def build(corpus, db, full=False, exclude=("__pycache__", ".git", "node_modules")):
+def build(corpus, db, full=False, exclude=("__pycache__", ".git", "node_modules"), only=None):
+    """建库（默认增量）。only=None 收全部 .md；传集合则只收其中的文件名。
+
+    only 由命令行默认设为 PUBLIC_DOC_ALLOW（生产环境的证据源白名单），
+    直接调 build() 的调用方（单测、临时语料）不受白名单影响。
+    """
     """建库（默认增量：只重建 mtime/size 变了的文档）。返回统计 dict。"""
     os.makedirs(os.path.dirname(os.path.abspath(db)), exist_ok=True)
     t0 = time.time()
@@ -196,8 +201,8 @@ def build(corpus, db, full=False, exclude=("__pycache__", ".git", "node_modules"
                 continue
             # 2026-11-19 审计修：证据语料走白名单（见 PUBLIC_DOC_ALLOW）。
             # docs/ 里绝大多数是开发者文档，黑名单挡不干净，实测两次把内部资料
-            # 推到了客户界面（错答案例、内部设计图）。只收明确对外的文档。
-            if f not in PUBLIC_DOC_ALLOW:
+            # 推到了客户界面（错答案例、内部设计图）。only 由 CLI 默认传入。
+            if only is not None and f not in only:
                 continue
             p = os.path.join(dp, f)
             try:
@@ -261,8 +266,11 @@ if __name__ == "__main__":
     ap.add_argument("--corpus", default=os.environ.get("EVIDENCE_KB_CORPUS", ""))
     ap.add_argument("--db", default=os.environ.get("EVIDENCE_KB_DB", ""))
     ap.add_argument("--full", action="store_true")
+    ap.add_argument("--all-docs", action="store_true",
+                    help="收 corpus 下全部 .md（默认只收 PUBLIC_DOC_ALLOW 里的对外文档）")
     a = ap.parse_args()
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     corpus = a.corpus or os.path.join(os.path.dirname(root), "docs")
     db = a.db or os.path.join(root, "data", "evidence", "kb.db")
-    print(json.dumps(build(corpus, db, a.full), ensure_ascii=False))
+    only = None if a.all_docs else PUBLIC_DOC_ALLOW
+    print(json.dumps(build(corpus, db, a.full, only=only), ensure_ascii=False))
