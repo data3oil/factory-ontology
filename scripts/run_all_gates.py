@@ -22,6 +22,7 @@ GATES = [
     ("实例名直查回归", ["scripts/verify_instance_name.py"]),
     ("模型建议层", ["scripts/verify_advisory.py"]),
     ("本体自演进（人在环）", ["scripts/verify_ontology_evolve.py"]),
+    ("演进确认只认待确认区", ["scripts/verify_evolve_pending.py"]),
     ("本体 IRI 完整性（悬空/域值域/ASCII）", ["scripts/verify_iri_integrity.py"]),
     ("本体建模坑 lint（OOPS!）", ["scripts/verify_oops.py"]),
     ("SHACL 实例校验", ["scripts/verify_shacl.py"]),

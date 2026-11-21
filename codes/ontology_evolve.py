@@ -328,13 +328,20 @@ def confirm(name, node=None, kb=None, aliases=None, actor="human"):
     lex = _lexicon(kb)
     if not lex:
         return False, "词典不存在或不可读: %s" % _lexicon_path(kb)
+    st = _state(kb)
+    # 人在环的底线：只允许确认**确实在待确认区**里的候选。
+    # 2026-11-22 审查：原来只判 name 非空，随便一个名字都会照并词典 + 版本 +1 + 写快照，
+    # 「人拍板」退化成「随便加词」（实测能把 __probe_nonexistent__ 写进 lexicon）。
+    _pending_names = {str(c.get("name") or "").strip()
+                      for c in (st.get(_PENDING) or []) if isinstance(c, dict)}
+    if name.strip() not in _pending_names:
+        return False, "候选不存在或已处理: %s" % name
     sm = lex.setdefault("synonym_map", {})
     key = node or name
     exist = sm.get(key) or []
     if name in exist or key == name and exist:
         return False, "%s 已在词典里了" % name
 
-    st = _state(kb)
     ver = int(st.get(_VERSION_KEY) or 1)
     _snap(kb, ver, lex)                                  # 变更前存快照
     sm[key] = sorted(set(list(exist) + [name] + list(aliases or [])))

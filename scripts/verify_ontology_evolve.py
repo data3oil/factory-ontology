@@ -202,7 +202,13 @@ def main():
         if isinstance(h0, dict):
             ver0 = h0.get('version')
 
-        # 3) 人拍板
+        # 3) 人拍板（真实流程：suggest 写待确认区 → 人 confirm；先把候选放进 pending）
+        if CODES not in sys.path:
+            sys.path.insert(0, CODES)
+        import ontology_evolve as _ev
+        _st = _ev._state(kb)
+        _st[_ev._PENDING] = list(_st.get(_ev._PENDING) or []) + [{"name": "__oe_gate_check__"}]
+        _ev._save_state(kb, _st)
         section('人拍板 confirm')
         st, conf = http('POST', '/api/ontology/evolve/confirm', headers=HP,
                         body={'name': '__oe_gate_check__', 'cls': cls})

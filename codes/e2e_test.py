@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""e2e_test.py — factory-ontology v0.6.1 端到端测试
+"""e2e_test.py — factory-ontology v0.6.2 端到端测试
 
 覆盖: 问答(规则/逻辑/引导) + 溯源(正/反/扫码) + 导出 + 管理(上传/统计/词典/审计) + 多源 + 多租户 + 一致性
 用法: python e2e_test.py  (退出码 0=全过, 1=有失败)
@@ -121,11 +121,21 @@ def main():
     r = subprocess.run([sys.executable, "benchmark_logical.py"], capture_output=True, text=True, timeout=180)
     ck("逻辑桥评测 100%", "100%" in r.stdout and "5/5" in r.stdout)
 
-    print("══ 六、一致性 ══")
+    print("══ 六、本轮修复回归 ══")
+    # 实例名直查：问句没有类名词时，不许落进"取值过滤计数"兜底
+    r = c.post("/api/ask", json={"question": "塔里木三维区块B的炮点数是多少", "kb": "seismic"}, headers=_HEADERS)
+    _ans = str((r.json() or {}).get("answer") or "")
+    ck("实例名直查不落计数兜底", r.status_code == 200 and "12000" in _ans and "符合条件共" not in _ans, _ans[:40])
+    # 人在环：不在待确认区的名字必须被拒
+    r = c.post("/api/ontology/evolve/confirm", json={"name": "__e2e_not_pending__"}, headers=_HEADERS)
+    _ok = (r.json() or {}).get("ok") if r.status_code == 200 else None
+    ck("演进拒绝非待确认候选", r.status_code == 200 and _ok is False, str(r.json())[:60])
+
+    print("══ 七、一致性 ══")
     r = subprocess.run([sys.executable, "-m", "pytest", "tests/", "-q"], capture_output=True, text=True, timeout=120)
     ck("pytest 全过", r.returncode == 0 and "passed" in r.stdout, r.stdout[-80:])
     import run
-    ck("版本 0.6.1", run.__version__ == "0.6.1")
+    ck("版本 0.6.2", run.__version__ == "0.6.2")
 
     print(f"\n══ E2E 结果: {TOTAL - FAILED}/{TOTAL} 通过 ══")
     return 1 if FAILED else 0
