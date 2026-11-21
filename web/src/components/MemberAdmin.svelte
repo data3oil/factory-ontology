@@ -134,29 +134,29 @@
   }
   .title {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--fs-15);
     font-weight: 600;
     color: var(--txt);
   }
   .hint {
     margin: 0;
-    font-size: 12px;
+    font-size: var(--fs-12);
     color: var(--txt-sub);
   }
   .error {
     margin: 0;
-    font-size: 12px;
-    color: var(--danger, #c0392b);
+    font-size: var(--fs-12);
+    color: var(--danger, var(--danger-fg));
   }
   .empty {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--txt-sub);
   }
   .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: var(--fs-13);
   }
   .table th {
     text-align: left;
@@ -184,7 +184,7 @@
     display: inline-block;
     padding: 1px 8px;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: var(--fs-12);
     background: var(--bg-hover);
     color: var(--txt-sub);
   }
@@ -193,12 +193,12 @@
     color: var(--brand);
   }
   .self {
-    font-size: 12px;
+    font-size: var(--fs-12);
     color: var(--txt-sub);
   }
   .btn {
     padding: 4px 10px;
-    font-size: 12px;
+    font-size: var(--fs-12);
     border: 1px solid var(--border, var(--bg-hover));
     border-radius: 6px;
     background: var(--bg-hover);
@@ -223,7 +223,7 @@
     flex: 1;
     min-width: 0;
     padding: 6px 8px;
-    font-size: 13px;
+    font-size: var(--fs-13);
     border: 1px solid var(--border, var(--bg-hover));
     border-radius: 6px;
     background: var(--bg);

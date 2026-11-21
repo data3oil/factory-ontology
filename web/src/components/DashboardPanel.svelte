@@ -153,7 +153,7 @@
             <div class="bar-row">
               <span class="bar-label">{s.status}</span>
               <div class="bar-track">
-                <div class="bar-fill" style="width: {Math.round(s.count / maxStatus * 100)}%; background: {STATUS_COLOR[s.status] || '#94a3b8'};"></div>
+                <div class="bar-fill" style="width: {Math.round(s.count / maxStatus * 100)}%; background: {STATUS_COLOR[s.status] || 'var(--text-muted)'};"></div>
               </div>
               <span class="bar-val">{s.count}</span>
             </div>
@@ -234,16 +234,16 @@
   .dash { display: flex; flex-direction: column; gap: 12px; }
   .dash-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: 13px;
+    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: var(--fs-13);
   }
-  .dash-empty .empty-icon { font-size: 28px; line-height: 1; }
+  .dash-empty .empty-icon { font-size: var(--fs-28); line-height: 1; }
   .dash-empty .empty-text { color: var(--text-muted); }
 
   /* 骨架屏 */
   @keyframes shimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
   .skel {
     border-radius: 6px;
-    background: linear-gradient(90deg, #eef1f5 25%, #f7f9fc 40%, #eef1f5 55%);
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-subtle) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
   .skel-block { display: flex; flex-direction: column; gap: 12px; }
@@ -255,7 +255,7 @@
   .dash-retry {
     margin-left: 10px; background: var(--bg-card); color: var(--brand);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: background 150ms ease-out;
   }
   .dash-retry:hover { border-color: var(--brand-line); background: var(--bg-hover); }
@@ -264,9 +264,9 @@
   .alert-banner {
     display: flex; align-items: center; gap: 8px;
     background: var(--danger-bg); border: 1px solid var(--border); color: var(--danger-fg);
-    border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px;
+    border-radius: var(--radius-md); padding: 10px 14px; font-size: var(--fs-13);
   }
-  .alert-ico { font-size: 15px; }
+  .alert-ico { font-size: var(--fs-15); }
   .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .mini-card {
     position: relative; overflow: hidden;
@@ -277,10 +277,10 @@
   .mini-card.alert { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
   .mini-card.lead { padding: 20px 12px 16px; }
   .mini-card.lead .mc-accent { height: 4px; }
-  .mini-card.lead .mc-num { font-size: 30px; }
+  .mini-card.lead .mc-num { font-size: var(--fs-28); }
   .mc-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .mc-num { font-size: 24px; font-weight: 700; line-height: 1.1; font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
-  .mc-label { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .mc-num { font-size: var(--fs-24); font-weight: 700; line-height: 1.1; font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .mc-label { font-size: var(--fs-11); color: var(--text-secondary); margin-top: 4px; }
 
   /* Charts */
   .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -288,32 +288,32 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 14px; box-shadow: var(--shadow-card);
   }
-  .chart-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
+  .chart-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
 
   .bars { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: flex; align-items: center; gap: 8px; }
-  .bar-label { width: 70px; font-size: 12px; color: var(--text-primary); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-label { width: 70px; font-size: var(--fs-12); color: var(--text-primary); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-track { flex: 1; height: 16px; background: var(--border); border-radius: var(--radius-sm); overflow: hidden; }
   .bar-fill { height: 100%; border-radius: var(--radius-sm); transition: width 150ms ease-out; min-width: 2px; }
-  .bar-val { width: 30px; font-size: 12px; font-weight: 600; color: var(--text-secondary); font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .bar-val { width: 30px; font-size: var(--fs-12); font-weight: 600; color: var(--text-secondary); font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
 
   /* Line table */
   .line-card { padding: 14px; }
   .line-table { width: 100%; border-collapse: collapse; }
   .line-table thead th {
     position: sticky; top: 0; z-index: 1;
-    padding: 8px 10px; font-size: 12px; font-weight: 600; text-align: left;
+    padding: 8px 10px; font-size: var(--fs-12); font-weight: 600; text-align: left;
     color: var(--text-secondary); background: var(--bg-elevated);
     border-bottom: 1px solid var(--border);
   }
   .line-table tbody td {
-    padding: 0 10px; font-size: 13px; text-align: left; color: var(--text-primary);
+    padding: 0 10px; font-size: var(--fs-13); text-align: left; color: var(--text-primary);
     border-bottom: 1px solid var(--border);
     height: 40px; transition: background 150ms ease-out;
   }
   .line-table tbody tr:last-child td { border-bottom: none; }
   .line-table tbody tr:hover td { background: var(--bg-hover); }
-  .id-col { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: var(--text-secondary); }
+  .id-col { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--fs-13); color: var(--text-secondary); }
   .num-col { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
   .col-num { text-align: right; }
 
@@ -328,29 +328,29 @@
     border-radius: var(--radius-md); padding: 12px 14px;
   }
   .ctx-q-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-  .ctx-q-sub { color: var(--text-muted); font-size: 12px; }
+  .ctx-q-sub { color: var(--text-muted); font-size: var(--fs-12); }
   .ctx-q-row { display: flex; gap: 8px; }
   .ctx-q-in {
     flex: 1; padding: 6px 10px; border: 1px solid var(--border);
-    border-radius: var(--radius-sm); font-size: 12px; background: var(--bg-input, #fff);
+    border-radius: var(--radius-sm); font-size: var(--fs-12); background: var(--bg-card);
   }
   .ctx-q-btn {
     padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--accent-bg, #e6f6f3); color: var(--accent-fg, #0d9488);
-    font-size: 12px; cursor: pointer;
+    background: var(--brand-soft); color: var(--brand);
+    font-size: var(--fs-12); cursor: pointer;
   }
   .ctx-q-btn:disabled { opacity: .6; cursor: default; }
-  .ctx-q-err { color: var(--danger-fg); font-size: 12px; margin-top: 6px; }
+  .ctx-q-err { color: var(--danger-fg); font-size: var(--fs-12); margin-top: 6px; }
   .ctx-q-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
   .ctx-badge {
-    display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px;
-    background: #fdf3e6; color: #b45309;
+    display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: var(--fs-11);
+    background: var(--warning-bg); color: var(--warning-fg);
   }
-  .ctx-badge.ok { background: #e6f6f3; color: #0d9488; }
+  .ctx-badge.ok { background: var(--brand-soft); color: var(--brand); }
   .ctx-q-item {
     display: flex; gap: 8px; padding: 5px 0; margin-top: 4px;
-    border-top: 1px dashed var(--border); font-size: 12px;
+    border-top: 1px dashed var(--border); font-size: var(--fs-12);
   }
-  .ctx-q-kind { flex: 0 0 64px; color: #0d9488; font-size: 11px; }
+  .ctx-q-kind { flex: 0 0 64px; color: var(--brand); font-size: var(--fs-11); }
   .ctx-q-text { flex: 1; color: var(--text-primary); word-break: break-all; }
 </style>

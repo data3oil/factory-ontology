@@ -132,8 +132,8 @@
               <tr>
                 <td class="mono">{l.line}</td><td>{l.name}</td><td>{l.area}</td><td>{l.supervisor}</td>
                 <td class="mono">{l.device_count}</td>
-                <td class="mono" style="color:#10b981">{l.running}</td>
-                <td class="mono" style="color:{l.alarm>0?'#ef4444':'#94a3b8'}">{l.alarm}</td>
+                <td class="mono" style="color:var(--success)">{l.running}</td>
+                <td class="mono" style="color:{l.alarm>0?'var(--danger)':'var(--text-muted)'}">{l.alarm}</td>
                 <td class="mono">{l.total_power_kw}</td>
               </tr>
             {/each}
@@ -155,7 +155,7 @@
                 <td>{t.metric}</td>
                 <td class="mono">{t.start}</td>
                 <td class="mono">{t.end}</td>
-                <td class="mono" style="color:{t.change>0?'#ef4444':'#10b981'}">{t.change_pct > 0 ? '+' : ''}{t.change_pct}%</td>
+                <td class="mono" style="color:{t.change>0?'var(--danger)':'var(--success)'}">{t.change_pct > 0 ? '+' : ''}{t.change_pct}%</td>
                 <td>
                   <span class="trend-badge" style="background:{trendColor(t.direction)}18;color:{trendColor(t.direction)};border-color:{trendColor(t.direction)}40;">
                     {t.direction === '上升' ? '↗' : t.direction === '下降' ? '↘' : '→'} {t.direction}
@@ -205,53 +205,53 @@
 <style>
   .analysis { display: flex; flex-direction: column; gap: 12px; }
   .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .mini-card { position:relative; overflow:hidden; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:16px 12px 12px; text-align:center; box-shadow:0 1px 2px rgba(15,23,42,.05); }
-  .mini-card.alert { border-color:#ef4444; box-shadow:0 0 0 1px #ef4444; }
+  .mini-card { position:relative; overflow:hidden; background:#fff; border:1px solid var(--border); border-radius:6px; padding:16px 12px 12px; text-align:center; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  .mini-card.alert { border-color:var(--danger); box-shadow:0 0 0 1px var(--danger); }
   .mc-accent { position:absolute; top:0; left:0; right:0; height:3px; }
-  .mc-num { font-size:24px; font-weight:700; line-height:1.1; font-family:monospace; }
-  .mc-label { font-size:11px; color:#64748b; margin-top:4px; }
+  .mc-num { font-size:var(--fs-24); font-weight:700; line-height:1.1; font-family:monospace; }
+  .mc-label { font-size:var(--fs-11); color:var(--text-secondary); margin-top:4px; }
 
   .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .chart-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:14px; }
-  .chart-title { font-size:12px; font-weight:700; color:#1e293b; margin-bottom:10px; }
+  .chart-card { background:var(--bg-page); border:1px solid var(--border); border-radius:4px; padding:14px; }
+  .chart-title { font-size:var(--fs-12); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
 
   /* 环形 */
   .donut-wrap { display:flex; align-items:center; gap:14px; }
   .donut { width:120px; height:120px; flex-shrink:0; }
-  .donut-legend { display:flex; flex-direction:column; gap:4px; font-size:11px; color:#475569; }
+  .donut-legend { display:flex; flex-direction:column; gap:4px; font-size:var(--fs-11); color:var(--text-secondary); }
   .lg { display:flex; align-items:center; gap:6px; }
   .lg-dot { width:8px; height:8px; border-radius:2px; }
-  .lg b { margin-left:auto; color:#1e293b; }
+  .lg b { margin-left:auto; color:var(--text-primary); }
 
   /* 柱状 */
   .bars { display:flex; flex-direction:column; gap:7px; }
   .bar-row { display:flex; align-items:center; gap:8px; }
-  .bar-label { width:62px; font-size:11px; color:#475569; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .bar-track { flex:1; height:14px; background:#e2e8f0; border-radius:3px; overflow:hidden; }
+  .bar-label { width:62px; font-size:var(--fs-11); color:var(--text-secondary); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar-track { flex:1; height:14px; background:var(--border); border-radius:3px; overflow:hidden; }
   .bar-fill { height:100%; border-radius:3px; transition:width .5s; min-width:2px; }
-  .bar-val { width:24px; font-size:11px; font-weight:600; color:#475569; font-family:monospace; }
+  .bar-val { width:24px; font-size:var(--fs-11); font-weight:600; color:var(--text-secondary); font-family:monospace; }
 
   /* 产线表 */
   .line-table { width:100%; border-collapse:collapse; }
-  .line-table th,.line-table td { padding:5px 8px; font-size:11px; text-align:left; border-bottom:1px solid #e2e8f0; }
-  .line-table th { color: #64748b; font-weight: 600; background: #f1f5f9; }
+  .line-table th,.line-table td { padding:5px 8px; font-size:var(--fs-11); text-align:left; border-bottom:1px solid var(--border); }
+  .line-table th { color: var(--text-secondary); font-weight: 600; background: var(--bg-elevated); }
   .mono { font-family: monospace; }
   .trend-badge {
-    display: inline-block; font-size: 11px; font-weight: 600;
+    display: inline-block; font-size: var(--fs-11); font-weight: 600;
     padding: 2px 8px; border-radius: 10px; border: 1px solid;
   }
 
   /* 报告 */
-  .report { background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:14px; }
-  .report-title { font-size:13px; font-weight:700; color:#1e293b; margin-bottom:10px; }
-  .report-body { font-size:12px; color:#334155; line-height:1.7; }
-  .r-h1 { font-size:15px; color:#1e293b; margin:14px 0 6px; border-bottom:1px solid #e2e8f0; padding-bottom:4px; }
-  .r-h2 { font-size:13px; color:var(--brand); margin:10px 0 4px; }
-  .r-h3 { font-size:12px; color:#475569; margin:8px 0 3px; }
+  .report { background:#fff; border:1px solid var(--border); border-radius:4px; padding:14px; }
+  .report-title { font-size:var(--fs-13); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+  .report-body { font-size:var(--fs-12); color:var(--text-primary); line-height:1.7; }
+  .r-h1 { font-size:var(--fs-15); color:var(--text-primary); margin:14px 0 6px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+  .r-h2 { font-size:var(--fs-13); color:var(--brand); margin:10px 0 4px; }
+  .r-h3 { font-size:var(--fs-12); color:var(--text-secondary); margin:8px 0 3px; }
   .r-p { margin:5px 0; }
   .r-table { border-collapse:collapse; margin:6px 0; width:100%; }
-  .r-table th,.r-table td { border:1px solid #e2e8f0; padding:4px 8px; font-size:11px; text-align:left; }
-  .r-table th { background:#f8fafc; font-weight:600; }
+  .r-table th,.r-table td { border:1px solid var(--border); padding:4px 8px; font-size:var(--fs-11); text-align:left; }
+  .r-table th { background:var(--bg-page); font-weight:600; }
 
   @media(max-width:720px){ .chart-grid{grid-template-columns:1fr;} .kpi-row{grid-template-columns:repeat(2,1fr);} }
 </style>

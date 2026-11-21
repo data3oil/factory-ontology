@@ -352,23 +352,23 @@
   .kp { display: flex; flex-direction: column; gap: 12px; }
 
   .kp-notice {
-    padding: 8px 12px; font-size: 12px; border-radius: 4px;
+    padding: 8px 12px; font-size: var(--fs-12); border-radius: 4px;
     border: 1px solid transparent;
   }
-  .kp-notice.ok { color: #166534; background: #ecfdf5; border-color: #a7f3d0; }
-  .kp-notice.err { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+  .kp-notice.ok { color: var(--success-fg); background: var(--success-bg); border-color: var(--success-line); }
+  .kp-notice.err { color: var(--danger-fg); background: var(--danger-bg); border-color: var(--danger-line); }
 
   .kb-bar { display: flex; align-items: center; gap: 8px; }
-  .kb-label { font-size: 12px; font-weight: 700; color: #1e293b; }
+  .kb-label { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); }
   .kb-tag {
     display: inline-flex; align-items: center;
-    padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--brand);
+    padding: 4px 12px; font-size: var(--fs-12); font-weight: 600; color: var(--brand);
     background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px;
   }
   .kb-input {
     flex: 1; max-width: 280px;
-    padding: 6px 10px; font-size: 13px; color: #1e293b;
-    background: #fff; border: 1px solid #cbd5e1; border-radius: 4px;
+    padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
+    background: #fff; border: 1px solid var(--border-strong); border-radius: 4px;
     outline: none; transition: border-color 0.15s;
   }
   .kb-input:focus { border-color: var(--brand); }
@@ -376,62 +376,62 @@
     display: flex; align-items: center; gap: 5px;
     background: var(--brand); color: #fff;
     border: 1px solid var(--brand); border-radius: 4px;
-    padding: 6px 14px; font-size: 12px; cursor: pointer;
+    padding: 6px 14px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
   }
   .kb-load:hover:not(:disabled) { background: var(--brand-dark); }
-  .btn-icon { font-size: 12px; }
+  .btn-icon { font-size: var(--fs-12); }
 
   /* 上传区 */
   .upload-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .file-pick {
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 6px 12px; font-size: 12px; color: #334155;
-    background: #fff; border: 1px dashed #94a3b8; border-radius: 4px;
+    padding: 6px 12px; font-size: var(--fs-12); color: var(--text-primary);
+    background: #fff; border: 1px dashed var(--text-muted); border-radius: 4px;
     cursor: pointer; transition: all 0.15s;
   }
-  .file-pick:hover { border-color: var(--brand); color: var(--brand); background: #f8fafc; }
-  .file-name { font-size: 12px; color: #475569; }
+  .file-pick:hover { border-color: var(--brand); color: var(--brand); background: var(--bg-page); }
+  .file-name { font-size: var(--fs-12); color: var(--text-secondary); }
   .btn-upload {
-    padding: 6px 14px; font-size: 12px; cursor: pointer;
-    color: #166534; background: #ecfdf5;
-    border: 1px solid #10b981; border-radius: 4px; transition: all 0.15s;
+    padding: 6px 14px; font-size: var(--fs-12); cursor: pointer;
+    color: var(--success-fg); background: var(--success-bg);
+    border: 1px solid var(--success); border-radius: 4px; transition: all 0.15s;
   }
-  .btn-upload:hover:not(:disabled) { background: #d1fae5; }
+  .btn-upload:hover:not(:disabled) { background: var(--success-line); }
   .btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-clear {
-    padding: 6px 10px; font-size: 12px; cursor: pointer;
-    color: #64748b; background: #fff;
-    border: 1px solid #cbd5e1; border-radius: 4px; transition: all 0.15s;
+    padding: 6px 10px; font-size: var(--fs-12); cursor: pointer;
+    color: var(--text-secondary); background: #fff;
+    border: 1px solid var(--border-strong); border-radius: 4px; transition: all 0.15s;
   }
-  .btn-clear:hover { border-color: #94a3b8; }
+  .btn-clear:hover { border-color: var(--text-muted); }
 
   .dash-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: 13px;
+    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: var(--fs-13);
   }
-  .dash-empty .empty-icon { font-size: 28px; line-height: 1; }
+  .dash-empty .empty-icon { font-size: var(--fs-28); line-height: 1; }
   .dash-empty .empty-text { color: var(--text-muted); }
 
   /* 骨架屏 */
   @keyframes shimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
   .skel {
     border-radius: 6px;
-    background: linear-gradient(90deg, #eef1f5 25%, #f7f9fc 40%, #eef1f5 55%);
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-subtle) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
   .skel-block { display: flex; flex-direction: column; gap: 12px; }
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-line-md { height: 14px; width: 70%; }
-  .dash-nodata { color: #64748b; }
-  .dash-err { color: #dc2626; }
+  .dash-nodata { color: var(--text-secondary); }
+  .dash-err { color: var(--danger); }
   .dash-retry {
     margin-left: 10px; background: #fff; color: var(--brand);
-    border: 1px solid #cbd5e1; border-radius: 4px;
-    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
   }
-  .dash-retry:hover { border-color: var(--brand); background: #f8fafc; }
+  .dash-retry:hover { border-color: var(--brand); background: var(--bg-page); }
 
   .doc-table-wrap {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
@@ -440,27 +440,27 @@
   .doc-table { width: 100%; border-collapse: collapse; }
   .doc-table thead th {
     position: sticky; top: 0; z-index: 1;
-    padding: 8px 10px; font-size: 12px; font-weight: 600; text-align: left;
+    padding: 8px 10px; font-size: var(--fs-12); font-weight: 600; text-align: left;
     color: var(--text-secondary); background: var(--bg-elevated);
     border-bottom: 1px solid var(--border);
   }
   .doc-table tbody td {
-    padding: 0 10px; font-size: 13px; text-align: left; color: var(--text-primary);
+    padding: 0 10px; font-size: var(--fs-13); text-align: left; color: var(--text-primary);
     border-bottom: 1px solid var(--border);
     height: 40px; transition: background 150ms ease-out;
   }
   .doc-table tbody tr:last-child td { border-bottom: none; }
   .doc-table tbody tr:hover td { background: var(--bg-hover); }
-  .id-col { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: var(--text-secondary); }
+  .id-col { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--fs-13); color: var(--text-secondary); }
   .num-col { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
   .time-col { font-variant-numeric: tabular-nums; }
   .col-num { text-align: right; }
   .col-act { width: 130px; }
-  .doc-count { margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+  .doc-count { margin-top: 8px; font-size: var(--fs-11); color: var(--text-muted); }
 
   .row-actions { display: flex; gap: 6px; }
   .btn-view {
-    padding: 3px 10px; font-size: 12px; cursor: pointer;
+    padding: 3px 10px; font-size: var(--fs-12); cursor: pointer;
     color: var(--brand-dark); background: var(--brand-soft);
     border: 1px solid var(--brand-line); border-radius: var(--radius-sm);
     transition: background 150ms ease-out;
@@ -468,7 +468,7 @@
   .btn-view:hover:not(:disabled) { background: var(--bg-selected); }
   .btn-view:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-del {
-    padding: 3px 10px; font-size: 12px; cursor: pointer;
+    padding: 3px 10px; font-size: var(--fs-12); cursor: pointer;
     color: var(--danger-fg); background: var(--danger-bg);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
     transition: background 150ms ease-out;
@@ -481,17 +481,17 @@
   .chunk-item {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px;
   }
-  .chunk-head { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .chunk-head { font-size: var(--fs-11); font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
   .chunk-score { font-weight: 400; color: var(--text-muted); margin-left: 8px; }
   .chunk-text {
     margin: 0; white-space: pre-wrap; word-break: break-word;
-    font-family: inherit; font-size: 12px; line-height: 1.6; color: var(--text-primary);
+    font-family: inherit; font-size: var(--fs-12); line-height: 1.6; color: var(--text-primary);
   }
   /* 批量删除(表格上方) */
-  .batch-del-bar { display: none; align-items: center; gap: 8px; margin: 0 0 8px; padding: 6px 10px; background: var(--bg-hover, #f8fafc); border: 1px solid var(--border, #e5e8ec); border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .batch-del-bar { display: none; align-items: center; gap: 8px; margin: 0 0 8px; padding: 6px 10px; background: var(--bg-hover, var(--bg-page)); border: 1px solid var(--border, var(--border)); border-radius: 6px; font-size: var(--fs-12); font-weight: 600; }
   .batch-del-bar.show { display: flex; }
-  .batch-del-bar .btn-del { padding: 3px 10px; font-size: 12px; border: none; border-radius: 4px; background: var(--danger, #dc2626); color: #fff; cursor: pointer; }
-  .batch-del-bar .btn-del:hover:not(:disabled) { background: var(--danger-dark, #b91c1c); }  /* hover保持红色加深, 不被bg-hover覆盖 */
+  .batch-del-bar .btn-del { padding: 3px 10px; font-size: var(--fs-12); border: none; border-radius: 4px; background: var(--danger, var(--danger)); color: #fff; cursor: pointer; }
+  .batch-del-bar .btn-del:hover:not(:disabled) { background: var(--danger-fg); }  /* hover保持红色加深, 不被bg-hover覆盖 */
   .batch-del-bar .btn-del:disabled { opacity: .5; cursor: not-allowed; }
   .row-selected { background: var(--bg-selected, #eff4ff) !important; }
   .doc-table thead th:first-child, .doc-table tbody td:first-child { width: 32px; text-align: center; }

@@ -43,7 +43,7 @@
     align-items: center;
     height: 26px;
     padding: 0 10px;
-    font-size: 12px;
+    font-size: var(--fs-12);
     border-radius: 999px;
     white-space: nowrap;
     border: 1px solid var(--line);
@@ -58,5 +58,5 @@
     color: var(--brand);
     font-weight: 600;
   }
-  .desc { margin: 0; font-size: 12px; color: var(--txt-muted); }
+  .desc { margin: 0; font-size: var(--fs-12); color: var(--txt-muted); }
 </style>

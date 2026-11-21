@@ -46,16 +46,16 @@
 
 <style>
   .cites-wrap { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-card); padding: 10px 12px; }
-  .cites-head { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--txt); font-weight: 600; }
-  .cites-badge { font-size: 11.5px; font-weight: 500; padding: 1px 7px; border-radius: 10px; }
-  .cites-badge.ok { background: #eefaf4; color: #1a7f5a; border: 1px solid #cfe9dc; }
-  .cites-badge.warn { background: #fdf6ee; color: #a8722a; border: 1px solid #ecd9c2; }
+  .cites-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-13); color: var(--txt); font-weight: 600; }
+  .cites-badge { font-size: var(--fs-12); font-weight: 500; padding: 1px 7px; border-radius: 10px; }
+  .cites-badge.ok { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-line); }
+  .cites-badge.warn { background: var(--warning-bg); color: var(--warning-fg); border: 1px solid #ecd9c2; }
   .cites-badge.miss { background: var(--bg-elevated); color: var(--txt-sub); border: 1px solid var(--line); }
-  .cites-hint { margin-left: auto; font-size: 11.5px; font-weight: 400; color: var(--txt-sub); }
+  .cites-hint { margin-left: auto; font-size: var(--fs-12); font-weight: 400; color: var(--txt-sub); }
   .cites-row { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
-  .cites-line { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .cites-line { display: flex; align-items: center; gap: 8px; font-size: var(--fs-12); }
   .cites-path { color: var(--brand); font-weight: 600; }
   .cites-date { color: var(--txt-sub); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
-  .cites-title { margin-top: 3px; font-size: 12px; color: var(--txt); }
-  .cites-snip { margin-top: 3px; font-size: 12px; color: var(--txt-sub); line-height: 1.7; }
+  .cites-title { margin-top: 3px; font-size: var(--fs-12); color: var(--txt); }
+  .cites-snip { margin-top: 3px; font-size: var(--fs-12); color: var(--txt-sub); line-height: 1.7; }
 </style>

@@ -126,7 +126,7 @@
     background: var(--bg-card);
     border-right: 1px solid var(--line);
     box-shadow: var(--shadow-card);
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--txt);
   }
 
@@ -148,7 +148,7 @@
     border-left: 3px solid transparent;
     background: transparent;
     color: var(--txt-sub);
-    font-size: 13px;
+    font-size: var(--fs-13);
     text-align: left;
     cursor: pointer;
     transition: background 120ms ease, color 120ms ease;
@@ -165,7 +165,7 @@
   }
 
   .step { display: inline-flex; width: 18px; justify-content: center;
-    font-size: 12px; color: inherit; opacity: .65; }
+    font-size: var(--fs-12); color: inherit; opacity: .65; }
   .icon {
     width: 16px;
     text-align: center;
@@ -201,7 +201,7 @@
 
   .group-title {
     padding: 6px 12px 2px;
-    font-size: 11px;
+    font-size: var(--fs-11);
     color: var(--txt-muted);
     cursor: default;
     user-select: none;

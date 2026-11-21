@@ -92,17 +92,17 @@
 {/if}
 
 <style>
-  .empty { color: #6b7280; padding: 12px 0; }
+  .empty { color: var(--text-secondary); padding: 12px 0; }
   .summary { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; margin: 8px 0; }
   .hit { font-weight: 600; }
   .tier { font-size: 0.9em; }
-  .elapsed { color: #6b7280; font-size: 0.9em; }
+  .elapsed { color: var(--text-secondary); font-size: 0.9em; }
   table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-  th { color: #6b7280; font-weight: 500; }
-  tr.miss { background: #fff7ed; }
-  .ok { color: #10b981; }
-  .no { color: #f59e0b; }
-  .more, .agg { color: #6b7280; font-size: 0.85em; margin: 6px 0; }
-  .missline { color: #b45309; font-size: 0.85em; margin: 4px 0; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-secondary); font-weight: 500; }
+  tr.miss { background: var(--warning-bg); }
+  .ok { color: var(--success); }
+  .no { color: var(--warning); }
+  .more, .agg { color: var(--text-secondary); font-size: 0.85em; margin: 6px 0; }
+  .missline { color: var(--warning-fg); font-size: 0.85em; margin: 4px 0; }
 </style>

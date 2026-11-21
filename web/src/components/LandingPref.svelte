@@ -44,7 +44,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 13px;
+    font-size: var(--fs-13);
   }
 
   .label {
@@ -63,7 +63,7 @@
     border: 1px solid var(--line);
     background: #fff;
     color: var(--txt-sub);
-    font-size: 13px;
+    font-size: var(--fs-13);
     font-weight: 400;
     cursor: pointer;
     transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -82,6 +82,6 @@
 
   .hint {
     color: var(--txt-muted);
-    font-size: 12px;
+    font-size: var(--fs-12);
   }
 </style>

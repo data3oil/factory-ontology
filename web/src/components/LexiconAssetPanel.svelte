@@ -237,34 +237,34 @@
 <style>
   .lexasset { display: flex; flex-direction: column; gap: 12px; }
   .la-toolbar { display: flex; align-items: center; gap: 8px; }
-  .la-label { font-size: 12px; color: #334155; font-weight: 600; white-space: nowrap; }
+  .la-label { font-size: var(--fs-12); color: var(--text-primary); font-weight: 600; white-space: nowrap; }
   .la-tag {
-    display: inline-flex; align-items: center; padding: 4px 12px; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; padding: 4px 12px; font-size: var(--fs-12); font-weight: 600;
     color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px;
   }
   .la-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-  .la-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
-  .la-card-title { font-size: 13px; font-weight: 700; color: #0f172a; }
-  .la-desc { margin: 0; font-size: 12px; line-height: 1.7; color: #64748b; }
+  .la-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
+  .la-card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
+  .la-desc { margin: 0; font-size: var(--fs-12); line-height: 1.7; color: var(--text-secondary); }
   .la-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .la-btn {
-    padding: 6px 14px; font-size: 12px; font-weight: 600; color: #fff; background: var(--brand);
+    padding: 6px 14px; font-size: var(--fs-12); font-weight: 600; color: #fff; background: var(--brand);
     border: 1px solid var(--brand); border-radius: 8px; cursor: pointer;
   }
   .la-btn:disabled { opacity: .55; cursor: not-allowed; }
   .la-btn-ghost { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line); }
   .la-small { padding: 4px 10px; margin-left: auto; }
-  .la-file { font-size: 12px; max-width: 100%; }
-  .la-file-name { font-size: 12px; color: #334155; }
-  .la-select { padding: 5px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
-  .la-msg { padding: 8px 12px; font-size: 12px; color: #166534; background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 8px; }
-  .la-err { padding: 8px 12px; font-size: 12px; color: #991b1b; background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; }
-  .la-result { padding: 8px 12px; font-size: 12px; line-height: 1.7; color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }
-  .la-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .la-table th { text-align: left; padding: 6px 8px; color: #475569; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
-  .la-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
-  .la-words { color: #64748b; }
-  .la-empty { color: #94a3b8; text-align: center; padding: 12px 0; }
-  .la-hot { color: #b91c1c; font-weight: 700; }
+  .la-file { font-size: var(--fs-12); max-width: 100%; }
+  .la-file-name { font-size: var(--fs-12); color: var(--text-primary); }
+  .la-select { padding: 5px 8px; font-size: var(--fs-12); border: 1px solid var(--border-strong); border-radius: 6px; background: #fff; }
+  .la-msg { padding: 8px 12px; font-size: var(--fs-12); color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--success-line); border-radius: 8px; }
+  .la-err { padding: 8px 12px; font-size: var(--fs-12); color: var(--danger-fg); background: var(--danger-line); border: 1px solid var(--danger-line); border-radius: 8px; }
+  .la-result { padding: 8px 12px; font-size: var(--fs-12); line-height: 1.7; color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }
+  .la-table { width: 100%; border-collapse: collapse; font-size: var(--fs-12); }
+  .la-table th { text-align: left; padding: 6px 8px; color: var(--text-secondary); border-bottom: 1px solid var(--border); font-weight: 600; }
+  .la-table td { padding: 6px 8px; border-bottom: 1px solid var(--bg-elevated); color: var(--text-primary); }
+  .la-words { color: var(--text-secondary); }
+  .la-empty { color: var(--text-muted); text-align: center; padding: 12px 0; }
+  .la-hot { color: var(--danger-fg); font-weight: 700; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 </style>

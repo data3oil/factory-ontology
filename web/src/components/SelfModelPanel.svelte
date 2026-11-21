@@ -933,13 +933,13 @@
   .steps { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
   .step {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 14px; font-size: 12px; color: var(--text-secondary);
+    padding: 6px 14px; font-size: var(--fs-12); color: var(--text-secondary);
     background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px;
   }
   .step-no {
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px; border-radius: 50%;
-    font-size: 11px; font-weight: 700; color: #fff; background: var(--text-muted);
+    font-size: var(--fs-11); font-weight: 700; color: #fff; background: var(--text-muted);
   }
   .step-on { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line); }
   .step-on .step-no { background: var(--brand); }
@@ -955,24 +955,24 @@
   .card-confirm { border-color: var(--brand-line); background: var(--brand-soft); }
   .card-hier { border-color: var(--brand-line); }
   .card-done { border-color: var(--brand-line); }
-  .card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
-  .title-sub { margin-left: 8px; font-size: 11px; font-weight: 500; color: var(--text-muted); }
-  .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+  .card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+  .title-sub { margin-left: 8px; font-size: var(--fs-11); font-weight: 500; color: var(--text-muted); }
+  .card-desc { font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.7; }
 
   /* ── 表单 ── */
   .form-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .form-label { width: 88px; font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+  .form-label { width: 88px; font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); white-space: nowrap; }
   .input {
-    flex: 0 0 260px; padding: 6px 10px; font-size: 13px; color: var(--text-primary);
+    flex: 0 0 260px; padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
     border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff;
   }
   .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
-  .form-hint { font-size: 11px; color: var(--text-muted); }
+  .form-hint { font-size: var(--fs-11); color: var(--text-muted); }
 
   /* ── 按钮 ── */
   .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .btn {
-    padding: 6px 16px; font-size: 13px; color: var(--text-primary);
+    padding: 6px 16px; font-size: var(--fs-13); color: var(--text-primary);
     background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
     cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out;
   }
@@ -982,74 +982,74 @@
   .btn-primary:hover:not(:disabled) { background: var(--brand-dark); border-color: var(--brand-dark); }
   .btn-primary:disabled { background: var(--brand-line); border-color: var(--brand-line); color: #fff; }
   .btn-mini {
-    padding: 3px 10px; font-size: 12px; color: var(--brand); background: var(--brand-soft);
+    padding: 3px 10px; font-size: var(--fs-12); color: var(--brand); background: var(--brand-soft);
     border: 1px solid var(--brand-line); border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap;
   }
   .btn-mini:hover { background: #fff; }
-  .busy-hint { font-size: 12px; color: var(--text-muted); }
+  .busy-hint { font-size: var(--fs-12); color: var(--text-muted); }
 
   /* ── 提示 ── */
-  .msg { font-size: 12px; padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); line-height: 1.6; }
+  .msg { font-size: var(--fs-12); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); line-height: 1.6; }
   .msg-err { color: var(--danger-fg); background: var(--danger-bg); }
   .msg-ok { color: var(--success-fg); background: var(--success-bg); }
-  .note { font-size: 11px; color: var(--text-muted); }
-  .empty-line { font-size: 12px; color: var(--text-muted); padding: 8px 0; }
+  .note { font-size: var(--fs-11); color: var(--text-muted); }
+  .empty-line { font-size: var(--fs-12); color: var(--text-muted); padding: 8px 0; }
 
   /* ── 统计 ── */
-  .stats { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
-  .stat b { color: var(--brand); font-size: 14px; margin-left: 2px; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; font-size: var(--fs-12); color: var(--text-secondary); }
+  .stat b { color: var(--brand); font-size: var(--fs-14); margin-left: 2px; }
   .stat-src { color: var(--text-muted); }
-  .domains { font-size: 12px; color: var(--text-secondary); }
+  .domains { font-size: var(--fs-12); color: var(--text-secondary); }
 
   /* ── 表格 ── */
   .tbl { width: 100%; border-collapse: collapse; }
   .tbl thead th {
-    padding: 8px 8px; font-size: 12px; font-weight: 600; text-align: left;
+    padding: 8px 8px; font-size: var(--fs-12); font-weight: 600; text-align: left;
     color: var(--text-secondary); background: var(--bg-elevated); border-bottom: 1px solid var(--border);
   }
   .tbl tbody td {
-    padding: 6px 8px; font-size: 13px; color: var(--text-primary);
+    padding: 6px 8px; font-size: var(--fs-13); color: var(--text-primary);
     border-bottom: 1px solid var(--border); vertical-align: middle;
   }
   .tbl tbody tr:last-child td { border-bottom: none; }
   .tbl tbody tr:hover td { background: var(--bg-hover); }
-  .tbl-sub thead th { background: var(--bg-card); font-size: 11px; }
-  .tbl-sub tbody td { font-size: 12px; }
+  .tbl-sub thead th { background: var(--bg-card); font-size: var(--fs-11); }
+  .tbl-sub tbody td { font-size: var(--fs-12); }
   .row-attrs td { background: var(--bg-elevated); }
   .row-attrs:hover td { background: var(--bg-elevated); }
   .tbl-kv { max-width: 720px; }
   .tbl-kv th {
-    width: 120px; text-align: left; font-size: 12px; font-weight: 600;
+    width: 120px; text-align: left; font-size: var(--fs-12); font-weight: 600;
     color: var(--text-secondary); padding: 8px 8px; border-bottom: 1px solid var(--border);
   }
   .tbl-kv td { padding: 8px 8px; border-bottom: 1px solid var(--border); }
   .tbl-kv tr:last-child th, .tbl-kv tr:last-child td { border-bottom: none; }
 
   .cell {
-    width: 100%; padding: 5px 8px; font-size: 13px; color: var(--text-primary);
+    width: 100%; padding: 5px 8px; font-size: var(--fs-13); color: var(--text-primary);
     border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff;
   }
   .cell:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
   .cell-mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; }
   .td-mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; color: var(--text-secondary); }
-  .attr-hint { margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+  .attr-hint { margin-top: 6px; font-size: var(--fs-11); color: var(--text-muted); }
 
   .w-id { width: 15%; } .w-label { width: 20%; } .w-domain { width: 15%; }
   .w-key { width: 13%; } .w-table { width: 13%; } .w-attr { width: 12%; } .w-ctype { width: 100px; }
   .w-kind { width: 96px; } .w-op { width: 64px; } .w-parent { width: 16%; }
   /* 依据列：小字、可换行，不喧宾夺主 */
-  .ev { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .ev { font-size: var(--fs-11); color: var(--text-muted); line-height: 1.5; }
 
   /* 语义角色标记 */
   .chip {
-    display: inline-block; padding: 2px 8px; font-size: 11px;
+    display: inline-block; padding: 2px 8px; font-size: var(--fs-11);
     border-radius: var(--radius-sm); color: var(--text-secondary);
     background: var(--bg-elevated); border: 1px solid var(--border); white-space: nowrap;
   }
   .chip-key { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line); font-weight: 600; }
   .chip-ok { color: var(--success-fg); background: var(--success-bg); border-color: var(--border); }
   .chip-bad { color: var(--danger-fg); background: var(--danger-bg); border-color: var(--border); }
-  .chip-warn { color: #8a5a00; background: #fff7e0; border-color: #f0d68a; }
+  .chip-warn { color: var(--warning-fg); background: var(--warning-bg); border-color: var(--warning-line); }
   .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 
   /* ── 候选目录列表（真实枚举；默认收起为一行，点开展开）── */
@@ -1062,9 +1062,9 @@
   .cand-toggle:hover { background: var(--bg-hover); }
   .cand-toggle.expanded { box-shadow: inset 3px 0 0 0 var(--brand); }
   .cand-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
-  .chevron { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+  .chevron { margin-left: auto; color: var(--text-muted); font-size: var(--fs-12); }
   .cand-head { display: flex; align-items: center; gap: 8px; }
-  .cand-title { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .cand-title { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .cand-list {
     display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto;
     border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px; background: var(--bg-elevated);
@@ -1077,14 +1077,14 @@
   .cand:hover { border-color: var(--brand-line); }
   .cand-on { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
   .cand-bad .cand-dir { color: var(--text-muted); text-decoration: line-through; }
-  .cand-dir { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; color: var(--text-primary); }
+  .cand-dir { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: var(--fs-12); color: var(--text-primary); }
 
   /* ── 选中校验证据 ── */
   .val { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-elevated); }
   .val-bad { border-color: var(--danger-fg); }
   .val-line { display: flex; flex-wrap: wrap; gap: 6px; }
-  .msg-warn { color: #8a5a00; background: #fff7e0; border-color: #f0d68a; }
-  .ack { font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .msg-warn { color: var(--warning-fg); background: var(--warning-bg); border-color: var(--warning-line); }
+  .ack { font-size: var(--fs-12); color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
 
   /* ── 目录浏览器弹窗（仅本机）── */
   .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
@@ -1093,13 +1093,13 @@
     border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card);
     padding: 14px; display: flex; flex-direction: column; gap: 10px;
   }
-  .modal-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .modal-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
   .drives { display: flex; flex-wrap: wrap; gap: 6px; }
   .crumb {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 12px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: var(--fs-12);
     background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px;
   }
-  .crumb-seg { background: none; border: none; color: var(--brand); cursor: pointer; font-size: 12px; padding: 1px 3px; }
+  .crumb-seg { background: none; border: none; color: var(--brand); cursor: pointer; font-size: var(--fs-12); padding: 1px 3px; }
   .crumb-seg:hover { text-decoration: underline; }
   .crumb-sep { color: var(--text-muted); }
   .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1109,7 +1109,7 @@
   }
   .bdir { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--radius-sm); flex-wrap: wrap; }
   .bdir:hover { background: var(--bg-hover); }
-  .bdir-name { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--text-primary); text-align: left; padding: 2px 4px; }
+  .bdir-name { background: none; border: none; cursor: pointer; font-size: var(--fs-13); color: var(--text-primary); text-align: left; padding: 2px 4px; }
   .bdir-name:hover { color: var(--brand); }
 
   @media (max-width: 720px) {

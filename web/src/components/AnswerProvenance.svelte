@@ -95,20 +95,20 @@
 {/if}
 
 <style>
-  .ap { border: 1px solid var(--border, #e5e7eb); border-radius: 8px; font-size: 13px; }
+  .ap { border: 1px solid var(--border, var(--border)); border-radius: 8px; font-size: var(--fs-13); }
   .ap-summary { cursor: pointer; padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
   .ap-rule { color: var(--brand, #2563eb); font-weight: 600; }
   .ap-score { font-weight: 600; }
-  .ap-hint { color: var(--muted, #6b7280); }
+  .ap-hint { color: var(--muted, var(--text-secondary)); }
   .ap-body { padding: 4px 12px 12px; }
-  .ap-warn { color: var(--warn, #b45309); font-weight: 600; margin: 6px 0; }
-  .ap-note { color: var(--muted, #6b7280); margin: 6px 0; }
+  .ap-warn { color: var(--warn, var(--warning-fg)); font-weight: 600; margin: 6px 0; }
+  .ap-note { color: var(--muted, var(--text-secondary)); margin: 6px 0; }
   .ap-cond { list-style: none; padding: 0; margin: 6px 0; }
-  .ap-cond li { color: var(--muted, #6b7280); }
-  .ap-cond li.ok { color: var(--text, #111827); }
+  .ap-cond li { color: var(--muted, var(--text-secondary)); }
+  .ap-cond li.ok { color: var(--text, var(--text-primary)); }
   .ap-mark { display: inline-block; width: 1.2em; }
   .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-  .ap-chip { background: var(--chip-bg, #f3f4f6); border-radius: 999px; padding: 2px 10px; }
-  .ap-chip b { font-weight: 600; margin-right: 4px; color: var(--muted, #6b7280); }
-  .ap-empty { color: var(--muted, #6b7280); }
+  .ap-chip { background: var(--bg-elevated); border-radius: 999px; padding: 2px 10px; }
+  .ap-chip b { font-weight: 600; margin-right: 4px; color: var(--muted, var(--text-secondary)); }
+  .ap-empty { color: var(--muted, var(--text-secondary)); }
 </style>

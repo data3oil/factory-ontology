@@ -147,12 +147,12 @@
 
 <style>
   .panel {
-    background: #f7faf9;
+    background: var(--bg-subtle);
     color: #1f2d2a;
-    border: 1px solid #d9e6e2;
+    border: 1px solid var(--brand-line);
     border-radius: 8px;
     padding: 12px 14px;
-    font-size: 14px;
+    font-size: var(--fs-14);
     line-height: 1.5;
   }
   .head {
@@ -161,52 +161,52 @@
     gap: 10px;
     flex-wrap: wrap;
     padding-bottom: 8px;
-    border-bottom: 1px solid #e2ece9;
+    border-bottom: 1px solid var(--brand-line);
   }
-  .title { font-weight: 600; color: #2f9e8f; }
+  .title { font-weight: 600; color: var(--brand); }
   .ver { color: #7c5cff; font-weight: 600; }
-  .kb { color: #6b7c78; font-size: 12px; }
+  .kb { color: var(--text-muted); font-size: var(--fs-12); }
   .btn {
-    border: 1px solid #cfe0dc;
+    border: 1px solid var(--brand-line);
     background: #fff;
     color: #1f2d2a;
     border-radius: 6px;
     padding: 3px 10px;
-    font-size: 13px;
+    font-size: var(--fs-13);
     cursor: pointer;
   }
-  .btn:hover:not(:disabled) { border-color: #2f9e8f; }
+  .btn:hover:not(:disabled) { border-color: var(--brand); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn.primary { background: #2f9e8f; color: #fff; border-color: #2f9e8f; }
-  .btn.ok { color: #2f9e8f; border-color: #b6ddd6; }
-  .btn.no { color: #b04a4a; border-color: #e6cccc; }
+  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .btn.ok { color: var(--brand); border-color: var(--brand-line); }
+  .btn.no { color: var(--danger-fg); border-color: var(--danger-line); }
   .btn.warn { background: #7c5cff; color: #fff; border-color: #7c5cff; margin-top: 6px; }
-  .btn.link { border: none; background: none; color: #2f9e8f; padding: 4px 0; }
-  .err { color: #b04a4a; background: #fbecec; border: 1px solid #e6cccc; border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
-  .msg { color: #2f9e8f; background: #e9f6f3; border: 1px solid #b6ddd6; border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
+  .btn.link { border: none; background: none; color: var(--brand); padding: 4px 0; }
+  .err { color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
+  .msg { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
   .list { margin-top: 8px; }
-  .empty { color: #6b7c78; padding: 10px 2px; }
-  .row { border-bottom: 1px solid #eef4f2; }
+  .empty { color: var(--text-muted); padding: 10px 2px; }
+  .row { border-bottom: 1px solid var(--brand-soft); }
   .line { display: flex; align-items: center; gap: 10px; padding: 7px 2px; cursor: pointer; }
   .name { font-weight: 600; }
-  .count { color: #6b7c78; font-size: 12px; }
+  .count { color: var(--text-muted); font-size: var(--fs-12); }
   .cls {
-    font-size: 12px;
-    border: 1px solid #d9e6e2;
+    font-size: var(--fs-12);
+    border: 1px solid var(--brand-line);
     border-radius: 4px;
     padding: 1px 4px;
     background: #fff;
     color: #1f2d2a;
     max-width: 150px;
   }
-  .caret { color: #7c5cff; font-size: 12px; margin-left: auto; }
+  .caret { color: #7c5cff; font-size: var(--fs-12); margin-left: auto; }
   .sample { padding: 4px 2px 10px; }
-  .sample pre { background: #fff; border: 1px solid #e2ece9; border-radius: 6px; padding: 8px; margin: 0; font-size: 12px; overflow: auto; }
-  .muted { color: #9aa8a4; font-size: 12px; }
+  .sample pre { background: #fff; border: 1px solid var(--brand-line); border-radius: 6px; padding: 8px; margin: 0; font-size: var(--fs-12); overflow: auto; }
+  .muted { color: var(--text-muted); font-size: var(--fs-12); }
   .foot { margin-top: 10px; }
-  .hist { margin-top: 6px; padding: 8px 10px; background: #fff; border: 1px solid #e2ece9; border-radius: 6px; }
+  .hist { margin-top: 6px; padding: 8px 10px; background: #fff; border: 1px solid var(--brand-line); border-radius: 6px; }
   .hrow { display: flex; gap: 10px; padding: 2px 0; }
-  .hrow .k { color: #6b7c78; min-width: 72px; }
+  .hrow .k { color: var(--text-muted); min-width: 72px; }
   .hrow .v { color: #1f2d2a; }
 </style>
 

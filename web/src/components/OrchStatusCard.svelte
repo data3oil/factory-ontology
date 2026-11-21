@@ -61,14 +61,14 @@
     justify-content: space-between;
   }
   .title {
-    font-size: 14px;
+    font-size: var(--fs-14);
     font-weight: 600;
   }
   .status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--fs-12);
     color: var(--txt-sub);
   }
   .dot {
@@ -79,20 +79,20 @@
   }
   .desc {
     margin: 8px 0 0;
-    font-size: 12px;
+    font-size: var(--fs-12);
     line-height: 1.6;
     color: var(--txt-sub);
   }
   .url {
     margin: 8px 0 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 12px;
+    font-size: var(--fs-12);
     color: var(--txt-muted);
     word-break: break-all;
   }
   .probe {
     margin: 4px 0 0;
-    font-size: 12px;
+    font-size: var(--fs-12);
     color: var(--txt-muted);
   }
   .actions {
@@ -105,7 +105,7 @@
     background: var(--bg-card);
     color: var(--txt);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--fs-12);
     padding: 6px 12px;
     cursor: pointer;
     transition: background 120ms ease;

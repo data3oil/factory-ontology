@@ -236,24 +236,24 @@
 
 <style>
   .model-graph { display: flex; flex-direction: column; gap: 10px; }
-  .mg-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 40px; }
-  .mg-err { color: #dc2626; }
+  .mg-empty { color: var(--text-muted); font-size: var(--fs-13); text-align: center; padding: 40px; }
+  .mg-err { color: var(--danger); }
 
-  .mg-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #475569; }
-  .mg-cls { font-weight: 700; color: #475569; }
+  .mg-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: var(--fs-12); color: var(--text-secondary); }
+  .mg-cls { font-weight: 700; color: var(--text-secondary); }
   .mg-inst, .mg-obj, .mg-dp, .mg-graph { color: var(--brand); }
   .mg-cur b { color: #3730a3; font-weight: 700; }
 
   .mg-echarts {
     width: 100%; height: 540px;
-    border: 1px solid #e2e8f0; border-radius: 8px;
+    border: 1px solid var(--border); border-radius: 8px;
     background: #ffffff;
   }
 
-  .mg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: #64748b; align-items: center; }
-  .lg-title { color: #334155; font-weight: 600; }
+  .mg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: var(--fs-11); color: var(--text-secondary); align-items: center; }
+  .lg-title { color: var(--text-primary); font-weight: 600; }
   .lg-item { display: flex; align-items: center; gap: 5px; }
   .lg-line { width: 20px; height: 2px; border-radius: 1px; }
 
-  .mg-hint { font-size: 11px; color: #94a3b8; }
+  .mg-hint { font-size: var(--fs-11); color: var(--text-muted); }
 </style>

@@ -103,22 +103,22 @@
   .acct-btn:hover { background: var(--bg-hover); }
   .acct-avatar {
     width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--brand); color: #fff; font-size: 12px; font-weight: 700;
+    background: var(--brand); color: #fff; font-size: var(--fs-12); font-weight: 700;
   }
-  .acct-caret { font-size: 10px; color: var(--txt-muted); }
+  .acct-caret { font-size: var(--fs-11); color: var(--txt-muted); }
   .acct-menu {
     position: absolute; right: 0; top: 34px; width: 190px; z-index: 60;
     background: var(--bg-card); border: 1px solid var(--line); border-radius: 8px;
     box-shadow: 0 8px 24px rgba(15,23,42,.14); padding: 6px;
   }
   .acct-head { padding: 6px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
-  .acct-name { font-size: 12.5px; font-weight: 700; color: var(--txt); }
-  .acct-org { font-size: 11px; color: var(--txt-muted); margin-top: 2px; }
+  .acct-name { font-size: var(--fs-13); font-weight: 700; color: var(--txt); }
+  .acct-org { font-size: var(--fs-11); color: var(--txt-muted); margin-top: 2px; }
   .acct-item {
-    width: 100%; text-align: left; padding: 8px; font-size: 12.5px; color: var(--txt);
+    width: 100%; text-align: left; padding: 8px; font-size: var(--fs-13); color: var(--txt);
     background: none; border: 0; border-radius: 6px; cursor: pointer;
   }
-  .acct-item:hover { background: var(--bg-hover); color: var(--danger-fg, #b91c1c); }
+  .acct-item:hover { background: var(--bg-hover); color: var(--danger-fg, var(--danger-fg)); }
   .bar {
     height: 52px;
     background: var(--bg-card);
@@ -138,7 +138,7 @@
   }
 
   .ent {
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--txt);
     white-space: nowrap;
   }
@@ -148,7 +148,7 @@
     color: var(--brand);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--fs-12);
     padding: 3px 8px;
     cursor: pointer;
     transition: background 120ms;
@@ -170,7 +170,7 @@
     min-width: 0;
     height: 32px;
     padding: 0 10px;
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--txt);
     background: var(--bg-card);
     border: 1px solid var(--line);
@@ -193,7 +193,7 @@
   .ask {
     height: 32px;
     padding: 0 14px;
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--brand);
     background: var(--brand-soft);
     border: none;
@@ -221,7 +221,7 @@
   .txt-btn {
     height: 30px;
     padding: 0 10px;
-    font-size: 13px;
+    font-size: var(--fs-13);
     color: var(--txt-sub);
     background: transparent;
     border: none;

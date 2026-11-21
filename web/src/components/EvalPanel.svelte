@@ -137,13 +137,13 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
       <div class="eval-result">
         <div class="kpi-row">
           <div class="mini-card">
-            <div class="mc-accent" style="background:#0D9488"></div>
-            <div class="mc-num" style="color:#0D9488">{result.questions_n}</div>
+            <div class="mc-accent" style="background:var(--brand)"></div>
+            <div class="mc-num" style="color:var(--brand)">{result.questions_n}</div>
             <div class="mc-label">评测题数</div>
           </div>
           <div class="mini-card">
-            <div class="mc-accent" style="background:#10b981"></div>
-            <div class="mc-num" style="color:#10b981">{result.hits}</div>
+            <div class="mc-accent" style="background:var(--success)"></div>
+            <div class="mc-num" style="color:var(--success)">{result.hits}</div>
             <div class="mc-label">命中题数</div>
           </div>
           <div class="mini-card">
@@ -242,56 +242,56 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   /* ─── 顶部控制区 ─── */
   .eval-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .eval-kb { display: flex; align-items: center; gap: 8px; }
-  .eval-kb-label { font-size: 12px; font-weight: 600; color: #334155; }
+  .eval-kb-label { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .eval-kb input {
-    width: 180px; padding: 7px 10px; font-size: 13px;
-    border: 1px solid #cbd5e1; border-radius: 4px;
-    background: #fff; color: #1e293b; outline: none;
+    width: 180px; padding: 7px 10px; font-size: var(--fs-13);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    background: #fff; color: var(--text-primary); outline: none;
     transition: border-color 0.15s;
   }
   .eval-kb input:focus { border-color: var(--brand); }
   .eval-modes { display: flex; gap: 4px; }
   .mode-btn {
-    background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
-    border-radius: 4px; padding: 7px 12px; font-size: 12px; font-weight: 600;
+    background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border);
+    border-radius: 4px; padding: 7px 12px; font-size: var(--fs-12); font-weight: 600;
     cursor: pointer; transition: all 0.15s;
   }
-  .mode-btn:hover { background: #e2e8f0; }
+  .mode-btn:hover { background: var(--border); }
   .mode-btn.mode-on { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .eval-hint { font-size: 11px; color: #64748b; }
+  .eval-hint { font-size: var(--fs-11); color: var(--text-secondary); }
   .bench-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .iso-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
   .btn-run {
     background: var(--brand); color: #fff;
     border: none; border-radius: 4px;
-    padding: 8px 16px; font-size: 13px; font-weight: 600;
+    padding: 8px 16px; font-size: var(--fs-13); font-weight: 600;
     cursor: pointer; transition: background 0.15s;
   }
   .btn-run:hover:not(:disabled) { background: var(--brand-dark); }
-  .btn-run:disabled { background: #94a3b8; cursor: not-allowed; }
+  .btn-run:disabled { background: var(--text-muted); cursor: not-allowed; }
 
   /* ─── isolate 输入区 ─── */
   .iso-ctl { display: flex; flex-direction: column; gap: 8px; }
-  .iso-label { font-size: 12px; font-weight: 600; color: #334155; }
+  .iso-label { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .iso-input {
-    width: 100%; padding: 10px 12px; font-size: 13px; line-height: 1.6;
-    border: 1px solid #cbd5e1; border-radius: 4px;
-    background: #fff; color: #1e293b; outline: none; resize: vertical;
+    width: 100%; padding: 10px 12px; font-size: var(--fs-13); line-height: 1.6;
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    background: #fff; color: var(--text-primary); outline: none; resize: vertical;
     transition: border-color 0.15s; font-family: inherit;
   }
   .iso-input:focus { border-color: var(--brand); }
 
   /* ─── 空态 / 错误 / 加载 ─── */
-  .eval-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 30px; }
-  .eval-err { color: #dc2626; }
-  .eval-thinking { color: #94a3b8; font-size: 12px; }
+  .eval-empty { color: var(--text-muted); font-size: var(--fs-13); text-align: center; padding: 30px; }
+  .eval-err { color: var(--danger); }
+  .eval-thinking { color: var(--text-muted); font-size: var(--fs-12); }
 
   /* 骨架屏 */
   @keyframes shimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
   .skel {
     border-radius: 6px;
-    background: linear-gradient(90deg, #eef1f5 25%, #f7f9fc 40%, #eef1f5 55%);
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-subtle) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
   .skel-block { display: flex; flex-direction: column; gap: 12px; }
@@ -300,69 +300,69 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-line-sm { height: 12px; width: 30%; }
   .skel-card {
-    border: 1px solid #e2e8f0; border-radius: 6px; background: #fff;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff;
     padding: 14px; display: flex; flex-direction: column; gap: 12px;
   }
   .eval-retry {
     margin-left: 10px; background: #fff; color: var(--brand);
-    border: 1px solid #cbd5e1; border-radius: 4px;
-    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
   }
-  .eval-retry:hover { border-color: var(--brand); background: #f8fafc; }
+  .eval-retry:hover { border-color: var(--brand); background: var(--bg-page); }
 
   /* ─── 结果区（benchmark）─── */
   .eval-result { display: flex; flex-direction: column; gap: 12px; }
   .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .mini-card {
     position: relative; overflow: hidden;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+    background: #fff; border: 1px solid var(--border); border-radius: 6px;
     padding: 16px 12px 12px; text-align: center;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
   .mc-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .mc-num { font-size: 26px; font-weight: 700; line-height: 1.1; font-family: 'Consolas', monospace; }
-  .mc-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .mc-num { font-size: var(--fs-24); font-weight: 700; line-height: 1.1; font-family: 'Consolas', monospace; }
+  .mc-label { font-size: var(--fs-11); color: var(--text-secondary); margin-top: 4px; }
 
   .score-card {
-    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;
+    background: var(--bg-page); border: 1px solid var(--border); border-radius: 4px;
     padding: 14px;
   }
   .score-head {
     display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
   }
-  .score-title { font-size: 12px; font-weight: 700; color: #1e293b; letter-spacing: 0.3px; }
-  .score-verdict { font-size: 12px; font-weight: 600; }
-  .score-elapsed { margin-left: auto; font-size: 11px; color: #64748b; font-family: 'Consolas', monospace; }
-  .score-track { height: 22px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .score-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+  .score-verdict { font-size: var(--fs-12); font-weight: 600; }
+  .score-elapsed { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
+  .score-track { height: 22px; background: var(--border); border-radius: 4px; overflow: hidden; }
   .score-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
   .score-scale {
     display: flex; justify-content: space-between;
-    font-size: 10px; color: #94a3b8; margin-top: 4px; font-family: 'Consolas', monospace;
+    font-size: var(--fs-11); color: var(--text-muted); margin-top: 4px; font-family: 'Consolas', monospace;
   }
-  .score-note { margin-top: 8px; font-size: 11px; color: #64748b; }
+  .score-note { margin-top: 8px; font-size: var(--fs-11); color: var(--text-secondary); }
 
   /* ─── 结果区（isolate 逐题）─── */
   .iso-result { display: flex; flex-direction: column; gap: 10px; }
   .iso-head {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px;
+    padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border); border-radius: 4px;
   }
-  .iso-count { margin-left: auto; font-size: 11px; color: #64748b; font-family: 'Consolas', monospace; }
+  .iso-count { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
   .qa-list { display: flex; flex-direction: column; gap: 8px; }
-  .qa-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .qa-item { background: #fff; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .qa-q {
-    padding: 8px 12px; background: #f1f5f9;
-    font-size: 13px; font-weight: 600; color: #1e293b;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 8px 12px; background: var(--bg-elevated);
+    font-size: var(--fs-13); font-weight: 600; color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
   }
   .qa-num { color: var(--brand); margin-right: 6px; font-family: 'Consolas', monospace; }
   .qa-a { padding: 8px 12px; }
-  .qa-a-label { font-size: 11px; font-weight: 600; color: #64748b; }
+  .qa-a-label { font-size: var(--fs-11); font-weight: 600; color: var(--text-secondary); }
   .qa-text {
     margin: 4px 0 0; white-space: pre-wrap; word-break: break-word;
     font-family: 'Consolas', 'Menlo', monospace;
-    font-size: 12px; line-height: 1.7; color: #334155;
+    font-size: var(--fs-12); line-height: 1.7; color: var(--text-primary);
   }
 
   @media (max-width: 720px) {

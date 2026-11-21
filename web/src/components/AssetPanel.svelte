@@ -261,22 +261,22 @@
 
   /* 顶部工具条 */
   .asset-toolbar { display: flex; align-items: center; gap: 8px; }
-  .kb-label { font-size: 12px; color: #334155; font-weight: 600; white-space: nowrap; }
+  .kb-label { font-size: var(--fs-12); color: var(--text-primary); font-weight: 600; white-space: nowrap; }
   .kb-tag {
     display: inline-flex; align-items: center;
-    padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--brand);
+    padding: 4px 12px; font-size: var(--fs-12); font-weight: 600; color: var(--brand);
     background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px;
   }
   .kb-input {
     flex: 1; max-width: 260px;
-    padding: 6px 10px; font-size: 13px; color: #1e293b;
-    border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+    padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
+    border: 1px solid var(--border-strong); border-radius: 4px; background: #fff;
     transition: border-color 0.15s;
   }
   .kb-input:focus { outline: none; border-color: var(--brand); }
   .btn-load {
     background: var(--brand); color: #fff; border: none; border-radius: 4px;
-    padding: 6px 16px; font-size: 13px; cursor: pointer; transition: background 0.15s;
+    padding: 6px 16px; font-size: var(--fs-13); cursor: pointer; transition: background 0.15s;
   }
   .btn-load:hover { background: var(--brand-dark); }
   .btn-load:disabled { background: var(--brand-line); cursor: not-allowed; }
@@ -285,42 +285,42 @@
   .asset-snapbar { display: flex; gap: 8px; align-items: center; }
   .snap-input {
     flex: 1; max-width: 320px;
-    padding: 6px 10px; font-size: 13px; color: #1e293b;
-    border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+    padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
+    border: 1px solid var(--border-strong); border-radius: 4px; background: #fff;
     transition: border-color 0.15s;
   }
-  .snap-input:focus { outline: none; border-color: #10b981; }
+  .snap-input:focus { outline: none; border-color: var(--success); }
   .btn-snap {
-    background: #059669; color: #fff; border: none; border-radius: 4px;
-    padding: 6px 16px; font-size: 13px; cursor: pointer; transition: background 0.15s;
+    background: var(--success-fg); color: #fff; border: none; border-radius: 4px;
+    padding: 6px 16px; font-size: var(--fs-13); cursor: pointer; transition: background 0.15s;
     white-space: nowrap;
   }
-  .btn-snap:hover { background: #047857; }
-  .btn-snap:disabled { background: #6ee7b7; cursor: not-allowed; }
+  .btn-snap:hover { background: var(--success-fg); }
+  .btn-snap:disabled { background: var(--success-line); cursor: not-allowed; }
   .asset-opmsg {
-    font-size: 12px; color: var(--success-fg); background: var(--success-bg);
+    font-size: var(--fs-12); color: var(--success-fg); background: var(--success-bg);
     border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px;
   }
 
   /* 空态 / 错误 */
   .asset-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: 13px;
+    gap: 10px; padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: var(--fs-13);
   }
-  .asset-empty .empty-icon { font-size: 28px; line-height: 1; }
+  .asset-empty .empty-icon { font-size: var(--fs-28); line-height: 1; }
   .asset-empty .empty-text { color: var(--text-muted); max-width: 420px; line-height: 1.6; }
   .asset-nodata { color: var(--text-muted); }
   .asset-err { color: var(--danger); }
   .asset-retry {
     margin-left: 10px; background: var(--bg-card); color: var(--brand);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
-    padding: 4px 12px; font-size: 12px; cursor: pointer;
+    padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: background 150ms ease-out;
   }
   .asset-retry:hover { border-color: var(--brand-line); background: var(--bg-hover); }
 
   /* 元信息 */
-  .asset-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .asset-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: var(--fs-12); color: var(--text-secondary); }
   .meta-kb b { color: var(--text-primary); }
   .meta-count { color: var(--brand); }
   .meta-active b { color: var(--brand); }
@@ -330,22 +330,22 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 14px; box-shadow: var(--shadow-card);
   }
-  .asset-card-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
+  .asset-card-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
   .asset-table { width: 100%; border-collapse: collapse; }
   .asset-table thead th {
     position: sticky; top: 0; z-index: 1;
-    padding: 8px 10px; font-size: 12px; font-weight: 600; text-align: left;
+    padding: 8px 10px; font-size: var(--fs-12); font-weight: 600; text-align: left;
     color: var(--text-secondary); background: var(--bg-elevated);
     border-bottom: 1px solid var(--border);
   }
   .asset-table tbody td {
-    padding: 0 10px; font-size: 13px; text-align: left; color: var(--text-primary);
+    padding: 0 10px; font-size: var(--fs-13); text-align: left; color: var(--text-primary);
     border-bottom: 1px solid var(--border);
     height: 40px; transition: background 150ms ease-out;
   }
   .asset-table tbody tr:last-child td { border-bottom: none; }
   .asset-table tbody tr:hover td { background: var(--bg-hover); }
-  .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--fs-13); font-variant-numeric: tabular-nums; }
   .version-name { font-weight: 600; color: var(--text-primary); }
   .hash-cell { color: var(--text-secondary); }
   .col-active { width: 64px; }
@@ -357,7 +357,7 @@
   .row-active td { border-bottom-color: var(--brand-line); }
   .active-badge {
     display: inline-block;
-    font-size: 11px; font-weight: 700; color: var(--success-fg);
+    font-size: var(--fs-11); font-weight: 700; color: var(--success-fg);
     background: var(--success-bg); border: 1px solid var(--brand-line);
     border-radius: var(--radius-sm); padding: 2px 8px; white-space: nowrap;
   }
@@ -365,7 +365,7 @@
   /* 资产状态可视化（词典/本体/知识库是否含） */
   .asset-status { display: flex; gap: 4px; flex-wrap: wrap; }
   .status-chip {
-    font-size: 11px; border-radius: var(--radius-sm); padding: 2px 8px; white-space: nowrap;
+    font-size: var(--fs-11); border-radius: var(--radius-sm); padding: 2px 8px; white-space: nowrap;
   }
   .chip-on { color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--border); }
   .chip-off { color: var(--text-muted); background: var(--bg-elevated); border: 1px solid var(--border); }
@@ -373,13 +373,13 @@
   /* 回滚按钮 */
   .btn-rollback {
     background: var(--bg-card); color: var(--warning); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 3px 10px; font-size: 12px; cursor: pointer;
+    border-radius: var(--radius-sm); padding: 3px 10px; font-size: var(--fs-12); cursor: pointer;
     transition: background 150ms ease-out; white-space: nowrap;
   }
   .btn-rollback:hover { background: var(--warning-bg); border-color: var(--warning); color: var(--warning-fg); }
   .btn-rollback:disabled { color: var(--text-muted); border-color: var(--border); cursor: not-allowed; background: var(--bg-elevated); }
 
-  .asset-hint { font-size: 11px; color: var(--text-muted); }
+  .asset-hint { font-size: var(--fs-11); color: var(--text-muted); }
 
   @media (max-width: 600px) {
     .asset-toolbar { flex-wrap: wrap; }
