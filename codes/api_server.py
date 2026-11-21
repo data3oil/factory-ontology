@@ -1550,10 +1550,18 @@ async def admin_upload(file: UploadFile = File(...), table: str = Query("product
     fname = file.filename or "upload.csv"
     if not fname.endswith(".csv"):
         raise HTTPException(400, "仅支持 CSV")
+    # 安全加固(2026-11-20, 移植自开源快照线): table 直接拼路径可 ../ 穿越写出 data 目录。
+    # 双层防护: ① 表名白名单(字母数字下划线); ② realpath 必须仍在 DATA 内。
+    if not re.fullmatch(r"[A-Za-z0-9_]+", table or ""):
+        raise HTTPException(400, "非法表名(仅允许字母/数字/下划线)")
     # 表前缀从 kb 配置读(不写死 food_)；未配置则按原名 —— 任何行业同一套代码
     _prefix = (KBS.get(KB_NAME) or {}).get("table_prefix", "")
     target = table if not _prefix or table.startswith(_prefix) else f"{_prefix}{table}"
     dest = os.path.join(DATA, f"{target}.csv")
+    data_root = os.path.realpath(DATA)
+    dest_real = os.path.realpath(dest)
+    if os.path.dirname(dest_real) != data_root:
+        raise HTTPException(400, "目标路径越界(必须在 data 目录内)")
     # 体积上限(第2轮, 可配 FOOD_MAX_UPLOAD_MB): 先分块读入(超限抛 UploadTooLarge),
     # 通过后才落盘 —— 超限路径 DATA 目录不留半截文件。
     try:
@@ -2496,7 +2504,7 @@ class AssetRollbackReq(BaseModel):
 
 # ── 3. assets ──
 
-@app.post("/api/assets/snapshot", dependencies=[Depends(require_key)])
+@app.post("/api/assets/snapshot", dependencies=[Depends(require_admin)])
 def assets_snapshot(req: AssetSnapshotReq):
     """快照语义资产(lexicon + ontology + knowledge) → {version, hash}。多租户按 kb 隔离。"""
     start = time.time()
@@ -2514,7 +2522,7 @@ def assets_snapshot(req: AssetSnapshotReq):
     return _ok_env({"version": version, "hash": h, "kb": kb}, start)
 
 
-@app.post("/api/assets/rollback", dependencies=[Depends(require_key)])
+@app.post("/api/assets/rollback", dependencies=[Depends(require_admin)])
 def assets_rollback(req: AssetRollbackReq):
     """按版本回滚语义资产并重载内存本体 → {active_version}。多租户按 kb 隔离。"""
     start = time.time()
@@ -2565,7 +2573,7 @@ class OntologyBuildReq(BaseModel):
     use_llm: bool = True
 
 
-@app.post("/api/ontology/build", dependencies=[Depends(require_key)])
+@app.post("/api/ontology/build", dependencies=[Depends(require_admin)])
 def ontology_build(req: OntologyBuildReq):
     """按 kb 建本体: 复用 run.setup 建模, 产出 nt+lex, 更新 kbs.json, 失效缓存。
 
@@ -2788,7 +2796,7 @@ class OntologyConfirmReq(BaseModel):
     extensions_confirmed: bool = False
 
 
-@app.post("/api/ontology/confirm", dependencies=[Depends(require_key)])
+@app.post("/api/ontology/confirm", dependencies=[Depends(require_admin)])
 def ontology_confirm(req: OntologyConfirmReq):
     """③ 人拍板：保存人工确认后的 schema，按它产出 nt + lexicon 并注册 kb。
 
@@ -2923,7 +2931,7 @@ def ontology_confirm(req: OntologyConfirmReq):
                     "ask_ready": True}, start)
 
 
-@app.post("/api/ontology/self-onboard", dependencies=[Depends(require_key)])
+@app.post("/api/ontology/self-onboard", dependencies=[Depends(require_admin)])
 async def ontology_self_onboard(request: Request):
     """甲方自助接入（自服务上架）：上传数据文件 → 落盘 codes/data_<kb>/ → 自动建模
     (nt + lexicon) → 注册 kb → 返回可用 kb。
@@ -3033,7 +3041,7 @@ class KbsExamplesReq(BaseModel):
     examples: list[str]
 
 
-@app.post("/api/kbs/{kb}/examples", dependencies=[Depends(require_key)])
+@app.post("/api/kbs/{kb}/examples", dependencies=[Depends(require_admin)])
 def kbs_update_examples(kb: str, req: KbsExamplesReq):
     """把 solo/闭源起草的评测问题写入 kb 的 examples，供 benchmark 基线使用。
 
@@ -3126,7 +3134,7 @@ def kb_active_get():
             "file": os.path.relpath(ACTIVE_FILE, root).replace("\\", "/")}
 
 
-@app.post("/api/kb/active", dependencies=[Depends(require_key)])
+@app.post("/api/kb/active", dependencies=[Depends(require_admin)])
 def kb_active_set(req: ActiveKbReq):
     """A1: 切库即更新持久态。非法 kb 名 / 未知 kb / 越权 → 拒绝（不静默通过）。
 
@@ -3170,7 +3178,7 @@ def kb_lexicon_export(kb: str, download: bool = Query(True), bundle: bool = Quer
         return {"ok": False, "error": str(e)}
 
 
-@app.post("/api/kb/{kb}/lexicon/import", dependencies=[Depends(require_key)])
+@app.post("/api/kb/{kb}/lexicon/import", dependencies=[Depends(require_admin)])
 async def kb_lexicon_import(kb: str, req: Request):
     """导入工厂词典（同行业复用他人积累的词）。
 
