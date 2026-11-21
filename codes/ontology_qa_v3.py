@@ -1264,6 +1264,49 @@ def _filter_value_in_q(q, ents, data, entity_cn):
     return best
 
 
+_INST_NAME_CACHE = {"sig": None, "idx": {}}
+
+
+def _instance_names_index(data):
+    """实例显示名索引（首字分桶）。
+
+    用于两件事：① 判断问句是否点名了某个实例（守卫不能只认类名，否则
+    「塔里木三维区块B的炮点数是多少」会被当成没点名，落进取值过滤兜底数行数）；
+    ② 直查分支在问句没有类名词时仍能找到实例。
+    10 万级实例只按首字分桶 + 桶内比对，不做全表扫描。
+    """
+    sig = (len(data), id(data))
+    if _INST_NAME_CACHE["sig"] == sig:
+        return _INST_NAME_CACHE["idx"]
+    idx = {}
+    for rec in data.values():
+        if not isinstance(rec, dict):
+            continue
+        nm = str(_display_name(rec, {}) or "").strip()
+        # 太短的名字（1~2 字）和纯数值不参与，避免「10.06」这类误指认
+        if len(nm) < 3 or re.fullmatch(r"[\d.,%+\-]+", nm):
+            continue
+        idx.setdefault(nm[0], set()).add(nm)
+    idx = {k: sorted(v, key=len, reverse=True) for k, v in idx.items()}
+    _INST_NAME_CACHE.update(sig=sig, idx=idx)
+    return idx
+
+
+def _instance_name_in_q(q, data):
+    """问句里出现的实例名（最长优先）；没有返回空串。"""
+    if not data:
+        return ""
+    idx = _instance_names_index(data)
+    qq = re.sub(r"\s+", "", q or "")
+    best = ""
+    for i, ch in enumerate(qq):
+        for nm in idx.get(ch, ()):
+            if len(nm) > len(best) and qq.startswith(nm, i):
+                best = nm
+                break
+    return best
+
+
 def _instance_by_name_value(q, data, D):
     """问句里写的是实例的"名字"，不是编号（"供应商 Siemens 的所在地"）。
 
@@ -1274,10 +1317,8 @@ def _instance_by_name_value(q, data, D):
     """
     emap = _resolve_entity_map(D, data)
     cls_set = {str(c).lower() for c in _class_prefixes(data)}
-    for cn in sorted(emap, key=len, reverse=True):
-        c = str(emap[cn]).lower()
-        if not (cn and _class_in_q(cn, q) and c in cls_set):
-            continue
+
+    def _hits_in(c):
         hits = []
         for k, d in _inst_rows(data, c):
             if not isinstance(d, dict):
@@ -1290,10 +1331,32 @@ def _instance_by_name_value(q, data, D):
                         and sv in q):
                     hits.append(k)
                     break
+        return hits
+
+    # 第一轮：问句里点了类名（"测线…"），只在那个类里找
+    for cn in sorted(emap, key=len, reverse=True):
+        c = str(emap[cn]).lower()
+        if not (cn and _class_in_q(cn, q) and c in cls_set):
+            continue
+        hits = _hits_in(c)
         if len(hits) == 1:
             return hits[0]
         if hits:
             return None  # 指认不唯一，不猜
+
+    # 第二轮：问句没点类名（"塔里木三维区块B的炮点数"），全库找唯一命中。
+    # 只在**全局唯一**时才认，多类同名一律不猜，避免跨表误指认。
+    all_hits, multi = set(), False
+    for cn, uri in emap.items():
+        c = str(uri).lower()
+        if c not in cls_set:
+            continue
+        hits = _hits_in(c)
+        if len(hits) > 1:
+            multi = True
+        all_hits.update(hits)
+    if len(all_hits) == 1 and not multi:
+        return next(iter(all_hits))
     return None
 
 
@@ -2587,7 +2650,7 @@ def answer(q, data, D):
     #       不能反过来"过滤掉纯字母段"——设备编号的字母段（AC/TK/CV）本身就是纯字母，
     #       过滤掉它就把编号拆散了（实测 segs 变成 ['ledger','01','AssetData']，
     #       pair 全是 ledger-01 这种垃圾，永远匹配不上）。这个反向规则试了两版都失配。
-    _named_entity = False
+    _named_entity = bool(_instance_name_in_q(q, data))
     _Q = re.sub(r"\s+", "", q)
     _PAIR = re.compile(r"^([A-Za-z]{2,4})(\d{1,4})$")
     for _nm in data:

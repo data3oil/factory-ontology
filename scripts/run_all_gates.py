@@ -19,6 +19,7 @@ GATES = [
     ("商用加固（鉴权/方言/审计链）", ["scripts/verify_hardening.py"]),
     ("编排上半截（流程/控制流/预设）", ["scripts/verify_flows.py"]),
     ("问答信封与未命中", ["scripts/verify_qa_envelope.py"]),
+    ("实例名直查回归", ["scripts/verify_instance_name.py"]),
     ("模型建议层", ["scripts/verify_advisory.py"]),
     ("本体自演进（人在环）", ["scripts/verify_ontology_evolve.py"]),
     ("本体 IRI 完整性（悬空/域值域/ASCII）", ["scripts/verify_iri_integrity.py"]),
