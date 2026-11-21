@@ -61,7 +61,7 @@
     padding: 0 12px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
-    background: #fff;
+    background: var(--bg-card);
     color: var(--txt-sub);
     font-size: var(--fs-13);
     font-weight: 400;

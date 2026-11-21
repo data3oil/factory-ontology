@@ -103,7 +103,7 @@
   .acct-btn:hover { background: var(--bg-hover); }
   .acct-avatar {
     width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--brand); color: #fff; font-size: var(--fs-12); font-weight: 700;
+    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-12); font-weight: 700;
   }
   .acct-caret { font-size: var(--fs-11); color: var(--txt-muted); }
   .acct-menu {

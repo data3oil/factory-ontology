@@ -168,7 +168,7 @@
   .kb { color: var(--text-muted); font-size: var(--fs-12); }
   .btn {
     border: 1px solid var(--brand-line);
-    background: #fff;
+    background: var(--bg-card);
     color: #1f2d2a;
     border-radius: 6px;
     padding: 3px 10px;
@@ -177,10 +177,10 @@
   }
   .btn:hover:not(:disabled) { border-color: var(--brand); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .btn.primary { background: var(--brand); color: var(--text-inverse); border-color: var(--brand); }
   .btn.ok { color: var(--brand); border-color: var(--brand-line); }
   .btn.no { color: var(--danger-fg); border-color: var(--danger-line); }
-  .btn.warn { background: #7c5cff; color: #fff; border-color: #7c5cff; margin-top: 6px; }
+  .btn.warn { background: #7c5cff; color: var(--text-inverse); border-color: #7c5cff; margin-top: 6px; }
   .btn.link { border: none; background: none; color: var(--brand); padding: 4px 0; }
   .err { color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
   .msg { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
@@ -195,16 +195,16 @@
     border: 1px solid var(--brand-line);
     border-radius: 4px;
     padding: 1px 4px;
-    background: #fff;
+    background: var(--bg-card);
     color: #1f2d2a;
     max-width: 150px;
   }
   .caret { color: #7c5cff; font-size: var(--fs-12); margin-left: auto; }
   .sample { padding: 4px 2px 10px; }
-  .sample pre { background: #fff; border: 1px solid var(--brand-line); border-radius: 6px; padding: 8px; margin: 0; font-size: var(--fs-12); overflow: auto; }
+  .sample pre { background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: 6px; padding: 8px; margin: 0; font-size: var(--fs-12); overflow: auto; }
   .muted { color: var(--text-muted); font-size: var(--fs-12); }
   .foot { margin-top: 10px; }
-  .hist { margin-top: 6px; padding: 8px 10px; background: #fff; border: 1px solid var(--brand-line); border-radius: 6px; }
+  .hist { margin-top: 6px; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: 6px; }
   .hrow { display: flex; gap: 10px; padding: 2px 0; }
   .hrow .k { color: var(--text-muted); min-width: 72px; }
   .hrow .v { color: #1f2d2a; }

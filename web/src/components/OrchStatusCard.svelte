@@ -116,7 +116,7 @@
   .btn.primary {
     background: var(--brand);
     border-color: var(--brand);
-    color: #fff;
+    color: var(--text-inverse);
   }
   .btn.primary:hover {
     background: var(--brand-soft);

@@ -243,12 +243,12 @@
     color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px;
   }
   .la-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-  .la-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
+  .la-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--bg-card); display: flex; flex-direction: column; gap: 10px; }
   .la-card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
   .la-desc { margin: 0; font-size: var(--fs-12); line-height: 1.7; color: var(--text-secondary); }
   .la-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .la-btn {
-    padding: 6px 14px; font-size: var(--fs-12); font-weight: 600; color: #fff; background: var(--brand);
+    padding: 6px 14px; font-size: var(--fs-12); font-weight: 600; color: var(--text-inverse); background: var(--brand);
     border: 1px solid var(--brand); border-radius: 8px; cursor: pointer;
   }
   .la-btn:disabled { opacity: .55; cursor: not-allowed; }
@@ -256,7 +256,7 @@
   .la-small { padding: 4px 10px; margin-left: auto; }
   .la-file { font-size: var(--fs-12); max-width: 100%; }
   .la-file-name { font-size: var(--fs-12); color: var(--text-primary); }
-  .la-select { padding: 5px 8px; font-size: var(--fs-12); border: 1px solid var(--border-strong); border-radius: 6px; background: #fff; }
+  .la-select { padding: 5px 8px; font-size: var(--fs-12); border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-card); }
   .la-msg { padding: 8px 12px; font-size: var(--fs-12); color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--success-line); border-radius: 8px; }
   .la-err { padding: 8px 12px; font-size: var(--fs-12); color: var(--danger-fg); background: var(--danger-line); border: 1px solid var(--danger-line); border-radius: 8px; }
   .la-result { padding: 8px 12px; font-size: var(--fs-12); line-height: 1.7; color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }

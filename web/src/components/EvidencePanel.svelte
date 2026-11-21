@@ -153,7 +153,7 @@
   }
   .ev-input:focus { outline: none; border-color: var(--brand); }
   .ev-btn {
-    height: 34px; padding: 0 16px; font-size: var(--fs-13); cursor: pointer; color: #fff;
+    height: 34px; padding: 0 16px; font-size: var(--fs-13); cursor: pointer; color: var(--text-inverse);
     background: var(--brand); border: 1px solid var(--brand); border-radius: 6px;
   }
   .ev-btn:disabled { opacity: 0.5; cursor: not-allowed; }

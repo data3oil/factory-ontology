@@ -369,12 +369,12 @@
   .spacer { flex: 1; }
   .chip { background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 10px;
     padding: 1px 8px; font-size: var(--fs-12); color: var(--text-secondary); }
-  .btn { border: 1px solid var(--brand-line); background: #fff; color: #1f2d2a; border-radius: 6px;
+  .btn { border: 1px solid var(--brand-line); background: var(--bg-card); color: #1f2d2a; border-radius: 6px;
     padding: 4px 10px; cursor: pointer; font-size: var(--fs-13); }
   .btn:hover { border-color: var(--brand); }
-  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--text-inverse); }
   .btn:disabled { opacity: .55; cursor: default; }
-  .mini { border: 1px dashed var(--brand-line); background: #fff; border-radius: 5px;
+  .mini { border: 1px dashed var(--brand-line); background: var(--bg-card); border-radius: 5px;
     padding: 1px 7px; font-size: var(--fs-12); cursor: pointer; color: var(--text-secondary); }
   .mini.danger { color: var(--danger-fg); border-color: var(--danger-line); }
   .hint { color: var(--text-muted); font-size: var(--fs-12); margin: 8px 0; }
@@ -393,13 +393,13 @@
     padding: 1px 7px; font-size: var(--fs-12); color: var(--text-secondary); }
   .tag.dim { background: var(--bg-subtle); color: var(--text-muted); }
   .switcher { display: flex; gap: 6px; margin: 10px 0 6px; }
-  .tab { border: 1px solid var(--brand-line); background: #fff; border-radius: 6px 6px 0 0;
+  .tab { border: 1px solid var(--brand-line); background: var(--bg-card); border-radius: 6px 6px 0 0;
     padding: 3px 12px; cursor: pointer; font-size: var(--fs-13); color: var(--text-secondary); }
-  .tab.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .tab.on { background: var(--brand); color: var(--text-inverse); border-color: var(--brand); }
   h4 { margin: 14px 0 6px; font-size: var(--fs-13); color: var(--text-secondary); display: flex;
     gap: 8px; align-items: center; }
   h4.sep { border-top: 1px solid var(--brand-line); padding-top: 10px; }
-  .item { border: 1px solid var(--brand-line); background: #fff; border-radius: 6px;
+  .item { border: 1px solid var(--brand-line); background: var(--bg-card); border-radius: 6px;
     padding: 7px 8px; margin-bottom: 6px; }
   .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 3px 0; }
   .row.tight { margin: 2px 0; }
@@ -410,13 +410,13 @@
   .empty { color: var(--text-muted); font-size: var(--fs-12); margin: 2px 0 6px; }
   .eq { color: var(--text-muted); }
   input, select { border: 1px solid var(--brand-line); border-radius: 5px; padding: 3px 6px;
-    font-size: var(--fs-13); color: #1f2d2a; background: #fff; }
+    font-size: var(--fs-13); color: #1f2d2a; background: var(--bg-card); }
   input:focus, select:focus, textarea:focus { outline: 1px solid var(--brand); }
   .w80 { width: 80px; } .w120 { width: 120px; } .w140 { width: 140px; }
   .grow { flex: 1; min-width: 140px; }
   .json { width: 100%; min-height: 320px; font-family: Consolas, monospace;
     font-size: var(--fs-12); border: 1px solid var(--brand-line); border-radius: 6px; padding: 8px;
-    background: #fff; color: #1f2d2a; }
+    background: var(--bg-card); color: #1f2d2a; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .stats { display: flex; gap: 10px; flex-wrap: wrap; font-size: var(--fs-12); color: var(--text-secondary); }
   .samples { margin-top: 8px; font-size: var(--fs-12); }
@@ -424,7 +424,7 @@
   .sample { border-left: 2px solid var(--brand-line); padding: 3px 8px; margin: 5px 0; }
   .sample code { font-size: var(--fs-11); color: var(--text-secondary); word-break: break-all; }
   .why { color: var(--text-muted); font-size: var(--fs-11); margin-top: 2px; }
-  .qa { border: 1px solid var(--brand-line); background: #fff; border-radius: 6px;
+  .qa { border: 1px solid var(--brand-line); background: var(--bg-card); border-radius: 6px;
     padding: 8px 10px; margin-top: 8px; }
   .ans { margin: 6px 0; font-size: var(--fs-14); }
 </style>

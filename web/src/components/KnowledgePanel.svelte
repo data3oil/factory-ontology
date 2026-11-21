@@ -368,13 +368,13 @@
   .kb-input {
     flex: 1; max-width: 280px;
     padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
-    background: #fff; border: 1px solid var(--border-strong); border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 4px;
     outline: none; transition: border-color 0.15s;
   }
   .kb-input:focus { border-color: var(--brand); }
   .kb-load {
     display: flex; align-items: center; gap: 5px;
-    background: var(--brand); color: #fff;
+    background: var(--brand); color: var(--text-inverse);
     border: 1px solid var(--brand); border-radius: 4px;
     padding: 6px 14px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
@@ -387,7 +387,7 @@
   .file-pick {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 6px 12px; font-size: var(--fs-12); color: var(--text-primary);
-    background: #fff; border: 1px dashed var(--text-muted); border-radius: 4px;
+    background: var(--bg-card); border: 1px dashed var(--text-muted); border-radius: 4px;
     cursor: pointer; transition: all 0.15s;
   }
   .file-pick:hover { border-color: var(--brand); color: var(--brand); background: var(--bg-page); }
@@ -401,7 +401,7 @@
   .btn-upload:disabled { opacity: 0.6; cursor: not-allowed; }
   .btn-clear {
     padding: 6px 10px; font-size: var(--fs-12); cursor: pointer;
-    color: var(--text-secondary); background: #fff;
+    color: var(--text-secondary); background: var(--bg-card);
     border: 1px solid var(--border-strong); border-radius: 4px; transition: all 0.15s;
   }
   .btn-clear:hover { border-color: var(--text-muted); }
@@ -426,7 +426,7 @@
   .dash-nodata { color: var(--text-secondary); }
   .dash-err { color: var(--danger); }
   .dash-retry {
-    margin-left: 10px; background: #fff; color: var(--brand);
+    margin-left: 10px; background: var(--bg-card); color: var(--brand);
     border: 1px solid var(--border-strong); border-radius: 4px;
     padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
@@ -490,7 +490,7 @@
   /* 批量删除(表格上方) */
   .batch-del-bar { display: none; align-items: center; gap: 8px; margin: 0 0 8px; padding: 6px 10px; background: var(--bg-hover, var(--bg-page)); border: 1px solid var(--border, var(--border)); border-radius: 6px; font-size: var(--fs-12); font-weight: 600; }
   .batch-del-bar.show { display: flex; }
-  .batch-del-bar .btn-del { padding: 3px 10px; font-size: var(--fs-12); border: none; border-radius: 4px; background: var(--danger, var(--danger)); color: #fff; cursor: pointer; }
+  .batch-del-bar .btn-del { padding: 3px 10px; font-size: var(--fs-12); border: none; border-radius: 4px; background: var(--danger, var(--danger)); color: var(--text-inverse); cursor: pointer; }
   .batch-del-bar .btn-del:hover:not(:disabled) { background: var(--danger-fg); }  /* hover保持红色加深, 不被bg-hover覆盖 */
   .batch-del-bar .btn-del:disabled { opacity: .5; cursor: not-allowed; }
   .row-selected { background: var(--bg-selected, #eff4ff) !important; }

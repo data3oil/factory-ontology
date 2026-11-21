@@ -246,7 +246,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .eval-kb input {
     width: 180px; padding: 7px 10px; font-size: var(--fs-13);
     border: 1px solid var(--border-strong); border-radius: 4px;
-    background: #fff; color: var(--text-primary); outline: none;
+    background: var(--bg-card); color: var(--text-primary); outline: none;
     transition: border-color 0.15s;
   }
   .eval-kb input:focus { border-color: var(--brand); }
@@ -257,13 +257,13 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
     cursor: pointer; transition: all 0.15s;
   }
   .mode-btn:hover { background: var(--border); }
-  .mode-btn.mode-on { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .mode-btn.mode-on { background: var(--brand); color: var(--text-inverse); border-color: var(--brand); }
   .eval-hint { font-size: var(--fs-11); color: var(--text-secondary); }
   .bench-ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .iso-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
   .btn-run {
-    background: var(--brand); color: #fff;
+    background: var(--brand); color: var(--text-inverse);
     border: none; border-radius: 4px;
     padding: 8px 16px; font-size: var(--fs-13); font-weight: 600;
     cursor: pointer; transition: background 0.15s;
@@ -277,7 +277,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .iso-input {
     width: 100%; padding: 10px 12px; font-size: var(--fs-13); line-height: 1.6;
     border: 1px solid var(--border-strong); border-radius: 4px;
-    background: #fff; color: var(--text-primary); outline: none; resize: vertical;
+    background: var(--bg-card); color: var(--text-primary); outline: none; resize: vertical;
     transition: border-color 0.15s; font-family: inherit;
   }
   .iso-input:focus { border-color: var(--brand); }
@@ -300,11 +300,11 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-line-sm { height: 12px; width: 30%; }
   .skel-card {
-    border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card);
     padding: 14px; display: flex; flex-direction: column; gap: 12px;
   }
   .eval-retry {
-    margin-left: 10px; background: #fff; color: var(--brand);
+    margin-left: 10px; background: var(--bg-card); color: var(--brand);
     border: 1px solid var(--border-strong); border-radius: 4px;
     padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
@@ -316,7 +316,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .mini-card {
     position: relative; overflow: hidden;
-    background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
     padding: 16px 12px 12px; text-align: center;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
@@ -350,7 +350,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   }
   .iso-count { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
   .qa-list { display: flex; flex-direction: column; gap: 8px; }
-  .qa-item { background: #fff; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .qa-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .qa-q {
     padding: 8px 12px; background: var(--bg-elevated);
     font-size: var(--fs-13); font-weight: 600; color: var(--text-primary);

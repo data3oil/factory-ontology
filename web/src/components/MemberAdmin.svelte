@@ -212,7 +212,7 @@
   .btn-primary {
     background: var(--brand);
     border-color: var(--brand);
-    color: #fff;
+    color: var(--text-inverse);
   }
   .add {
     display: flex;

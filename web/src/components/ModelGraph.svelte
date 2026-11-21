@@ -247,7 +247,7 @@
   .mg-echarts {
     width: 100%; height: 540px;
     border: 1px solid var(--border); border-radius: 8px;
-    background: #ffffff;
+    background: var(--bg-card);
   }
 
   .mg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: var(--fs-11); color: var(--text-secondary); align-items: center; }

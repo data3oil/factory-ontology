@@ -2037,17 +2037,17 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     background: transparent; color: var(--txt-sub); cursor: pointer; transition: all .15s;
   }
   .login-tab:hover { color: var(--txt); }
-  .login-tab.on { background: var(--brand); color: #fff; box-shadow: 0 2px 6px rgba(13,148,136,.3); }
+  .login-tab.on { background: var(--brand); color: var(--text-inverse); box-shadow: 0 2px 6px rgba(13,148,136,.3); }
   .login-input {
     width: 100%; margin-bottom: 12px; padding: 11px 13px; font-size: var(--fs-14);
-    background: #fff; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--txt); outline: none;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--txt); outline: none;
     transition: border-color .15s, box-shadow .15s;
   }
   .login-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
   .login-err { margin-bottom: 10px; font-size: var(--fs-12); color: var(--err); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 7px 10px; }
   .login-btn {
     width: 100%; padding: 12px; border: none; border-radius: 8px;
-    background: var(--brand); color: #fff; font-size: var(--fs-14); font-weight: 700; letter-spacing: 2px;
+    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-14); font-weight: 700; letter-spacing: 2px;
     cursor: pointer; transition: background .15s, transform .05s;
   }
   .login-btn:hover:not(:disabled) { background: var(--brand-dark); }
@@ -2075,7 +2075,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .onboard-industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
   .ob-industry {
     display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px;
-    background: #fff; border: 1px solid var(--line-soft); border-radius: 8px; cursor: pointer;
+    background: var(--bg-card); border: 1px solid var(--line-soft); border-radius: 8px; cursor: pointer;
     transition: all .15s;
   }
   .ob-industry:hover { border-color: var(--brand); background: var(--brand-soft); }
@@ -2101,7 +2101,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .toolbar {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 18px;
-    background: #ffffff;
+    background: var(--bg-card);
     border-bottom: 1px solid var(--border);
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     flex-shrink: 0;
@@ -2111,7 +2111,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .model-select { display: flex; align-items: center; gap: 6px; font-size: var(--fs-11); color: var(--text-secondary); }
   .model-label { font-weight: 600; }
   .model-select select {
-    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
     padding: 4px 8px; font-size: var(--fs-12); color: var(--text-primary); cursor: pointer;
   }
   .model-select select:focus { outline: none; border-color: var(--brand); }
@@ -2136,7 +2136,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 企业设置按钮 ─── */
   .ent-btn {
     display: inline-flex; align-items: center; gap: 5px;
-    background: #fff; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px;
     padding: 6px 12px; font-size: var(--fs-12); font-weight: 600; cursor: pointer;
     transition: all 0.15s; white-space: nowrap;
   }
@@ -2237,7 +2237,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .pane-full {
     grid-column: 1 / -1;
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1px solid var(--border); border-radius: 4px;
     display: flex; flex-direction: column; min-height: 0;
   }
@@ -2247,7 +2247,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .query-body { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 
   .pane {
-    background: #ffffff;
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 4px;
     display: flex; flex-direction: column;
@@ -2272,7 +2272,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     background: var(--brand-soft); color: var(--brand); cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
-  .pane-title .btn-model-toggle:hover { background: var(--brand); color: #fff; }
+  .pane-title .btn-model-toggle:hover { background: var(--brand); color: var(--text-inverse); }
 
   /* ─── 左栏表单 ─── */
   .pane-left { padding: 14px; gap: 14px; overflow-y: auto; }
@@ -2329,7 +2329,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .browse-nav { display: flex; flex-direction: column; gap: 4px; }
   .browse-up {
     align-self: flex-start; border: 1px solid var(--border-strong); border-radius: 3px;
-    background: #fff; color: var(--accent); font-size: var(--fs-12); cursor: pointer;
+    background: var(--bg-card); color: var(--accent); font-size: var(--fs-12); cursor: pointer;
     padding: 3px 8px; transition: background 0.15s;
   }
   .browse-up:hover { background: var(--brand-soft); }
@@ -2370,7 +2370,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .db-row .form-group { flex: 1; }
   .db-port { flex: 0 0 90px; }
   .db-input {
-    width: 100%; background: #fff; border: 1px solid var(--border-strong);
+    width: 100%; background: var(--bg-card); border: 1px solid var(--border-strong);
     border-radius: 4px; padding: 7px 10px; font-size: var(--fs-12); color: var(--text-primary);
     outline: none; transition: border-color 0.15s;
   }
@@ -2425,7 +2425,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     border: 1px solid var(--brand); border-radius: 4px; padding: 4px 10px; margin-left: auto;
     white-space: nowrap; transition: background 0.15s;
   }
-  .file-input:hover .file-upload-btn { background: var(--brand); color: #fff; }
+  .file-input:hover .file-upload-btn { background: var(--brand); color: var(--text-inverse); }
   .file-selected { display: flex; flex-direction: column; gap: 6px; }
   .file-selected-title { font-size: var(--fs-11); font-weight: 600; color: var(--text-secondary); }
   .file-selected-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2437,7 +2437,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   .btn-action {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    background: var(--brand); color: #fff;
+    background: var(--brand); color: var(--text-inverse);
     border: none; border-radius: 4px;
     padding: 10px 16px; font-size: var(--fs-13); font-weight: 600;
     cursor: pointer; transition: background 0.15s;
@@ -2473,7 +2473,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ind-select { display: flex; align-items: center; gap: 6px; font-size: var(--fs-11); color: var(--text-secondary); }
   .ind-label { font-weight: 600; white-space: nowrap; }
   .ind-select select {
-    background: #fff; border: 1px solid var(--border-strong); border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 4px;
     padding: 5px 8px; font-size: var(--fs-12); color: var(--text-primary); cursor: pointer; outline: none;
   }
   .ind-select select:focus { border-color: var(--brand); }
@@ -2493,7 +2493,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .pane-right { padding: 14px; gap: 12px; }
   .query-bar { display: flex; gap: 8px; }
   .query-input {
-    flex: 1; background: #fff; border: 1px solid var(--border-strong);
+    flex: 1; background: var(--bg-card); border: 1px solid var(--border-strong);
     border-radius: 4px; padding: 9px 12px;
     font-size: var(--fs-14); color: var(--text-primary); outline: none;
     transition: border-color 0.15s;
@@ -2502,7 +2502,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .query-input:disabled { background: var(--bg-page); }
 
   .btn-query {
-    background: var(--text-primary); color: #fff; border: none; border-radius: 4px;
+    background: var(--text-primary); color: var(--text-inverse); border: none; border-radius: 4px;
     padding: 9px 20px; font-size: var(--fs-13); font-weight: 600; cursor: pointer;
     transition: background 0.15s;
   }
@@ -2581,7 +2581,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .std-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .std-btn {
     font-size: var(--fs-12); padding: 5px 12px; cursor: pointer; border-radius: var(--radius-sm);
-    background: var(--brand); color: #fff; border: 1px solid var(--brand);
+    background: var(--brand); color: var(--text-inverse); border: 1px solid var(--brand);
   }
   .std-btn:disabled { background: var(--text-muted); border-color: var(--text-muted); cursor: not-allowed; }
   .std-btn.ghost { background: var(--bg-card); color: var(--brand); border-color: var(--brand-line); }
@@ -2650,7 +2650,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .skel-line-md { height: 14px; width: 70%; }
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-card {
-    border: 1px solid var(--line-soft); border-radius: 6px; background: #fff;
+    border: 1px solid var(--line-soft); border-radius: 6px; background: var(--bg-card);
     padding: 14px; display: flex; flex-direction: column; gap: 12px;
   }
   .skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -2686,7 +2686,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 底部状态栏 ─── */
   .statusbar {
     display: flex; justify-content: space-between;
-    padding: 5px 18px; background: #ffffff;
+    padding: 5px 18px; background: var(--bg-card);
     border-top: 1px solid var(--border);
     font-size: var(--fs-11); color: var(--text-muted);
     flex-shrink: 0;
@@ -2701,7 +2701,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .ent-modal {
     width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
-    background: #ffffff; border-radius: 12px;
+    background: var(--bg-card); border-radius: 12px;
     box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
     display: flex; flex-direction: column;
   }
@@ -2730,7 +2730,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ent-logo-btns { display: flex; gap: 8px; align-items: center; }
   .ent-upload {
     display: inline-flex; align-items: center; gap: 4px;
-    background: var(--brand); color: #fff; border-radius: 6px;
+    background: var(--brand); color: var(--text-inverse); border-radius: 6px;
     padding: 5px 10px; font-size: var(--fs-12); font-weight: 600; cursor: pointer;
     transition: background 0.15s;
   }
@@ -2834,12 +2834,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     }
     /* 登录页在深色模式下仍用浅色品牌卡：白卡+深字，避免半深半浅的输入框 */
     .login-page { background: linear-gradient(160deg,var(--brand-soft) 0%,var(--brand-soft) 55%,var(--accent-soft) 100%); }
-    .login-card { background:#FFFFFF; border-color:var(--border); }
+    .login-card { background: var(--bg-card); border-color:var(--border); }
     .login-title { color:var(--text-primary); }
     .login-sub, .login-hint, .login-legal { color:var(--text-secondary); }
     .login-points li { color:var(--text-secondary); }
     .login-tabs { background:var(--bg-elevated); border-color:var(--border); }
     .login-tab { color:var(--text-secondary); }
-    .login-input { background:#FFFFFF; color:var(--text-primary); border-color:var(--border-strong); }
+    .login-input { background: var(--bg-card); color:var(--text-primary); border-color:var(--border-strong); }
   }
 </style>
