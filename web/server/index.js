@@ -1487,7 +1487,7 @@ function ontologyFresh(dir, kb) {
   }
 });
 
-server.listen(PORT, '0.0.0.0', async () => {
+server.listen(PORT, process.env.HOST || '127.0.0.1', async () => {
   console.log(`工厂本体问答服务已启动: http://localhost:${PORT}`);
   // 启动自检：后端 key 不通时，建模/问答会全部 401，而用户看到的是"登录过期"——
   // 这类误导排查成本极高，启动时就把真因打到控制台。
