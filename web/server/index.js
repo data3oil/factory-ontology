@@ -3,7 +3,7 @@
 import { createServer } from 'http';
 import { readFileSync, existsSync, statSync, readdirSync } from 'fs';
 import { join as pathJoin } from 'path';
-import { extname, join, dirname } from 'path';
+import { extname, join, dirname, resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { setupOntology, askOntology, statsOntology, lineInfo, schemaOntology, graphOntology, analyzeOntology, getModel, setModel, getModels, saveModels, listExamples, readExample, setupOntologyMulti, dbSetup, browse, readDataFile, getCurrentKb, setCurrentKb, listKbs, listIndustries, buildIndustry, evalBenchmark, evalIsolate, knowledgeList, assetsList, assetsSnapshot, assetsRollback, suggestOntologySchema, confirmOntologySchema, knowledgeIngest, knowledgeDelete, knowledgeQuery, getEnterprise, saveEnterprise, resetKb, standardCompliance, standardExport, standardDownload, standardRoundtrip, standardImportAlign, standardQuality, lexiconExportRaw, lexiconImport, industryList, industryCandidates, industryAbsorb, listDrives, listDirs, selfmodelCandidates, validateDataDir, selfOnboard, backendConfig, evolvePending, evolveConfirm, evolveReject, evolveRollback, evolveHistory, evolveTrigger, axiomsGet, axiomsSave, axiomsSeed, axiomsReason, KIT_DIR } from './ontology.js';
 import { login as authLogin, logout as authLogout, me as authMe, createUser, updateUser, listUsers, seedUsersIfEmpty, restoreSessions, loginAs } from './auth.js';
@@ -1451,9 +1451,23 @@ function ontologyFresh(dir, kb) {
   }
 
   // ── 静态服务 public/ ──
+  // 安全：先规范化，再断言目标仍在 DIST_DIR 内。BFF 监听 0.0.0.0（局域网可达），
+  // 之前 join(DIST_DIR, url) 会把 ../ 折叠出去——实测 GET /../package.json 能读到 web/package.json，
+  // GET /../../config/base.json 能读到应用对基座的明文 token。
   let path = url === '/' ? '/index.html' : url;
   if (!extname(path)) path = '/index.html';
-  const filePath = join(DIST_DIR, path.replace(/^\/+/, ''));
+  let filePath;
+  try {
+    const rel = decodeURIComponent(path).replace(/^\/+/, '').replace(/\\/g, '/');
+    filePath = resolve(DIST_DIR, rel);
+  } catch (e) {
+    writeErr(400, { ok: false, error: 'bad_path' });
+    return;
+  }
+  if (filePath !== DIST_DIR && !filePath.startsWith(DIST_DIR + sep)) {
+    writeErr(403, { ok: false, error: 'forbidden_path' });
+    return;
+  }
   if (existsSync(filePath) && !existsSync(filePath + '.map')) {
     const ext = extname(filePath);
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
