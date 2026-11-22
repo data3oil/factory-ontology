@@ -131,11 +131,13 @@ const server = createServer(async (req, res) => {
     let cfg = {};
     try { cfg = JSON.parse(readFileSync(BASE_CFG, 'utf8')); }
     catch (e) { return { reason: 'disabled', why: 'config/base.json 不存在' }; }
-    if (!cfg.enabled || !cfg.token) return { reason: 'disabled' };
+    // 令牌优先级：环境变量 > config/base.json（环境变量是交付时的注入通道，不落明文文件）
+    const appToken = process.env.BASE_APP_TOKEN || cfg.token || '';
+    if (!cfg.enabled || !appToken) return { reason: 'disabled' };
     const base = (cfg.base_url || 'http://127.0.0.1:8790').replace(/\/+$/, '');
     const r = await fetch(base + '/cap/base.context_pack', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.token },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + appToken },
       body: JSON.stringify({ subject_iri: iri, task: '查看这个实体的企业上下文',
                              budget_tokens: 1200, domain: 'ontology' }),
     });
