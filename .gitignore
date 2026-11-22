@@ -157,3 +157,6 @@ codes/ask_service.py.bak_prefusion_*
 web/App.svelte.bak_preevidence_*
 web/src/components/SideNav.svelte.bak_preevidence_*
 web/server/index.js.bak_preevidence_*
+
+# 本机改前备份（不入库）
+_bak_frontend_*/
