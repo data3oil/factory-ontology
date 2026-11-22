@@ -149,26 +149,26 @@
   .ev-bar { display: flex; gap: 8px; align-items: center; }
   .ev-input {
     flex: 1; height: 34px; padding: 0 10px; font-size: var(--fs-13); color: var(--txt);
-    background: var(--bg-card); border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius-sm);
   }
   .ev-input:focus { outline: none; border-color: var(--brand); }
   .ev-btn {
     height: 34px; padding: 0 16px; font-size: var(--fs-13); cursor: pointer; color: var(--text-inverse);
-    background: var(--brand); border: 1px solid var(--brand); border-radius: 6px;
+    background: var(--brand); border: 1px solid var(--brand); border-radius: var(--radius-sm);
   }
   .ev-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .ev-verdict { margin-top: 10px; font-size: var(--fs-13); padding: 6px 10px; border-radius: 6px; }
+  .ev-verdict { margin-top: 10px; font-size: var(--fs-13); padding: 6px 10px; border-radius: var(--radius-sm); }
   .ev-verdict.ok { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-line); }
   .ev-verdict.warn { background: var(--warning-bg); color: var(--warning-fg); border: 1px solid #ecd9c2; }
   .ev-verdict.miss { background: var(--bg-elevated); color: var(--txt-sub); border: 1px solid var(--line); }
   .ev-err { margin-top: 10px; font-size: var(--fs-13); color: var(--danger-fg); }
   .ev-list { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .ev-item { background: var(--bg-card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .ev-item { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 10px 12px; }
   .ev-line { display: flex; align-items: center; gap: 8px; font-size: var(--fs-12); color: var(--txt-sub); }
   .ev-idx { width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%;
             background: var(--bg-elevated); color: var(--txt-sub); font-size: var(--fs-11); }
   .ev-path { color: var(--brand); font-weight: 600; }
-  .ev-date { padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; }
+  .ev-date { padding: 0 6px; border: 1px solid var(--line); border-radius: var(--radius-xs); }
   .ev-score { margin-left: auto; }
   .ev-heading { margin-top: 5px; font-size: var(--fs-13); color: var(--txt); }
   .ev-snippet { margin-top: 4px; font-size: var(--fs-13); color: var(--txt-sub); line-height: 1.7; }

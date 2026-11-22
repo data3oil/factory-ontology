@@ -44,7 +44,7 @@
     height: 26px;
     padding: 0 10px;
     font-size: var(--fs-12);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     white-space: nowrap;
     border: 1px solid var(--line);
     background: var(--bg-card);

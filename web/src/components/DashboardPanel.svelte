@@ -242,7 +242,7 @@
   /* 骨架屏 */
   @keyframes shimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
   .skel {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-subtle) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
@@ -343,7 +343,7 @@
   .ctx-q-err { color: var(--danger-fg); font-size: var(--fs-12); margin-top: 6px; }
   .ctx-q-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
   .ctx-badge {
-    display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: var(--fs-11);
+    display: inline-block; padding: 1px 8px; border-radius: var(--radius-md); font-size: var(--fs-11);
     background: var(--warning-bg); color: var(--warning-fg);
   }
   .ctx-badge.ok { background: var(--brand-soft); color: var(--brand); }

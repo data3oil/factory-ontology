@@ -183,7 +183,7 @@
   .badge {
     display: inline-block;
     padding: 1px 8px;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     font-size: var(--fs-12);
     background: var(--bg-hover);
     color: var(--txt-sub);
@@ -200,7 +200,7 @@
     padding: 4px 10px;
     font-size: var(--fs-12);
     border: 1px solid var(--border, var(--bg-hover));
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: var(--bg-hover);
     color: var(--txt);
     cursor: pointer;
@@ -225,7 +225,7 @@
     padding: 6px 8px;
     font-size: var(--fs-13);
     border: 1px solid var(--border, var(--bg-hover));
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: var(--bg);
     color: var(--txt);
   }

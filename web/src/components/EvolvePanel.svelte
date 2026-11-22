@@ -150,7 +150,7 @@
     background: var(--bg-subtle);
     color: #1f2d2a;
     border: 1px solid var(--brand-line);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 12px 14px;
     font-size: var(--fs-14);
     line-height: 1.5;
@@ -170,7 +170,7 @@
     border: 1px solid var(--brand-line);
     background: var(--bg-card);
     color: #1f2d2a;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 3px 10px;
     font-size: var(--fs-13);
     cursor: pointer;
@@ -182,8 +182,8 @@
   .btn.no { color: var(--danger-fg); border-color: var(--danger-line); }
   .btn.warn { background: #7c5cff; color: var(--text-inverse); border-color: #7c5cff; margin-top: 6px; }
   .btn.link { border: none; background: none; color: var(--brand); padding: 4px 0; }
-  .err { color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
-  .msg { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 6px; padding: 6px 10px; margin-top: 8px; }
+  .err { color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 8px; }
+  .msg { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 8px; }
   .list { margin-top: 8px; }
   .empty { color: var(--text-muted); padding: 10px 2px; }
   .row { border-bottom: 1px solid var(--brand-soft); }
@@ -193,7 +193,7 @@
   .cls {
     font-size: var(--fs-12);
     border: 1px solid var(--brand-line);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     padding: 1px 4px;
     background: var(--bg-card);
     color: #1f2d2a;
@@ -201,10 +201,10 @@
   }
   .caret { color: #7c5cff; font-size: var(--fs-12); margin-left: auto; }
   .sample { padding: 4px 2px 10px; }
-  .sample pre { background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: 6px; padding: 8px; margin: 0; font-size: var(--fs-12); overflow: auto; }
+  .sample pre { background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: var(--radius-sm); padding: 8px; margin: 0; font-size: var(--fs-12); overflow: auto; }
   .muted { color: var(--text-muted); font-size: var(--fs-12); }
   .foot { margin-top: 10px; }
-  .hist { margin-top: 6px; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: 6px; }
+  .hist { margin-top: 6px; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--brand-line); border-radius: var(--radius-sm); }
   .hrow { display: flex; gap: 10px; padding: 2px 0; }
   .hrow .k { color: var(--text-muted); min-width: 72px; }
   .hrow .v { color: #1f2d2a; }

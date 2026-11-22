@@ -95,7 +95,7 @@
 {/if}
 
 <style>
-  .ap { border: 1px solid var(--border, var(--border)); border-radius: 8px; font-size: var(--fs-13); }
+  .ap { border: 1px solid var(--border, var(--border)); border-radius: var(--radius-md); font-size: var(--fs-13); }
   .ap-summary { cursor: pointer; padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
   .ap-rule { color: var(--brand, #2563eb); font-weight: 600; }
   .ap-score { font-weight: 600; }
@@ -108,7 +108,7 @@
   .ap-cond li.ok { color: var(--text, var(--text-primary)); }
   .ap-mark { display: inline-block; width: 1.2em; }
   .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-  .ap-chip { background: var(--bg-elevated); border-radius: 999px; padding: 2px 10px; }
+  .ap-chip { background: var(--bg-elevated); border-radius: var(--radius-pill); padding: 2px 10px; }
   .ap-chip b { font-weight: 600; margin-right: 4px; color: var(--muted, var(--text-secondary)); }
   .ap-empty { color: var(--muted, var(--text-secondary)); }
 </style>

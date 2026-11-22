@@ -45,9 +45,9 @@
 {/if}
 
 <style>
-  .cites-wrap { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg-card); padding: 10px 12px; }
+  .cites-wrap { margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--bg-card); padding: 10px 12px; }
   .cites-head { display: flex; align-items: center; gap: 8px; font-size: var(--fs-13); color: var(--txt); font-weight: 600; }
-  .cites-badge { font-size: var(--fs-12); font-weight: 500; padding: 1px 7px; border-radius: 10px; }
+  .cites-badge { font-size: var(--fs-12); font-weight: 500; padding: 1px 7px; border-radius: var(--radius-md); }
   .cites-badge.ok { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-line); }
   .cites-badge.warn { background: var(--warning-bg); color: var(--warning-fg); border: 1px solid #ecd9c2; }
   .cites-badge.miss { background: var(--bg-elevated); color: var(--txt-sub); border: 1px solid var(--line); }
@@ -55,7 +55,7 @@
   .cites-row { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
   .cites-line { display: flex; align-items: center; gap: 8px; font-size: var(--fs-12); }
   .cites-path { color: var(--brand); font-weight: 600; }
-  .cites-date { color: var(--txt-sub); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+  .cites-date { color: var(--txt-sub); border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 0 5px; }
   .cites-title { margin-top: 3px; font-size: var(--fs-12); color: var(--txt); }
   .cites-snip { margin-top: 3px; font-size: var(--fs-12); color: var(--txt-sub); line-height: 1.7; }
 </style>

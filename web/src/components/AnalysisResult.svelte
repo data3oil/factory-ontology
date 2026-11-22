@@ -205,14 +205,14 @@
 <style>
   .analysis { display: flex; flex-direction: column; gap: 12px; }
   .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .mini-card { position:relative; overflow:hidden; background: var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:16px 12px 12px; text-align:center; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  .mini-card { position:relative; overflow:hidden; background: var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 12px 12px; text-align:center; box-shadow:var(--shadow-card); }
   .mini-card.alert { border-color:var(--danger); box-shadow:0 0 0 1px var(--danger); }
   .mc-accent { position:absolute; top:0; left:0; right:0; height:3px; }
   .mc-num { font-size:var(--fs-24); font-weight:700; line-height:1.1; font-family:monospace; }
   .mc-label { font-size:var(--fs-11); color:var(--text-secondary); margin-top:4px; }
 
   .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .chart-card { background:var(--bg-page); border:1px solid var(--border); border-radius:4px; padding:14px; }
+  .chart-card { background:var(--bg-page); border:1px solid var(--border); border-radius:var(--radius-xs); padding:14px; }
   .chart-title { font-size:var(--fs-12); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
 
   /* 环形 */
@@ -220,15 +220,15 @@
   .donut { width:120px; height:120px; flex-shrink:0; }
   .donut-legend { display:flex; flex-direction:column; gap:4px; font-size:var(--fs-11); color:var(--text-secondary); }
   .lg { display:flex; align-items:center; gap:6px; }
-  .lg-dot { width:8px; height:8px; border-radius:2px; }
+  .lg-dot { width:8px; height:8px; border-radius:var(--radius-xs); }
   .lg b { margin-left:auto; color:var(--text-primary); }
 
   /* 柱状 */
   .bars { display:flex; flex-direction:column; gap:7px; }
   .bar-row { display:flex; align-items:center; gap:8px; }
   .bar-label { width:62px; font-size:var(--fs-11); color:var(--text-secondary); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .bar-track { flex:1; height:14px; background:var(--border); border-radius:3px; overflow:hidden; }
-  .bar-fill { height:100%; border-radius:3px; transition:width .5s; min-width:2px; }
+  .bar-track { flex:1; height:14px; background:var(--border); border-radius:var(--radius-xs); overflow:hidden; }
+  .bar-fill { height:100%; border-radius:var(--radius-xs); transition:width .5s; min-width:2px; }
   .bar-val { width:24px; font-size:var(--fs-11); font-weight:600; color:var(--text-secondary); font-family:monospace; }
 
   /* 产线表 */
@@ -238,11 +238,11 @@
   .mono { font-family: monospace; }
   .trend-badge {
     display: inline-block; font-size: var(--fs-11); font-weight: 600;
-    padding: 2px 8px; border-radius: 10px; border: 1px solid;
+    padding: 2px 8px; border-radius: var(--radius-md); border: 1px solid;
   }
 
   /* 报告 */
-  .report { background: var(--bg-card); border:1px solid var(--border); border-radius:4px; padding:14px; }
+  .report { background: var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xs); padding:14px; }
   .report-title { font-size:var(--fs-13); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
   .report-body { font-size:var(--fs-12); color:var(--text-primary); line-height:1.7; }
   .r-h1 { font-size:var(--fs-15); color:var(--text-primary); margin:14px 0 6px; border-bottom:1px solid var(--border); padding-bottom:4px; }

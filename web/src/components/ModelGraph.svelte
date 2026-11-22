@@ -246,14 +246,14 @@
 
   .mg-echarts {
     width: 100%; height: 540px;
-    border: 1px solid var(--border); border-radius: 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
     background: var(--bg-card);
   }
 
   .mg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: var(--fs-11); color: var(--text-secondary); align-items: center; }
   .lg-title { color: var(--text-primary); font-weight: 600; }
   .lg-item { display: flex; align-items: center; gap: 5px; }
-  .lg-line { width: 20px; height: 2px; border-radius: 1px; }
+  .lg-line { width: 20px; height: 2px; border-radius: var(--radius-xs); }
 
   .mg-hint { font-size: var(--fs-11); color: var(--text-muted); }
 </style>

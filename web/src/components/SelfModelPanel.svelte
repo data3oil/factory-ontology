@@ -934,7 +934,7 @@
   .step {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 6px 14px; font-size: var(--fs-12); color: var(--text-secondary);
-    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 999px;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-pill);
   }
   .step-no {
     display: inline-flex; align-items: center; justify-content: center;

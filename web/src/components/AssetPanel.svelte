@@ -265,17 +265,17 @@
   .kb-tag {
     display: inline-flex; align-items: center;
     padding: 4px 12px; font-size: var(--fs-12); font-weight: 600; color: var(--brand);
-    background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 12px;
+    background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-lg);
   }
   .kb-input {
     flex: 1; max-width: 260px;
     padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
-    border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-card);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs); background: var(--bg-card);
     transition: border-color 0.15s;
   }
   .kb-input:focus { outline: none; border-color: var(--brand); }
   .btn-load {
-    background: var(--brand); color: var(--text-inverse); border: none; border-radius: 4px;
+    background: var(--brand); color: var(--text-inverse); border: none; border-radius: var(--radius-xs);
     padding: 6px 16px; font-size: var(--fs-13); cursor: pointer; transition: background 0.15s;
   }
   .btn-load:hover { background: var(--brand-dark); }
@@ -286,12 +286,12 @@
   .snap-input {
     flex: 1; max-width: 320px;
     padding: 6px 10px; font-size: var(--fs-13); color: var(--text-primary);
-    border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-card);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs); background: var(--bg-card);
     transition: border-color 0.15s;
   }
   .snap-input:focus { outline: none; border-color: var(--success); }
   .btn-snap {
-    background: var(--success-fg); color: var(--text-inverse); border: none; border-radius: 4px;
+    background: var(--success-fg); color: var(--text-inverse); border: none; border-radius: var(--radius-xs);
     padding: 6px 16px; font-size: var(--fs-13); cursor: pointer; transition: background 0.15s;
     white-space: nowrap;
   }

@@ -1816,18 +1816,18 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
       <div class="dashboard-body">
         {#if orchUp === true}
         <iframe title="本体编排层控制台" src={ORCH_URL}
-                style="width:100%;height:calc(100vh - 250px);border:1px solid var(--border);border-radius:12px;background:#fff"></iframe>
+                style="width:100%;height:calc(100vh - 250px);border:1px solid var(--border);border-radius:var(--radius-lg);background: var(--bg-card)"></iframe>
         {:else}
-        <div style="max-width:720px;padding:28px 30px;border:1px solid var(--border);border-radius:14px;background:var(--bg-subtle)">
+        <div style="max-width:720px;padding:28px 30px;border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--bg-subtle)">
           <div style="font-size:var(--fs-15);font-weight:600;color:var(--text-primary);margin-bottom:10px">
             {orchUp === null ? '正在探测编排层…' : '编排层未部署'}
           </div>
           {#if orchUp === false}
           <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height:1.9;margin:0">
-            这一项依赖一个独立的编排层服务（默认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px">http://{ORCH_HOST}:8010</code>），它不在本仓库里，当前这个端口没有响应。
+            这一项依赖一个独立的编排层服务（默认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:var(--radius-xs)">http://{ORCH_HOST}:8010</code>），它不在本仓库里，当前这个端口没有响应。
           </p>
           <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height:1.9;margin:8px 0 0">
-            如果你本机已经部署了它，先把服务起起来、确认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:4px">:8010/health</code> 有响应，再点下面的按钮重新探测。
+            如果你本机已经部署了它，先把服务起起来、确认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:var(--radius-xs)">:8010/health</code> 有响应，再点下面的按钮重新探测。
           </p>
           {/if}
           <div style="display:flex;align-items:center;gap:14px;margin-top:18px">
@@ -1957,7 +1957,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     /* ── 语义色（只给状态） ── */
 
     /* ── 圆角与阴影 ── */
-    --radius-lg: 10px; --radius-xl: 12px;
+    /* 圆角不再本地定义：用统一令牌 4/6/8/12/16（--radius-xs/sm/md/lg/xl） */
     --shadow-popover: 0 4px 16px rgba(15,23,42,.12);
 
     /* 兼容旧变量名（迁移过渡期） */
@@ -1972,10 +1972,12 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   :global(*) { box-sizing: border-box; }
   :global(body) {
     margin: 0;
-    font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg-page);
     color: var(--text-primary);
     min-height: 100vh;
+    font-size: var(--fs-14);
+    line-height: var(--lh-base);
   }
   :global(:focus-visible) { outline: 2px solid var(--brand-line); outline-offset: 1px; }
 
@@ -2003,14 +2005,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .login-card {
     position: relative; z-index: 1; width: 100%; max-width: 400px;
     background: var(--card); border: 1px solid var(--line);
-    border-radius: 14px; box-shadow: 0 18px 50px rgba(15,23,42,.12);
+    border-radius: var(--radius-xl); box-shadow: var(--shadow-pop);
     padding: 26px 30px 20px; display: flex; flex-direction: column;
     animation: fadeInUp .4s ease both;
   }
   .login-logo {
     width: 56px; height: 56px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;
     color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
   }
   .login-brand { margin: 0 0 6px; text-align: center; font-size: var(--fs-11); letter-spacing: .12em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
   .login-points { margin: 0 0 14px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
@@ -2031,22 +2033,22 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .login-title { margin: 8px 0 2px; text-align: center; font-size: var(--fs-22); font-weight: 800; color: var(--txt); letter-spacing: .3px; }
   .login-title .acc { color: var(--brand); }
   .login-sub { margin: 0 0 20px; text-align: center; font-size: var(--fs-12); color: var(--txt-sub); }
-  .login-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-elevated); border: 1px solid var(--line-soft); border-radius: 8px; padding: 4px; }
+  .login-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-elevated); border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 4px; }
   .login-tab {
-    flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: var(--fs-13); font-weight: 600;
+    flex: 1; padding: 8px; border: none; border-radius: var(--radius-sm); font-size: var(--fs-13); font-weight: 600;
     background: transparent; color: var(--txt-sub); cursor: pointer; transition: all .15s;
   }
   .login-tab:hover { color: var(--txt); }
   .login-tab.on { background: var(--brand); color: var(--text-inverse); box-shadow: 0 2px 6px rgba(13,148,136,.3); }
   .login-input {
     width: 100%; margin-bottom: 12px; padding: 11px 13px; font-size: var(--fs-14);
-    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--txt); outline: none;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--txt); outline: none;
     transition: border-color .15s, box-shadow .15s;
   }
   .login-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
-  .login-err { margin-bottom: 10px; font-size: var(--fs-12); color: var(--err); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 7px 10px; }
+  .login-err { margin-bottom: 10px; font-size: var(--fs-12); color: var(--err); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 7px 10px; }
   .login-btn {
-    width: 100%; padding: 12px; border: none; border-radius: 8px;
+    width: 100%; padding: 12px; border: none; border-radius: var(--radius-md);
     background: var(--brand); color: var(--text-inverse); font-size: var(--fs-14); font-weight: 700; letter-spacing: 2px;
     cursor: pointer; transition: background .15s, transform .05s;
   }
@@ -2062,11 +2064,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .onboard-card {
     width: 100%; max-width: 560px; background: var(--card); border: 1px solid var(--line);
-    border-radius: 14px; box-shadow: 0 14px 44px rgba(15,23,42,.10); padding: 28px;
+    border-radius: var(--radius-xl); box-shadow: var(--shadow-pop); padding: 28px;
     animation: fadeInUp .4s ease both;
   }
   .onboard-progress { display: flex; align-items: center; gap: 6px; margin-bottom: 22px; }
-  .ob-step { font-size: var(--fs-12); font-weight: 600; color: var(--txt-muted); padding: 4px 10px; border-radius: 999px; background: var(--bg-elevated); }
+  .ob-step { font-size: var(--fs-12); font-weight: 600; color: var(--txt-muted); padding: 4px 10px; border-radius: var(--radius-pill); background: var(--bg-elevated); }
   .ob-step.done { color: var(--ok); background: var(--success-bg); }
   .ob-step.cur { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-soft-bd); }
   .ob-arrow { color: var(--border-strong); font-size: var(--fs-12); }
@@ -2075,7 +2077,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .onboard-industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
   .ob-industry {
     display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px;
-    background: var(--bg-card); border: 1px solid var(--line-soft); border-radius: 8px; cursor: pointer;
+    background: var(--bg-card); border: 1px solid var(--line-soft); border-radius: var(--radius-md); cursor: pointer;
     transition: all .15s;
   }
   .ob-industry:hover { border-color: var(--brand); background: var(--brand-soft); }
@@ -2103,7 +2105,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     padding: 10px 18px;
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-card);
     flex-shrink: 0;
   }
   .toolbar-left { display: flex; align-items: center; gap: 12px; }
@@ -2111,17 +2113,17 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .model-select { display: flex; align-items: center; gap: 6px; font-size: var(--fs-11); color: var(--text-secondary); }
   .model-label { font-weight: 600; }
   .model-select select {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xs);
     padding: 4px 8px; font-size: var(--fs-12); color: var(--text-primary); cursor: pointer;
   }
   .model-select select:focus { outline: none; border-color: var(--brand); }
   .logo {
     font-size: var(--fs-22); line-height: 1;
     width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
-    background: var(--brand-soft); border: 1px solid var(--brand-soft-bd); border-radius: 8px;
+    background: var(--brand-soft); border: 1px solid var(--brand-soft-bd); border-radius: var(--radius-md);
   }
   .logo-img {
-    width: 32px; height: 32px; border-radius: 8px; object-fit: contain;
+    width: 32px; height: 32px; border-radius: var(--radius-md); object-fit: contain;
     background: var(--brand-soft); border: 1px solid var(--line-soft); padding: 2px;
   }
   .brand-name {
@@ -2129,14 +2131,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     display: flex; align-items: center; gap: 7px;
   }
   .brand-name::before {
-    content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--brand);
+    content: ''; width: 4px; height: 14px; border-radius: var(--radius-xs); background: var(--brand);
   }
   .brand-sub { font-size: var(--fs-11); color: var(--text-muted); letter-spacing: 0.4px; }
 
   /* ─── 企业设置按钮 ─── */
   .ent-btn {
     display: inline-flex; align-items: center; gap: 5px;
-    background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 6px 12px; font-size: var(--fs-12); font-weight: 600; cursor: pointer;
     transition: all 0.15s; white-space: nowrap;
   }
@@ -2173,7 +2175,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .card-head-btn.expanded { box-shadow: inset 3px 0 0 0 var(--brand); }
   .card-icon {
     font-size: var(--fs-18); flex-shrink: 0;
-    width: 34px; height: 34px; border-radius: 9px;
+    width: 34px; height: 34px; border-radius: var(--radius-md);
     display: flex; align-items: center; justify-content: center;
     background: var(--brand-soft); border: 1px solid var(--brand-line);
   }
@@ -2190,7 +2192,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .status-indicator {
     display: flex; align-items: center; gap: 8px;
     font-size: var(--fs-12); font-weight: 500;
-    padding: 5px 14px; border-radius: 4px;
+    padding: 5px 14px; border-radius: var(--radius-xs);
     border: 1px solid transparent;
     background: var(--bg-elevated);
   }
@@ -2220,7 +2222,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .tab:hover { color: var(--text-primary); background: var(--bg-hover); }
   .tab.active {
     background: var(--bg-card); color: var(--brand); font-weight: 700;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-hover);
   }
   .tab.active::after {
     content: ''; position: absolute; left: 14px; right: 14px; bottom: 0;
@@ -2238,7 +2240,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .pane-full {
     grid-column: 1 / -1;
     background: var(--bg-card);
-    border: 1px solid var(--border); border-radius: 4px;
+    border: 1px solid var(--border); border-radius: var(--radius-xs);
     display: flex; flex-direction: column; min-height: 0;
   }
   .dashboard-body { padding: 14px; overflow-y: auto; }
@@ -2249,7 +2251,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .pane {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     display: flex; flex-direction: column;
     min-height: 0;
   }
@@ -2268,7 +2270,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .pane-title .btn-model-toggle {
     margin-left: auto; font-size: var(--fs-12); font-weight: 600;
-    padding: 4px 12px; border-radius: 6px; border: 1px solid var(--brand-line);
+    padding: 4px 12px; border-radius: var(--radius-sm); border: 1px solid var(--brand-line);
     background: var(--brand-soft); color: var(--brand); cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
@@ -2282,11 +2284,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 多文件列表 ─── */
   .file-list {
     display: flex; flex-direction: column; gap: 6px;
-    border: 1px solid var(--border); border-radius: 4px; padding: 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 8px;
     background: var(--bg-page); max-height: 180px; overflow-y: auto;
   }
   .file-remove {
-    flex-shrink: 0; width: 18px; height: 18px; border: none; border-radius: 3px;
+    flex-shrink: 0; width: 18px; height: 18px; border: none; border-radius: var(--radius-xs);
     background: var(--danger-bg); color: var(--danger); cursor: pointer; font-size: var(--fs-11); line-height: 1;
     transition: background 0.15s;
   }
@@ -2300,7 +2302,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .example-empty { font-size: var(--fs-12); color: var(--text-muted); padding: 8px 2px; }
   .example-item {
     display: flex; align-items: center; gap: 6px; padding: 4px 6px;
-    border-radius: 3px; cursor: pointer; transition: background 0.15s;
+    border-radius: var(--radius-xs); cursor: pointer; transition: background 0.15s;
     border: 1px solid transparent;
   }
   .example-item:hover { background: var(--bg-elevated); }
@@ -2314,7 +2316,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .browse-toggle { justify-content: flex-start; }
   .browse-panel {
     display: flex; flex-direction: column; gap: 8px;
-    border: 1px solid var(--border); border-radius: 4px; padding: 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 10px;
     background: var(--bg-subtle);
   }
   .browse-hint { font-size: var(--fs-11); color: var(--text-secondary); }
@@ -2323,19 +2325,19 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .browse-current {
     font-size: var(--fs-11); color: var(--text-primary); font-weight: 600;
-    background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 3px;
+    background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-xs);
     padding: 4px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .browse-nav { display: flex; flex-direction: column; gap: 4px; }
   .browse-up {
-    align-self: flex-start; border: 1px solid var(--border-strong); border-radius: 3px;
+    align-self: flex-start; border: 1px solid var(--border-strong); border-radius: var(--radius-xs);
     background: var(--bg-card); color: var(--accent); font-size: var(--fs-12); cursor: pointer;
     padding: 3px 8px; transition: background 0.15s;
   }
   .browse-up:hover { background: var(--brand-soft); }
   .browse-dirs { display: flex; flex-wrap: wrap; gap: 4px; }
   .browse-dir {
-    border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-elevated);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs); background: var(--bg-elevated);
     color: var(--text-primary); font-size: var(--fs-12); cursor: pointer; padding: 2px 8px;
     transition: background 0.15s;
   }
@@ -2349,13 +2351,13 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .attr-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
   .attr-chip {
     background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand-line);
-    border-radius: 3px; padding: 3px 8px; font-size: var(--fs-11);
+    border-radius: var(--radius-xs); padding: 3px 8px; font-size: var(--fs-11);
     font-family: 'Consolas', monospace;
   }
 
   /* ─── 数据库接入折叠区 ─── */
   .db-collapse {
-    border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+    border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden;
   }
   .db-toggle {
     width: 100%; display: flex; align-items: center; gap: 8px;
@@ -2365,38 +2367,38 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .db-toggle:hover { background: var(--bg-elevated); color: var(--accent); }
   .db-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border); }
-  .db-hint { font-size: var(--fs-11); color: var(--text-secondary); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 4px; padding: 6px 10px; }
+  .db-hint { font-size: var(--fs-11); color: var(--text-secondary); background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: var(--radius-xs); padding: 6px 10px; }
   .db-row { display: flex; gap: 10px; }
   .db-row .form-group { flex: 1; }
   .db-port { flex: 0 0 90px; }
   .db-input {
     width: 100%; background: var(--bg-card); border: 1px solid var(--border-strong);
-    border-radius: 4px; padding: 7px 10px; font-size: var(--fs-12); color: var(--text-primary);
+    border-radius: var(--radius-xs); padding: 7px 10px; font-size: var(--fs-12); color: var(--text-primary);
     outline: none; transition: border-color 0.15s;
   }
   .db-input:focus { border-color: var(--brand); }
-  .db-result { border: 1px solid var(--border); border-radius: 4px; }
+  .db-result { border: 1px solid var(--border); border-radius: var(--radius-xs); }
   .db-result .model-head { border-bottom: none; }
   .db-result.db-err { border-color: var(--danger-line); background: var(--danger-bg); }
   .db-err-text { padding: 8px 12px; font-size: var(--fs-12); color: var(--danger-fg); line-height: 1.5; }
 
   /* ─── 模型配置管理 ─── */
   .m-edit {
-    border: 1px solid var(--border); border-radius: 4px; padding: 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 10px;
     display: flex; flex-direction: column; gap: 8px; background: var(--bg-subtle);
   }
   .m-edit-head { display: flex; align-items: center; gap: 10px; }
   .m-radio { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: var(--fs-12); }
   .m-active-tag {
     font-size: var(--fs-11); font-weight: 700; color: var(--success-fg);
-    background: var(--success-bg); border: 1px solid var(--success-line); border-radius: 3px; padding: 2px 8px;
+    background: var(--success-bg); border: 1px solid var(--success-line); border-radius: var(--radius-xs); padding: 2px 8px;
   }
   .m-key { flex: 1; font-size: var(--fs-11); color: var(--text-muted); font-family: 'Consolas', monospace; }
   .m-actions { display: flex; gap: 8px; }
 
   /* ─── 向量检索(embedding)模型 ─── */
   .m-embed {
-    border: 1px dashed var(--brand-line); border-radius: 4px; padding: 10px;
+    border: 1px dashed var(--brand-line); border-radius: var(--radius-xs); padding: 10px;
     display: flex; flex-direction: column; gap: 8px; background: var(--brand-soft);
   }
   .m-embed-title { font-size: var(--fs-12); font-weight: 700; color: var(--brand-dark); }
@@ -2410,7 +2412,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .file-upload-zone { display: flex; flex-direction: column; gap: 10px; }
   .file-input {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;   /* 中栏窄时按钮换行，不裁切 */
-    border: 1.5px dashed var(--border-strong); border-radius: 8px;
+    border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md);
     padding: 14px 16px; cursor: pointer; background: var(--bg-page);
     transition: border-color 0.15s, background 0.15s;
   }
@@ -2422,7 +2424,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .file-upload-hint { font-size: var(--fs-11); color: var(--text-secondary); }
   .file-upload-btn {
     font-size: var(--fs-12); font-weight: 600; color: var(--brand);
-    border: 1px solid var(--brand); border-radius: 4px; padding: 4px 10px; margin-left: auto;
+    border: 1px solid var(--brand); border-radius: var(--radius-xs); padding: 4px 10px; margin-left: auto;
     white-space: nowrap; transition: background 0.15s;
   }
   .file-input:hover .file-upload-btn { background: var(--brand); color: var(--text-inverse); }
@@ -2432,19 +2434,19 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .file-selected-chip {
     display: inline-flex; align-items: center; gap: 4px;
     background: var(--brand-soft); color: var(--brand-dark); border: 1px solid var(--brand-line);
-    border-radius: 4px; padding: 3px 8px; font-size: var(--fs-12);
+    border-radius: var(--radius-xs); padding: 3px 8px; font-size: var(--fs-12);
   }
 
   .btn-action {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     background: var(--brand); color: var(--text-inverse);
-    border: none; border-radius: 4px;
+    border: none; border-radius: var(--radius-xs);
     padding: 10px 16px; font-size: var(--fs-13); font-weight: 600;
     cursor: pointer; transition: background 0.15s;
   }
   .btn-action:hover:not(:disabled) { background: var(--brand-dark); }
   .btn-action:disabled { background: var(--text-muted); cursor: not-allowed; }
-  .btn-small { padding: 6px 12px; font-size: var(--fs-12); border-radius: 4px; }
+  .btn-small { padding: 6px 12px; font-size: var(--fs-12); border-radius: var(--radius-xs); }
 
   /* ─── 建模结果摘要 ─── */
   .model-summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 0; font-size: var(--fs-13); }
@@ -2457,7 +2459,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .model-files-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .model-file-chip {
     background: var(--bg-page); color: var(--text-primary); border: 1px solid var(--border);
-    border-radius: 3px; padding: 2px 8px; font-size: var(--fs-11);
+    border-radius: var(--radius-xs); padding: 2px 8px; font-size: var(--fs-11);
     font-family: 'Consolas', monospace;
   }
   .model-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px dashed var(--border); margin-top: 6px; }
@@ -2473,14 +2475,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ind-select { display: flex; align-items: center; gap: 6px; font-size: var(--fs-11); color: var(--text-secondary); }
   .ind-label { font-weight: 600; white-space: nowrap; }
   .ind-select select {
-    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-xs);
     padding: 5px 8px; font-size: var(--fs-12); color: var(--text-primary); cursor: pointer; outline: none;
   }
   .ind-select select:focus { border-color: var(--brand); }
   .btn-icon { font-size: var(--fs-14); }
 
   /* ─── 字段表 ─── */
-  .model-panel { border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .model-panel { border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; }
   .model-head {
     display: flex; justify-content: space-between; align-items: center;
     padding: 8px 12px; background: var(--bg-page);
@@ -2494,7 +2496,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .query-bar { display: flex; gap: 8px; }
   .query-input {
     flex: 1; background: var(--bg-card); border: 1px solid var(--border-strong);
-    border-radius: 4px; padding: 9px 12px;
+    border-radius: var(--radius-xs); padding: 9px 12px;
     font-size: var(--fs-14); color: var(--text-primary); outline: none;
     transition: border-color 0.15s;
   }
@@ -2502,7 +2504,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .query-input:disabled { background: var(--bg-page); }
 
   .btn-query {
-    background: var(--text-primary); color: var(--text-inverse); border: none; border-radius: 4px;
+    background: var(--text-primary); color: var(--text-inverse); border: none; border-radius: var(--radius-xs);
     padding: 9px 20px; font-size: var(--fs-13); font-weight: 600; cursor: pointer;
     transition: background 0.15s;
   }
@@ -2512,7 +2514,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .quick-bar { display: flex; gap: 6px; flex-wrap: wrap; }
   .quick-btn {
     background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border);
-    font-size: var(--fs-11); padding: 4px 10px; border-radius: 3px;
+    font-size: var(--fs-11); padding: 4px 10px; border-radius: var(--radius-xs);
     cursor: pointer; transition: all 0.15s;
   }
   .quick-btn:hover:not(:disabled) { background: var(--border); border-color: var(--border-strong); }
@@ -2520,7 +2522,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   /* ─── 结果区 ─── */
   .result-panel {
-    flex: 1; border: 1px solid var(--border); border-radius: 4px;
+    flex: 1; border: 1px solid var(--border); border-radius: var(--radius-xs);
     background: var(--bg-subtle); min-height: 220px;
     display: flex; flex-direction: column; overflow: hidden;
   }
@@ -2531,7 +2533,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .result-label { font-size: var(--fs-11); font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; }
   .result-scroll { flex: 1; overflow-y: auto; }
   .advisory-note {
-    margin: 8px 18px 0; padding: 8px 12px; border-radius: 8px;
+    margin: 8px 18px 0; padding: 8px 12px; border-radius: var(--radius-md);
     background: rgba(13,148,136,0.06); border: 1px solid rgba(13,148,136,0.18);
     font-size: var(--fs-13); line-height: 1.6; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
   }
@@ -2569,11 +2571,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .std-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
   .std-badge {
     font-size: var(--fs-14); font-weight: 700; font-family: ui-monospace, Consolas, monospace;
-    color: var(--text-muted); background: var(--bg-hover); border-radius: 4px; padding: 2px 10px;
+    color: var(--text-muted); background: var(--bg-hover); border-radius: var(--radius-xs); padding: 2px 10px;
   }
   .std-badge.ok { color: var(--brand); background: rgba(13, 148, 136, .12); }
   .std-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-  .std-chip { font-size: var(--fs-11); color: var(--text-secondary); background: var(--bg-elevated); border-radius: 4px; padding: 2px 8px; }
+  .std-chip { font-size: var(--fs-11); color: var(--text-secondary); background: var(--bg-elevated); border-radius: var(--radius-xs); padding: 2px 8px; }
   .std-chip.ok { background: rgba(16, 185, 129, .14); color: var(--success-fg); }
   .std-standards { font-size: var(--fs-11); color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
   .std-issue { font-size: var(--fs-11); color: var(--text-secondary); line-height: 1.6; }
@@ -2603,7 +2605,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .deep-toggle .deep-hint { color: var(--text-muted); font-size: var(--fs-11); }
   .recall-meta { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
   .recall-meta .rm {
-    background: var(--bg-elevated); color: var(--text-secondary); border-radius: 4px;
+    background: var(--bg-elevated); color: var(--text-secondary); border-radius: var(--radius-xs);
     padding: 1px 7px; font-size: var(--fs-11); line-height: 1.6;
   }
   .recall-meta .rm-strong { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
@@ -2641,7 +2643,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   /* ─── 骨架屏（问答/看板/评测/知识库加载占位）─── */
   .skel {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-page) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
@@ -2650,7 +2652,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .skel-line-md { height: 14px; width: 70%; }
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-card {
-    border: 1px solid var(--line-soft); border-radius: 6px; background: var(--bg-card);
+    border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--bg-card);
     padding: 14px; display: flex; flex-direction: column; gap: 12px;
   }
   .skel-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -2660,7 +2662,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .model-busy-overlay {
     position: relative; overflow: hidden;
     background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
-    border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    border-radius: var(--radius-md); padding: 12px 14px; display: flex; align-items: center; gap: 10px;
   }
   .model-busy-spin {
     width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%;
@@ -2701,8 +2703,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .ent-modal {
     width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
-    background: var(--bg-card); border-radius: 12px;
-    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+    background: var(--bg-card); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
     display: flex; flex-direction: column;
   }
   .ent-head {
@@ -2712,7 +2714,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .ent-title { flex: 1; font-size: var(--fs-15); font-weight: 700; color: var(--text-primary); }
   .ent-close {
-    width: 26px; height: 26px; border: none; border-radius: 6px;
+    width: 26px; height: 26px; border: none; border-radius: var(--radius-sm);
     background: var(--bg-elevated); color: var(--text-secondary); font-size: var(--fs-13); cursor: pointer;
     transition: background 0.15s;
   }
@@ -2720,7 +2722,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ent-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
   .ent-logo-row { display: flex; align-items: center; gap: 14px; }
   .ent-logo-preview {
-    width: 58px; height: 58px; border-radius: 12px;
+    width: 58px; height: 58px; border-radius: var(--radius-lg);
     background: var(--bg-elevated); border: 1px solid var(--border);
     object-fit: contain; display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -2730,7 +2732,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ent-logo-btns { display: flex; gap: 8px; align-items: center; }
   .ent-upload {
     display: inline-flex; align-items: center; gap: 4px;
-    background: var(--brand); color: var(--text-inverse); border-radius: 6px;
+    background: var(--brand); color: var(--text-inverse); border-radius: var(--radius-sm);
     padding: 5px 10px; font-size: var(--fs-12); font-weight: 600; cursor: pointer;
     transition: background 0.15s;
   }
@@ -2738,22 +2740,22 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ent-upload input { display: none; }
   .ent-mini {
     background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 10px; font-size: var(--fs-12); cursor: pointer;
+    border-radius: var(--radius-sm); padding: 5px 10px; font-size: var(--fs-12); cursor: pointer;
     transition: background 0.15s;
   }
   .ent-mini:hover { background: var(--border); color: var(--text-primary); }
   .ent-emoji-wrap { display: flex; flex-direction: column; gap: 6px; }
   .ent-emoji-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
   .ent-emoji {
-    aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px;
+    aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-md);
     background: var(--bg-subtle); font-size: var(--fs-18); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.12s;
   }
   .ent-emoji:hover { background: var(--brand-soft); border-color: var(--brand); }
   .ent-emoji.sel { background: var(--brand-soft); border-color: var(--brand); box-shadow: 0 0 0 2px rgba(13,148,136,.2); }
-  .ent-err { font-size: var(--fs-12); color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: 6px; padding: 7px 10px; }
-  .ent-ok { font-size: var(--fs-12); color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--success-line); border-radius: 6px; padding: 7px 10px; }
+  .ent-err { font-size: var(--fs-12); color: var(--danger-fg); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 7px 10px; }
+  .ent-ok { font-size: var(--fs-12); color: var(--success-fg); background: var(--success-bg); border: 1px solid var(--success-line); border-radius: var(--radius-sm); padding: 7px 10px; }
   .ent-foot {
     display: flex; justify-content: flex-end; gap: 10px;
     padding: 13px 16px; background: var(--bg-page);
@@ -2767,7 +2769,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-xs); }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
   /* ═══ 响应式断点（移动端适配）═══ */

@@ -245,7 +245,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .eval-kb-label { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .eval-kb input {
     width: 180px; padding: 7px 10px; font-size: var(--fs-13);
-    border: 1px solid var(--border-strong); border-radius: 4px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs);
     background: var(--bg-card); color: var(--text-primary); outline: none;
     transition: border-color 0.15s;
   }
@@ -253,7 +253,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .eval-modes { display: flex; gap: 4px; }
   .mode-btn {
     background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border);
-    border-radius: 4px; padding: 7px 12px; font-size: var(--fs-12); font-weight: 600;
+    border-radius: var(--radius-xs); padding: 7px 12px; font-size: var(--fs-12); font-weight: 600;
     cursor: pointer; transition: all 0.15s;
   }
   .mode-btn:hover { background: var(--border); }
@@ -264,7 +264,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
 
   .btn-run {
     background: var(--brand); color: var(--text-inverse);
-    border: none; border-radius: 4px;
+    border: none; border-radius: var(--radius-xs);
     padding: 8px 16px; font-size: var(--fs-13); font-weight: 600;
     cursor: pointer; transition: background 0.15s;
   }
@@ -276,9 +276,9 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .iso-label { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .iso-input {
     width: 100%; padding: 10px 12px; font-size: var(--fs-13); line-height: 1.6;
-    border: 1px solid var(--border-strong); border-radius: 4px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs);
     background: var(--bg-card); color: var(--text-primary); outline: none; resize: vertical;
-    transition: border-color 0.15s; font-family: inherit;
+    transition: border-color 0.15s; font-family: var(--font-sans);
   }
   .iso-input:focus { border-color: var(--brand); }
 
@@ -290,7 +290,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   /* 骨架屏 */
   @keyframes shimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
   .skel {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-subtle) 40%, var(--bg-elevated) 55%);
     background-size: 720px 100%; animation: shimmer 1.4s infinite linear;
   }
@@ -300,12 +300,12 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .skel-line-lg { height: 14px; width: 100%; }
   .skel-line-sm { height: 12px; width: 30%; }
   .skel-card {
-    border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card);
     padding: 14px; display: flex; flex-direction: column; gap: 12px;
   }
   .eval-retry {
     margin-left: 10px; background: var(--bg-card); color: var(--brand);
-    border: 1px solid var(--border-strong); border-radius: 4px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-xs);
     padding: 4px 12px; font-size: var(--fs-12); cursor: pointer;
     transition: all 0.15s;
   }
@@ -316,16 +316,16 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .mini-card {
     position: relative; overflow: hidden;
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 16px 12px 12px; text-align: center;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    box-shadow: var(--shadow-card);
   }
   .mc-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
   .mc-num { font-size: var(--fs-24); font-weight: 700; line-height: 1.1; font-family: 'Consolas', monospace; }
   .mc-label { font-size: var(--fs-11); color: var(--text-secondary); margin-top: 4px; }
 
   .score-card {
-    background: var(--bg-page); border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-xs);
     padding: 14px;
   }
   .score-head {
@@ -334,8 +334,8 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .score-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
   .score-verdict { font-size: var(--fs-12); font-weight: 600; }
   .score-elapsed { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
-  .score-track { height: 22px; background: var(--border); border-radius: 4px; overflow: hidden; }
-  .score-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; min-width: 2px; }
+  .score-track { height: 22px; background: var(--border); border-radius: var(--radius-xs); overflow: hidden; }
+  .score-fill { height: 100%; border-radius: var(--radius-xs); transition: width 0.5s ease; min-width: 2px; }
   .score-scale {
     display: flex; justify-content: space-between;
     font-size: var(--fs-11); color: var(--text-muted); margin-top: 4px; font-family: 'Consolas', monospace;
@@ -346,11 +346,11 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .iso-result { display: flex; flex-direction: column; gap: 10px; }
   .iso-head {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-xs);
   }
   .iso-count { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
   .qa-list { display: flex; flex-direction: column; gap: 8px; }
-  .qa-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .qa-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; }
   .qa-q {
     padding: 8px 12px; background: var(--bg-elevated);
     font-size: var(--fs-13); font-weight: 600; color: var(--text-primary);

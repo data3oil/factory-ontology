@@ -158,8 +158,8 @@
   .welcome-wrap { display: flex; justify-content: center; padding: 6px; }
   .welcome-svg {
     width: 100%; height: auto; max-width: 1160px;
-    border-radius: 10px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.35);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-pop);
     background: #050816;
   }
   .wm-title, .wm-sub { text-shadow: 0 0 18px rgba(56, 189, 248, 0.55); }

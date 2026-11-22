@@ -98,7 +98,7 @@
   .acct { position: relative; }
   .acct-btn {
     display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 4px;
-    background: none; border: 0; cursor: pointer; border-radius: 15px;
+    background: none; border: 0; cursor: pointer; border-radius: var(--radius-xl);
   }
   .acct-btn:hover { background: var(--bg-hover); }
   .acct-avatar {
@@ -108,15 +108,15 @@
   .acct-caret { font-size: var(--fs-11); color: var(--txt-muted); }
   .acct-menu {
     position: absolute; right: 0; top: 34px; width: 190px; z-index: 60;
-    background: var(--bg-card); border: 1px solid var(--line); border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(15,23,42,.14); padding: 6px;
+    background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-pop); padding: 6px;
   }
   .acct-head { padding: 6px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
   .acct-name { font-size: var(--fs-13); font-weight: 700; color: var(--txt); }
   .acct-org { font-size: var(--fs-11); color: var(--txt-muted); margin-top: 2px; }
   .acct-item {
     width: 100%; text-align: left; padding: 8px; font-size: var(--fs-13); color: var(--txt);
-    background: none; border: 0; border-radius: 6px; cursor: pointer;
+    background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
   }
   .acct-item:hover { background: var(--bg-hover); color: var(--danger-fg, var(--danger-fg)); }
   .bar {
