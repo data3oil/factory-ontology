@@ -1823,10 +1823,10 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
             {orchUp === null ? '正在探测编排层…' : '编排层未部署'}
           </div>
           {#if orchUp === false}
-          <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height:1.9;margin:0">
+          <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height: 1.6;margin:0">
             这一项依赖一个独立的编排层服务（默认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:var(--radius-xs)">http://{ORCH_HOST}:8010</code>），它不在本仓库里，当前这个端口没有响应。
           </p>
-          <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height:1.9;margin:8px 0 0">
+          <p style="font-size:var(--fs-13);color:var(--text-secondary);line-height: 1.6;margin:8px 0 0">
             如果你本机已经部署了它，先把服务起起来、确认 <code style="background:var(--bg-elevated);padding:1px 5px;border-radius:var(--radius-xs)">:8010/health</code> 有响应，再点下面的按钮重新探测。
           </p>
           {/if}
@@ -2014,11 +2014,11 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-soft-bd);
     border-radius: var(--radius-xl);
   }
-  .login-brand { margin: 0 0 6px; text-align: center; font-size: var(--fs-11); letter-spacing: .12em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+  .login-brand { margin: 0 0 6px; text-align: center; font-size: var(--fs-12); color: var(--text-muted); font-weight: 500; }
   .login-points { margin: 0 0 14px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
   .login-points li { position: relative; padding-left: 16px; font-size: var(--fs-12); color: var(--txt-sub); line-height: 1.5; }
   .login-points li::before { content: ''; position: absolute; left: 2px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--brand); opacity: .7; }
-  .login-legal { margin: 12px 0 0; text-align: center; font-size: var(--fs-11); color: var(--txt-muted); letter-spacing: .02em; }
+  .login-legal { margin: 12px 0 0; text-align: center; font-size: var(--fs-11); color: var(--txt-muted); }
   /* 矮屏（笔记本 720p 及以下）收紧纵向节奏，保证整卡含版权行一屏可见 */
   @media (max-height: 760px) {
     .login-card { padding: 18px 26px 14px; }
@@ -2030,7 +2030,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     .login-tabs { margin-bottom: 12px; }
     .login-legal { margin-top: 10px; }
   }
-  .login-title { margin: 8px 0 2px; text-align: center; font-size: var(--fs-22); font-weight: 800; color: var(--txt); letter-spacing: .3px; }
+  .login-title { margin: 8px 0 2px; text-align: center; font-size: var(--fs-20); font-weight: 600; color: var(--txt); line-height: var(--lh-tight); }
   .login-title .acc { color: var(--brand); }
   .login-sub { margin: 0 0 20px; text-align: center; font-size: var(--fs-12); color: var(--txt-sub); }
   .login-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-elevated); border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 4px; }
@@ -2041,21 +2041,22 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .login-tab:hover { color: var(--txt); }
   .login-tab.on { background: var(--brand); color: var(--text-inverse); box-shadow: 0 2px 6px rgba(13,148,136,.3); }
   .login-input {
-    width: 100%; margin-bottom: 12px; padding: 11px 13px; font-size: var(--fs-14);
+    /* 控件高度跟基座同档：表单类 38px（--ctl-h-lg），不再用 padding 撑 */
+    width: 100%; height: var(--ctl-h-lg); margin-bottom: 12px; padding: 0 12px; font-size: var(--fs-14);
     background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--txt); outline: none;
     transition: border-color .15s, box-shadow .15s;
   }
   .login-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
   .login-err { margin-bottom: 10px; font-size: var(--fs-12); color: var(--err); background: var(--danger-bg); border: 1px solid var(--danger-line); border-radius: var(--radius-sm); padding: 7px 10px; }
   .login-btn {
-    width: 100%; padding: 12px; border: none; border-radius: var(--radius-md);
-    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-14); font-weight: 700; letter-spacing: 2px;
+    width: 100%; height: var(--ctl-h-lg); padding: 0 12px; border: none; border-radius: var(--radius-md);
+    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-14); font-weight: 600;
     cursor: pointer; transition: background .15s, transform .05s;
   }
   .login-btn:hover:not(:disabled) { background: var(--brand-dark); }
   .login-btn:active:not(:disabled) { transform: translateY(1px); }
   .login-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
-  .login-hint { margin: 14px 0 0; text-align: center; font-size: var(--fs-11); color: var(--txt-muted); }
+  .login-hint { margin: 14px 0 0; text-align: center; font-size: var(--fs-12); color: var(--text-muted); }
 
   /* ─── 引导 onboarding ─── */
   .onboard-page {
@@ -2072,7 +2073,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .ob-step.done { color: var(--ok); background: var(--success-bg); }
   .ob-step.cur { color: var(--brand); background: var(--brand-soft); border: 1px solid var(--brand-soft-bd); }
   .ob-arrow { color: var(--border-strong); font-size: var(--fs-12); }
-  .onboard-title { margin: 0 0 6px; font-size: var(--fs-18); font-weight: 800; color: var(--txt); }
+  .onboard-title { margin: 0 0 6px; font-size: var(--fs-18); font-weight: 600; color: var(--txt); }
   .onboard-sub { margin: 0 0 18px; font-size: var(--fs-13); color: var(--txt-sub); line-height: 1.6; }
   .onboard-industries { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
   .ob-industry {
@@ -2127,13 +2128,13 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     background: var(--brand-soft); border: 1px solid var(--line-soft); padding: 2px;
   }
   .brand-name {
-    font-size: var(--fs-15); font-weight: 800; color: var(--txt); letter-spacing: 0.2px;
+    font-size: var(--fs-15); font-weight: 600; color: var(--txt);
     display: flex; align-items: center; gap: 7px;
   }
   .brand-name::before {
     content: ''; width: 4px; height: 14px; border-radius: var(--radius-xs); background: var(--brand);
   }
-  .brand-sub { font-size: var(--fs-11); color: var(--text-muted); letter-spacing: 0.4px; }
+  .brand-sub { font-size: var(--fs-11); color: var(--text-muted); }
 
   /* ─── 企业设置按钮 ─── */
   .ent-btn {
@@ -2183,7 +2184,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .card-icon.ic-db    { background: #f0f9ff; border-color: #e0f2fe; }
   .card-icon.ic-model { background: var(--accent-soft); border-color: var(--accent-soft); }
   .card-titles { flex: 1; display: flex; flex-direction: column; gap: 1px; }
-  .card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
+  .card-title { font-size: var(--fs-13); font-weight: 600; color: var(--text-primary); }
   .card-desc { font-size: var(--fs-11); color: var(--text-muted); }
   .card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
   .btn-example { background: var(--text-primary); }
@@ -2221,7 +2222,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   }
   .tab:hover { color: var(--text-primary); background: var(--bg-hover); }
   .tab.active {
-    background: var(--bg-card); color: var(--brand); font-weight: 700;
+    background: var(--bg-card); color: var(--brand); font-weight: 600;
     box-shadow: var(--shadow-hover);
   }
   .tab.active::after {
@@ -2258,15 +2259,14 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   /* ─── 页头（商用惯例：20px 标题 + 13px 副标题说明） ─── */
   .pane-title {
     padding: 14px 18px;
-    font-size: var(--fs-16); font-weight: 700; color: var(--text-primary);
+    font-size: var(--fs-16); font-weight: 600; color: var(--text-primary);
     background: var(--bg-elevated);
     border-bottom: 1px solid var(--border);
-    letter-spacing: 0.3px;
     flex-shrink: 0;
     display: flex; flex-direction: column; gap: 3px;
   }
   .pane-title .pane-sub {
-    font-size: var(--fs-12); font-weight: 400; color: var(--text-muted); letter-spacing: 0;
+    font-size: var(--fs-12); font-weight: 400; color: var(--text-muted);
   }
   .pane-title .btn-model-toggle {
     margin-left: auto; font-size: var(--fs-12); font-weight: 600;
@@ -2362,7 +2362,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .db-toggle {
     width: 100%; display: flex; align-items: center; gap: 8px;
     padding: 10px 12px; background: var(--bg-page); border: none;
-    font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); cursor: pointer;
+    font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); cursor: pointer;
     text-align: left; transition: background 0.15s;
   }
   .db-toggle:hover { background: var(--bg-elevated); color: var(--accent); }
@@ -2390,7 +2390,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .m-edit-head { display: flex; align-items: center; gap: 10px; }
   .m-radio { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: var(--fs-12); }
   .m-active-tag {
-    font-size: var(--fs-11); font-weight: 700; color: var(--success-fg);
+    font-size: var(--fs-11); font-weight: 600; color: var(--success-fg);
     background: var(--success-bg); border: 1px solid var(--success-line); border-radius: var(--radius-xs); padding: 2px 8px;
   }
   .m-key { flex: 1; font-size: var(--fs-11); color: var(--text-muted); font-family: 'Consolas', monospace; }
@@ -2401,7 +2401,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     border: 1px dashed var(--brand-line); border-radius: var(--radius-xs); padding: 10px;
     display: flex; flex-direction: column; gap: 8px; background: var(--brand-soft);
   }
-  .m-embed-title { font-size: var(--fs-12); font-weight: 700; color: var(--brand-dark); }
+  .m-embed-title { font-size: var(--fs-12); font-weight: 600; color: var(--brand-dark); }
 
   .file-icon { font-size: var(--fs-16); }
 
@@ -2450,7 +2450,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
 
   /* ─── 建模结果摘要 ─── */
   .model-summary { display: flex; align-items: center; gap: 8px; padding: 4px 12px 0; font-size: var(--fs-13); }
-  .sum-tables { font-weight: 700; color: var(--text-primary); }
+  .sum-tables { font-weight: 600; color: var(--text-primary); }
   .sum-fields { color: var(--brand); font-weight: 600; }
   .sum-ok { margin-left: auto; color: var(--success-fg); font-size: var(--fs-12); font-weight: 600; }
   .sum-sep { color: var(--text-muted); }
@@ -2488,7 +2488,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     padding: 8px 12px; background: var(--bg-page);
     border-bottom: 1px solid var(--border);
   }
-  .model-table { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); }
+  .model-table { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .model-count { font-size: var(--fs-11); color: var(--text-secondary); }
 
   /* ─── 右栏 ─── */
@@ -2530,7 +2530,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     padding: 7px 12px; background: var(--bg-page);
     border-bottom: 1px solid var(--border);
   }
-  .result-label { font-size: var(--fs-11); font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; }
+  .result-label { font-size: var(--fs-11); font-weight: 600; color: var(--text-secondary); }
   .result-scroll { flex: 1; overflow-y: auto; }
   .advisory-note {
     margin: 8px 18px 0; padding: 8px 12px; border-radius: var(--radius-md);
@@ -2550,8 +2550,8 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     font-size: var(--fs-13); line-height: 1.7; color: var(--text-primary);
     white-space: pre-wrap; word-break: break-word;
   }
-  .ans-body { padding: 14px; font-size: var(--fs-13); line-height: 1.8; color: var(--text-primary); }
-  :global(.ans-head) { font-weight: 700; color: var(--text-primary); margin: 6px 0 4px; }
+  .ans-body { padding: 14px; font-size: var(--fs-13); line-height: 1.6; color: var(--text-primary); }
+  :global(.ans-head) { font-weight: 600; color: var(--text-primary); margin: 6px 0 4px; }
   :global(.ans-list) { margin: 0 0 8px; padding-left: 20px; }
   :global(.ans-list li) { margin: 2px 0; }
   :global(.ans-table) { width: 100%; border-collapse: collapse; margin: 6px 0 10px; }
@@ -2568,9 +2568,9 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     border-radius: var(--radius-md); box-shadow: var(--shadow-card);
   }
   .std-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .std-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
+  .std-title { font-size: var(--fs-13); font-weight: 600; color: var(--text-primary); }
   .std-badge {
-    font-size: var(--fs-14); font-weight: 700; font-family: ui-monospace, Consolas, monospace;
+    font-size: var(--fs-14); font-weight: 600; font-family: ui-monospace, Consolas, monospace;
     color: var(--text-muted); background: var(--bg-hover); border-radius: var(--radius-xs); padding: 2px 10px;
   }
   .std-badge.ok { color: var(--brand); background: rgba(13, 148, 136, .12); }
@@ -2593,7 +2593,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
   .std-sub { font-size: var(--fs-11); color: var(--txt-muted); margin-left: 8px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .std-file { display: none; }
   .std-align { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
-  .std-align-head { font-size: var(--fs-11); font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+  .std-align-head { font-size: var(--fs-11); font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
 
   /* ─── 深度召回开关 + 召回元信息 ─── */
   .deep-toggle {
@@ -2712,7 +2712,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     padding: 14px 16px; background: var(--bg-page);
     border-bottom: 1px solid var(--bg-elevated);
   }
-  .ent-title { flex: 1; font-size: var(--fs-15); font-weight: 700; color: var(--text-primary); }
+  .ent-title { flex: 1; font-size: var(--fs-15); font-weight: 600; color: var(--text-primary); }
   .ent-close {
     width: 26px; height: 26px; border: none; border-radius: var(--radius-sm);
     background: var(--bg-elevated); color: var(--text-secondary); font-size: var(--fs-13); cursor: pointer;
@@ -2762,7 +2762,7 @@ setStatus('info', `正在用「${industry}」数据自动建模…`);
     border-top: 1px solid var(--bg-elevated);
   }
   .reset-modal { max-width: 420px; }
-  .reset-warn { font-size: var(--fs-14); font-weight: 700; color: var(--text-primary); }
+  .reset-warn { font-size: var(--fs-14); font-weight: 600; color: var(--text-primary); }
   .reset-desc { font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.7; }
   .btn-danger { background: var(--danger); }
   .btn-danger:hover:not(:disabled) { background: var(--danger-fg); }

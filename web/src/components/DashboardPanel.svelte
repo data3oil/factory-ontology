@@ -279,7 +279,7 @@
   .mini-card.lead .mc-accent { height: 4px; }
   .mini-card.lead .mc-num { font-size: var(--fs-28); }
   .mc-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .mc-num { font-size: var(--fs-24); font-weight: 700; line-height: 1.1; font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .mc-num { font-size: var(--fs-24); font-weight: 600; line-height: 1.3; font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-variant-numeric: tabular-nums; }
   .mc-label { font-size: var(--fs-11); color: var(--text-secondary); margin-top: 4px; }
 
   /* Charts */
@@ -288,7 +288,7 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 14px; box-shadow: var(--shadow-card);
   }
-  .chart-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
+  .chart-title { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
 
   .bars { display: flex; flex-direction: column; gap: 8px; }
   .bar-row { display: flex; align-items: center; gap: 8px; }

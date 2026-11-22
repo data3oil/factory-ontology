@@ -1,0 +1,54 @@
+/* 字体编排：与企业基座 base/web 同一声口（2026-11-22 对齐）
+ *
+ * 为什么单独一层：tokens.css 管颜色/圆角/间距/字号档位，但"标题用什么字重、
+ * 中文要不要加字距、正文行高多少"这类编排规则散在 20 多个组件的 scoped 样式里，
+ * 一处改口径就要改一片。这层给元素级默认值，组件只需要在偏离时覆盖。
+ *
+ * 口径来源（逐条对过 base/web/index.html）：
+ *   字重 400 / 500 / 600，不出现 700、800（基座只有 logo 字符是 700）
+ *   中文不加字距（letter-spacing: 0）
+ *   正文行高 1.6，标题 1.28（--lh-tight），数字 1.3 + tabular-nums
+ *   字号一律走 --fs-* 档位，不写字面量
+ */
+
+body {
+  font-size: var(--fs-14);
+  line-height: var(--lh-base);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: 0;
+}
+
+h1 { font-size: var(--fs-20); }
+h2 { font-size: var(--fs-18); }
+h3 { font-size: var(--fs-15); }
+h4, h5, h6 { font-size: var(--fs-14); }
+
+p { line-height: var(--lh-base); margin: 0; }
+
+/* 数字对齐：KPI、表格里的数值不抖 */
+.num,
+.kpi-v,
+.metric-value {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+/* 元信息：与基座 .sec-t / .row-meta 同口径（12px 弱化色） */
+.meta {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono-stack);
+  font-size: var(--fs-12);
+}

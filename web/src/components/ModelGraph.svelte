@@ -240,9 +240,9 @@
   .mg-err { color: var(--danger); }
 
   .mg-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: var(--fs-12); color: var(--text-secondary); }
-  .mg-cls { font-weight: 700; color: var(--text-secondary); }
+  .mg-cls { font-weight: 600; color: var(--text-secondary); }
   .mg-inst, .mg-obj, .mg-dp, .mg-graph { color: var(--brand); }
-  .mg-cur b { color: #3730a3; font-weight: 700; }
+  .mg-cur b { color: #3730a3; font-weight: 600; }
 
   .mg-echarts {
     width: 100%; height: 540px;

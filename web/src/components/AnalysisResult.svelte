@@ -208,12 +208,12 @@
   .mini-card { position:relative; overflow:hidden; background: var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 12px 12px; text-align:center; box-shadow:var(--shadow-card); }
   .mini-card.alert { border-color:var(--danger); box-shadow:0 0 0 1px var(--danger); }
   .mc-accent { position:absolute; top:0; left:0; right:0; height:3px; }
-  .mc-num { font-size:var(--fs-24); font-weight:700; line-height:1.1; font-family:monospace; }
+  .mc-num { font-size:var(--fs-24); font-weight: 600; line-height: 1.3; font-family:monospace; }
   .mc-label { font-size:var(--fs-11); color:var(--text-secondary); margin-top:4px; }
 
   .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .chart-card { background:var(--bg-page); border:1px solid var(--border); border-radius:var(--radius-xs); padding:14px; }
-  .chart-title { font-size:var(--fs-12); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+  .chart-title { font-size:var(--fs-12); font-weight: 600; color:var(--text-primary); margin-bottom:10px; }
 
   /* 环形 */
   .donut-wrap { display:flex; align-items:center; gap:14px; }
@@ -243,7 +243,7 @@
 
   /* 报告 */
   .report { background: var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-xs); padding:14px; }
-  .report-title { font-size:var(--fs-13); font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+  .report-title { font-size:var(--fs-13); font-weight: 600; color:var(--text-primary); margin-bottom:10px; }
   .report-body { font-size:var(--fs-12); color:var(--text-primary); line-height:1.7; }
   .r-h1 { font-size:var(--fs-15); color:var(--text-primary); margin:14px 0 6px; border-bottom:1px solid var(--border); padding-bottom:4px; }
   .r-h2 { font-size:var(--fs-13); color:var(--brand); margin:10px 0 4px; }

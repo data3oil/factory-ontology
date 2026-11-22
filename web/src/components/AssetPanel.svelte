@@ -330,7 +330,7 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
     padding: 14px; box-shadow: var(--shadow-card);
   }
-  .asset-card-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); margin-bottom: 12px; letter-spacing: 0.3px; }
+  .asset-card-title { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
   .asset-table { width: 100%; border-collapse: collapse; }
   .asset-table thead th {
     position: sticky; top: 0; z-index: 1;
@@ -357,7 +357,7 @@
   .row-active td { border-bottom-color: var(--brand-line); }
   .active-badge {
     display: inline-block;
-    font-size: var(--fs-11); font-weight: 700; color: var(--success-fg);
+    font-size: var(--fs-11); font-weight: 600; color: var(--success-fg);
     background: var(--success-bg); border: 1px solid var(--brand-line);
     border-radius: var(--radius-sm); padding: 2px 8px; white-space: nowrap;
   }

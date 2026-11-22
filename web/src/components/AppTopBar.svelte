@@ -103,7 +103,7 @@
   .acct-btn:hover { background: var(--bg-hover); }
   .acct-avatar {
     width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-12); font-weight: 700;
+    background: var(--brand); color: var(--text-inverse); font-size: var(--fs-12); font-weight: 600;
   }
   .acct-caret { font-size: var(--fs-11); color: var(--txt-muted); }
   .acct-menu {
@@ -112,7 +112,7 @@
     box-shadow: var(--shadow-pop); padding: 6px;
   }
   .acct-head { padding: 6px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
-  .acct-name { font-size: var(--fs-13); font-weight: 700; color: var(--txt); }
+  .acct-name { font-size: var(--fs-13); font-weight: 600; color: var(--txt); }
   .acct-org { font-size: var(--fs-11); color: var(--txt-muted); margin-top: 2px; }
   .acct-item {
     width: 100%; text-align: left; padding: 8px; font-size: var(--fs-13); color: var(--txt);

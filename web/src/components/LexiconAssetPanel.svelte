@@ -244,7 +244,7 @@
   }
   .la-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
   .la-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; background: var(--bg-card); display: flex; flex-direction: column; gap: 10px; }
-  .la-card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
+  .la-card-title { font-size: var(--fs-13); font-weight: 600; color: var(--text-primary); }
   .la-desc { margin: 0; font-size: var(--fs-12); line-height: 1.7; color: var(--text-secondary); }
   .la-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .la-btn {
@@ -265,6 +265,6 @@
   .la-table td { padding: 6px 8px; border-bottom: 1px solid var(--bg-elevated); color: var(--text-primary); }
   .la-words { color: var(--text-secondary); }
   .la-empty { color: var(--text-muted); text-align: center; padding: 12px 0; }
-  .la-hot { color: var(--danger-fg); font-weight: 700; }
+  .la-hot { color: var(--danger-fg); font-weight: 600; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 </style>

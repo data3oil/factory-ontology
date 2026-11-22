@@ -939,7 +939,7 @@
   .step-no {
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px; border-radius: 50%;
-    font-size: var(--fs-11); font-weight: 700; color: var(--text-inverse); background: var(--text-muted);
+    font-size: var(--fs-11); font-weight: 600; color: var(--text-inverse); background: var(--text-muted);
   }
   .step-on { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line); }
   .step-on .step-no { background: var(--brand); }
@@ -955,7 +955,7 @@
   .card-confirm { border-color: var(--brand-line); background: var(--brand-soft); }
   .card-hier { border-color: var(--brand-line); }
   .card-done { border-color: var(--brand-line); }
-  .card-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+  .card-title { font-size: var(--fs-13); font-weight: 600; color: var(--text-primary); }
   .title-sub { margin-left: 8px; font-size: var(--fs-11); font-weight: 500; color: var(--text-muted); }
   .card-desc { font-size: var(--fs-12); color: var(--text-secondary); line-height: 1.7; }
 
@@ -1093,7 +1093,7 @@
     border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card);
     padding: 14px; display: flex; flex-direction: column; gap: 10px;
   }
-  .modal-title { font-size: var(--fs-13); font-weight: 700; color: var(--text-primary); }
+  .modal-title { font-size: var(--fs-13); font-weight: 600; color: var(--text-primary); }
   .drives { display: flex; flex-wrap: wrap; gap: 6px; }
   .crumb {
     display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: var(--fs-12);

@@ -359,7 +359,7 @@
   .kp-notice.err { color: var(--danger-fg); background: var(--danger-bg); border-color: var(--danger-line); }
 
   .kb-bar { display: flex; align-items: center; gap: 8px; }
-  .kb-label { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); }
+  .kb-label { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .kb-tag {
     display: inline-flex; align-items: center;
     padding: 4px 12px; font-size: var(--fs-12); font-weight: 600; color: var(--brand);

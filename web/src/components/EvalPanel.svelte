@@ -321,7 +321,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
     box-shadow: var(--shadow-card);
   }
   .mc-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .mc-num { font-size: var(--fs-24); font-weight: 700; line-height: 1.1; font-family: 'Consolas', monospace; }
+  .mc-num { font-size: var(--fs-24); font-weight: 600; line-height: 1.3; font-family: 'Consolas', monospace; }
   .mc-label { font-size: var(--fs-11); color: var(--text-secondary); margin-top: 4px; }
 
   .score-card {
@@ -331,7 +331,7 @@ pct >= 80 ? '命中表现良好' : pct >= 60 ? '命中表现中等' : '命中偏
   .score-head {
     display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
   }
-  .score-title { font-size: var(--fs-12); font-weight: 700; color: var(--text-primary); letter-spacing: 0.3px; }
+  .score-title { font-size: var(--fs-12); font-weight: 600; color: var(--text-primary); }
   .score-verdict { font-size: var(--fs-12); font-weight: 600; }
   .score-elapsed { margin-left: auto; font-size: var(--fs-11); color: var(--text-secondary); font-family: 'Consolas', monospace; }
   .score-track { height: 22px; background: var(--border); border-radius: var(--radius-xs); overflow: hidden; }
