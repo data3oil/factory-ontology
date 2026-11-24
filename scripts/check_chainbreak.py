@@ -43,6 +43,7 @@ import os
 import re
 import sys
 import json
+import glob
 import argparse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -51,6 +52,8 @@ WEB_DIR = os.path.join(ROOT, "web")
 SKIP_DIRS = {"node_modules", ".git", "dist", "__pycache__"}
 
 ROUTE_RE = re.compile(r'@app\.(get|post|put|delete|patch)\(\s*"([^"]+)"')
+# 路由族（codes/routes/*_routes.py）用 @router.* 声明，路径本身带 /api 前缀，无 APIRouter prefix
+ROUTER_RE = re.compile(r'@router\.(get|post|put|delete|patch)\(\s*"([^"]+)"')
 BFF_ROUTE_RE = re.compile(r"""url\s*===?\s*['"](/api/[^'"]*)['"]|url\.startsWith\(\s*['"](/api/[^'"]*)['"]""")
 ONT_FUNC_RE = re.compile(r'export\s+(?:async\s+)?function\s+(\w+)')
 API_TOKEN_RE = re.compile(r'/api/[A-Za-z0-9_/*.\-]*')
@@ -105,9 +108,18 @@ def _web_files(exclude_server=False):
 
 
 def parse_backend_routes():
+    """后端真实路由 = api_server.py 的 @app.* + routes/*_routes.py 的 @router.*。
+
+    为什么扫第二个来源：12 个路由族已拆进 codes/routes/，由 api_server.py 用
+    importlib + include_router 动态挂载。只扫 @app.* 会把真实存在的端点误报成
+    「后端无此路由」——门一旦经常假红，真断链就淹在噪音里，等于没有门。
+    """
     out = set()
     for m in ROUTE_RE.finditer(_read(API_SERVER)):
         out.add((m.group(1).upper(), m.group(2)))
+    for path in sorted(glob.glob(os.path.join(ROOT, "codes", "routes", "*_routes.py"))):
+        for m in ROUTER_RE.finditer(_read(path)):
+            out.add((m.group(1).upper(), m.group(2)))
     return sorted(out, key=lambda x: x[1])
 
 

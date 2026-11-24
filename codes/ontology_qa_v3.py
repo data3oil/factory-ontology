@@ -1898,6 +1898,24 @@ def _entity_count(q, data, D):
 
 def answer(q, data, D):
     """词典 D 驱动的通用问答。"""
+    # 入参校验与空白归一——两处都是实测会崩/会误拒的地方：
+    #   · q 传 None → 下游正则抛 TypeError: expected string or bytes-like object；
+    #   · data 传错形状 → AttributeError: 'list' object has no attribute 'values'；
+    #   · "有多少台  设备"（中间两个空格）/ 制表符 → 一路掉到"暂不支持"，而同一句话单空格能答。
+    # 外部集成方拿到的是 Python 异常而不是可读错误，属于接口边界缺陷，这里收口。
+    if not isinstance(q, str):
+        raise ValueError("问题必须是字符串，收到 %s" % type(q).__name__)
+    if not isinstance(data, dict):
+        raise ValueError("data 必须是 {表名: [行dict]}，收到 %s" % type(data).__name__)
+    q = q.strip()
+    # 中文问句里的空白一律去掉（"有多少台  设备" 与 "有多少台设备" 是同一句话）；
+    # 英文问句只折叠成单空格，避免把含空格的列名（capacity l）粘成 capacityl。
+    if re.search(r"[\u4e00-\u9fff]", q):
+        q = re.sub(r"\s+", "", q)
+    else:
+        q = re.sub(r"\s+", " ", q)
+    if not q:
+        return MISS_ANSWER
     aliases = D.get("field_aliases", {})
     cn2cn = D.get("attr_en2cn", {})
 
