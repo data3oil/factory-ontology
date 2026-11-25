@@ -285,6 +285,21 @@ def main():
         print("结果: FAIL（%d 项）" % len(FAILS))
         for s, m in FAILS:
             print("  - [%s] %s" % (s, m))
+        # 偶发红留现场：这一门 2026-11-25 出现过一次不可复现的失败。
+        # 失败时把环境与明细落盘，下次直接比对，不靠反复重跑猜。
+        try:
+            from datetime import datetime as _dt
+            _dump = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "_qa_envelope_fail_%s.json"
+                                 % _dt.now().strftime("%Y%m%d_%H%M%S"))
+            with open(_dump, "w", encoding="utf-8") as _fh:
+                json.dump({"ts": _dt.now().isoformat(timespec="seconds"),
+                           "python": sys.executable, "cwd": os.getcwd(),
+                           "argv": sys.argv, "fails": FAILS,
+                           "summary": summary}, _fh, ensure_ascii=False, indent=1)
+            print("失败现场已留档: %s" % _dump)
+        except Exception as _e:      # 留档失败不能盖住真正的红
+            print("失败现场留档失败: %s" % _e)
         return 1
     print("结果: PASS  题%d 可答%d 命中%d 无答案%d（hit=true 均有 evidence；无答案零编造）"
           % (summary["total"], summary["answerable"], summary["hit"], summary["noans"]))
