@@ -292,6 +292,84 @@ def build_data(triples, dict_data):
 
 # ------------------------------------------------------------------ 通用工具
 
+# data 级索引缓存：键是 data 对象身份（is 判定），显式持有 data 引用防地址复用。
+# 上限 8 条，超出按插入顺序 FIFO 淘汰。
+_DATA_INDEX_CACHE = []   # [(data, idx)]，FIFO；dict 不可哈希，键一律用 is 比对
+_DATA_INDEX_CACHE_MAX = 8
+
+
+def _data_index(data):
+    """返回 data 的类名索引：{"cls": {类名小写: (首个实例键, 实例dict)}, "n": 实例总数}。
+
+    同一份 data 只算一次；命中条件必须是 cached_data is data。
+    用 list 而非 dict 作容器：dict 不可哈希，且按 is 比对本来就不该走哈希。
+    """
+    for cached_data, idx in _DATA_INDEX_CACHE:
+        if cached_data is data:
+            return idx
+    cls = {}
+    n = 0
+    for key, rec in data.items():
+        n += 1
+        if not isinstance(rec, dict):
+            continue
+        low = str(key).lower()
+        if low not in cls:
+            cls[low] = (key, rec)
+    idx = {"cls": cls, "n": n}
+    if len(_DATA_INDEX_CACHE) >= _DATA_INDEX_CACHE_MAX:
+        _DATA_INDEX_CACHE.pop(0)
+    _DATA_INDEX_CACHE.append((data, idx))
+    return idx
+
+
+# _field 归一化兜底缓存：键是 rec 对象身份，上限 4096，FIFO 淘汰。
+_NORM_CACHE = {}   # id(rec) -> (rec, view)；用 id 做桶、命中后再用 is 校验，避免线性扫
+_NORM_CACHE_MAX = 4096
+
+
+def _norm_rec(rec):
+    """rec 的 {去下划线小写键: 值} 归一化视图。
+
+    缓存按 id(rec) 分桶、命中后用 is 复核：rec 是 dict 不可哈希，但直接用 list 线性扫
+    在 4 万次调用下会退化成 O(n²)（实测 53k 三元组从 0.34 s 恶化到 4.37 s），这里用 id 桶。
+    """
+    k = id(rec)
+    hit = _NORM_CACHE.get(k)
+    if hit is not None and hit[0] is rec:
+        return hit[1]
+    view = {kk.replace("_", "").lower(): v for kk, v in rec.items()}
+    if len(_NORM_CACHE) >= _NORM_CACHE_MAX:
+        _NORM_CACHE.pop(next(iter(_NORM_CACHE)))
+    _NORM_CACHE[k] = (rec, view)
+    return view
+
+
+# 别名候选键缓存：同一 canonical 的「别名列表 + 驼峰形态 + 归一化名」只算一次。
+# 实测 53k 三元组时 _field 被调 46 000 次，驼峰拼接占其自身耗时的大头——
+# 它对每个 (canonical) 都是常量，不该按记录重算。
+_CAND_CACHE = {}   # (canonical, id(aliases)) -> (aliases, (alias_list, camel_list, canon_norm))
+_CAND_CACHE_MAX = 256
+
+
+def _cand_keys(canonical, aliases):
+    """返回 (alias_list, camel_list, canon_norm)，按 (canonical, 词典对象身份) 缓存。"""
+    k = (canonical, id(aliases))
+    hit = _CAND_CACHE.get(k)
+    if hit is not None and hit[0] is aliases:
+        return hit[1]
+    alias_list = aliases.get(canonical) or [canonical]
+    camel_list = []
+    for alias in alias_list:
+        parts = [p for p in alias.replace("-", "_").split("_") if p]
+        camel_list.append(parts[0] + "".join(p.capitalize() for p in parts[1:]))
+    val = (list(alias_list), camel_list, canonical.replace("_", "").lower())
+    if len(_CAND_CACHE) >= _CAND_CACHE_MAX:
+        _CAND_CACHE.pop(next(iter(_CAND_CACHE)))
+    _CAND_CACHE[k] = (aliases, val)
+    return val
+
+
 def _field(rec, canonical, aliases):
     """按字段别名取标准字段值。canonical 如 status/deviceType/deviceName/location。
     别名找不到时，兜底匹配 csv_to_owl 驼峰化后的字段名(pump_status→pumpStatus)。
@@ -299,18 +377,16 @@ def _field(rec, canonical, aliases):
     aliases = aliases or {}   # None 安全：调用方传过 None，否则 None.get 抛异常被吞成"有 0 台"
     # 也要兜空列表：词典里 field_aliases['status'] 可能是 []（valve 实测如此），
     # .get(k, default) 对"存在但为空"不生效 → 循环一次不进 → 取空 → 状态过滤答 0。
-    for alias in (aliases.get(canonical) or [canonical]):
+    alias_list, camel_list, canon_norm = _cand_keys(canonical, aliases)
+    for alias in alias_list:
         if alias in rec:
             return rec[alias]
-    # 驼峰兜底: 对每个别名尝试驼峰化
-    for alias in (aliases.get(canonical) or [canonical]):
-        parts = [p for p in alias.replace("-", "_").split("_") if p]
-        camel = parts[0] + "".join(p.capitalize() for p in parts[1:])
+    # 驼峰兜底: 对每个别名尝试驼峰化（结果已缓存，不再按记录重拼）
+    for camel in camel_list:
         if camel in rec:
             return rec[camel]
     # 大小写不敏感归一化兜底: 字段名去下划线+小写后匹配(expiry_days↔expiryDays)
-    canon_norm = canonical.replace("_", "").lower()
-    rn = {k.replace("_", "").lower(): v for k, v in rec.items()}
+    rn = _norm_rec(rec)
     if canon_norm in rn:
         return rn[canon_norm]
     # 唯一前缀兜底：内置别名把"功率"映射成泛化字段 power，而实际列是 powerKw。
@@ -902,9 +978,8 @@ def _class_cn_aliases(cls_name, data, D):
     if len(cn) >= 2:
         names.append(cn)
     # 该类第一个实例的 *Name 字段：bookName → 图书名称 → 去掉"名称"剩「图书」
-    for key, rec in data.items():
-        if not str(key).lower().startswith(str(cls_name).lower()):
-            continue
+    _hit = _data_index(data)["cls"].get(str(cls_name).lower())
+    for key, rec in ([_hit] if _hit else []):
         if not isinstance(rec, dict):
             continue
         for f in rec:
@@ -1067,14 +1142,8 @@ def _enum_value_in_data(q, data, aliases):
     这里改成看数据：类型列里哪个取值原样出现在问句里，就是它。
     纯数字取值不参与（"1" 会命中任何带数字的问句）。
     """
-    cands = set()
-    for d in data.values():
-        for f in ("deviceType", "device_type", "type", "Type", "category", "kind"):
-            v = _field(d, f, aliases)
-            v = str(v or "").strip()
-            if v and v != "未知" and len(v) <= 8 and not re.fullmatch(r"[\d.]+", v):
-                cands.add(v)
-    for v in sorted(cands, key=len, reverse=True):
+    cands = _enum_cands(data, aliases)
+    for v in cands:
         if v in q:
             return v, v
     return None, None
@@ -1095,6 +1164,32 @@ def _value_variants(v):
     if len(stem) >= 2 and stem != v:
         out.add("在" + stem)
     return out
+
+
+# 枚举候选值缓存：候选集只取决于 (data, aliases)，与问句无关。
+# 实测 53k 三元组时这轮全表扫描（记录 × 6 个候选字段）占 answer 的三分之一，
+# 而它对同一份 data 是常量——按 data 对象身份缓存，问句侧只留下"值是否出现在 q 里"。
+_ENUM_CANDS_CACHE = []   # [(data, aliases, sorted_cands)]，FIFO，上限 8 条
+_ENUM_CANDS_CACHE_MAX = 8
+
+
+def _enum_cands(data, aliases):
+    """从数据里认出可能的类型值（按长度降序，保证长值优先匹配）。"""
+    for c_data, c_al, cands in _ENUM_CANDS_CACHE:
+        if c_data is data and c_al is aliases:
+            return cands
+    found = set()
+    for d in data.values():
+        for f in ("deviceType", "device_type", "type", "Type", "category", "kind"):
+            v = _field(d, f, aliases)
+            v = str(v or "").strip()
+            if v and v != "未知" and len(v) <= 8 and not re.fullmatch(r"[\d.]+", v):
+                found.add(v)
+    cands = sorted(found, key=len, reverse=True)
+    if len(_ENUM_CANDS_CACHE) >= _ENUM_CANDS_CACHE_MAX:
+        _ENUM_CANDS_CACHE.pop(0)
+    _ENUM_CANDS_CACHE.append((data, aliases, cands))
+    return cands
 
 
 _VEQ_SAMPLE = 2000      # 建"列→取值"索引时最多看这么多行
