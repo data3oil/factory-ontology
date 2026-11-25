@@ -1,0 +1,185 @@
+{
+  "kb": "food",
+  "n": 29,
+  "hit": 8,
+  "rate": 0.2759,
+  "by_type": {
+    "count": {
+      "hit": 0,
+      "n": 5
+    },
+    "enum": {
+      "hit": 2,
+      "n": 10
+    },
+    "extreme": {
+      "hit": 2,
+      "n": 5
+    },
+    "aggregate": {
+      "hit": 1,
+      "n": 4
+    },
+    "filter": {
+      "hit": 3,
+      "n": 5
+    }
+  },
+  "stage_dist": {
+    "wrong_table": 9,
+    "refuse": 12
+  },
+  "miss": [
+    {
+      "q": "batches有多少条记录",
+      "type": "count",
+      "expect": "9",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "equipment有多少条记录",
+      "type": "count",
+      "expect": "7",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "products有多少条记录",
+      "type": "count",
+      "expect": "8",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "qc有多少条记录",
+      "type": "count",
+      "expect": "10",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials有多少条记录",
+      "type": "count",
+      "expect": "10",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "batches的produce_date有哪些",
+      "type": "enum",
+      "expect": "2026-07-05、2026-07-06、2026-07-07、2026-07-08、2026-07-09",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "batches的team有哪些",
+      "type": "enum",
+      "expect": "一班、三班、二班",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "equipment的workshop有哪些",
+      "type": "enum",
+      "expect": "乳品车间、冷冻车间、冷藏库、包装车间、烘焙车间",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "equipment的status有哪些",
+      "type": "enum",
+      "expect": "running、stopped",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "qc的result有哪些",
+      "type": "enum",
+      "expect": "不合格、合格",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "qc的checker有哪些",
+      "type": "enum",
+      "expect": "张三、李四、王五",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials的status有哪些",
+      "type": "enum",
+      "expect": "idle、running、stopped",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials的qc_result有哪些",
+      "type": "enum",
+      "expect": "不合格、合格",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "batches中quantity最大是多少",
+      "type": "extreme",
+      "expect": "3000.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "equipment中power_kw最大是多少",
+      "type": "extreme",
+      "expect": "200.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials中stock_qty最大是多少",
+      "type": "extreme",
+      "expect": "1500.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "batches的quantity总计是多少",
+      "type": "aggregate",
+      "expect": "14700.0",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "equipment的power_kw总计是多少",
+      "type": "aggregate",
+      "expect": "525.0",
+      "got": "符合条件共 24 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "raw_materials的stock_qty总计是多少",
+      "type": "aggregate",
+      "expect": "6650.0",
+      "got": "符合条件共 26 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "batches中produce_date为2026-07-07的有多少条",
+      "type": "filter",
+      "expect": "2",
+      "got": "符合条件共 45 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "raw_materials中status为running的有多少条",
+      "type": "filter",
+      "expect": "7",
+      "got": "有 20 个running的",
+      "stage": "wrong_table"
+    }
+  ],
+  "p50_ms": 3.8,
+  "engine": "ontology_qa_v3.answer (in-process)",
+  "question_source": "eval_hit_rate.gen_questions（CSV 原始表名/列名口径）",
+  "ts": "2026-11-25 08:57:45"
+}

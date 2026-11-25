@@ -1,0 +1,109 @@
+{
+  "kb": "chem",
+  "n": 28,
+  "hit": 18,
+  "rate": 0.6429,
+  "by_type": {
+    "count": {
+      "hit": 2,
+      "n": 4
+    },
+    "enum": {
+      "hit": 6,
+      "n": 8
+    },
+    "extreme": {
+      "hit": 4,
+      "n": 8
+    },
+    "aggregate": {
+      "hit": 2,
+      "n": 4
+    },
+    "filter": {
+      "hit": 4,
+      "n": 4
+    }
+  },
+  "stage_dist": {
+    "refuse": 7,
+    "wrong_table": 2,
+    "entity_miss": 1
+  },
+  "miss": [
+    {
+      "q": "batches有多少条记录",
+      "type": "count",
+      "expect": "5",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials有多少条记录",
+      "type": "count",
+      "expect": "5",
+      "got": "符合条件共 7 条",
+      "stage": "wrong_table"
+    },
+    {
+      "q": "batches的产品编号有哪些",
+      "type": "enum",
+      "expect": "P001、P002、P004、P005",
+      "got": "产品有：\n阿维菌素乳油、井冈霉素、苏云金杆菌粉剂、高效氯氟氰菊酯、草甘膦水剂、乙基多杀菌素、精喹禾灵",
+      "stage": "entity_miss"
+    },
+    {
+      "q": "raw_materials的name有哪些",
+      "type": "enum",
+      "expect": "乳化剂、二甲苯溶剂、苏云金杆菌菌种、阿维菌素原药、黄原胶",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "设备中capacity_l最大是多少",
+      "type": "extreme",
+      "expect": "10000.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "设备中pressure_mpa最大是多少",
+      "type": "extreme",
+      "expect": "2.5",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials中stock_kg最大是多少",
+      "type": "extreme",
+      "expect": "8000.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials中price_per_kg最大是多少",
+      "type": "extreme",
+      "expect": "1500.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "设备的capacity_l总计是多少",
+      "type": "aggregate",
+      "expect": "22000.0",
+      "got": "暂不支持该问题",
+      "stage": "refuse"
+    },
+    {
+      "q": "raw_materials的stock_kg总计是多少",
+      "type": "aggregate",
+      "expect": "16700.0",
+      "got": "符合条件共 3 条",
+      "stage": "wrong_table"
+    }
+  ],
+  "p50_ms": 2.3,
+  "engine": "ontology_qa_v3.answer (in-process)",
+  "question_source": "eval_hit_rate.gen_questions（CSV 原始表名/列名口径）",
+  "ts": "2026-11-25 08:57:45"
+}

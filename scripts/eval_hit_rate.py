@@ -1,5 +1,9 @@
 """轻量本体问答 · 评测集生成 + 命中率基线（P0 研究有效性核心）。
 
+⚠ 口径声明（2026-11-25 加）：本脚本用 **CSV 原始表名/列名** 提问（"batches有多少条记录"），
+逼引擎自己走词典映射——这是对外唯一可引用的口径。另一套 `eval_qa_baseline` 用建库时的
+中文名出题、引擎也查同一套名字，属于**自证口径**，不能当能力证明。
+
 为什么要它：没有对照实验，"本体提升检索命中率"只是假设，不是结论。
 本脚本做三件事（全部确定性，零人工标注）：
   1. 从真实 CSV 数据确定性地生成 5 类问题 + golden 答案（答案由数据算出，不靠人写）
@@ -134,6 +138,49 @@ def ask(question, kb, base=(os.environ.get("FACTORY_API_BASE") or "http://127.0.
     return str(dd.get("answer") or dd.get("text") or ""), dt
 
 
+STAGES = ("refuse", "zero_row", "entity_miss", "wrong_table", "partial",
+          "agg_mismatch", "value_mismatch")
+
+
+def classify_stage(q, answer, lex_entity=None, lex_attr=None):
+    """未命中归因：确定性判档，不调模型。
+
+    为什么必须分档：只报"命中率 28%"没法改——是词表没覆盖表名？聚合不支持？
+    还是答了个 0（语法对但零行的静默失败）？档位不同，修法完全不同。
+    """
+    a = (answer or "").strip()
+    if not a or "暂不支持" in a:
+        return "refuse"
+    gold_num = q.get("golden_num")
+    nums = [float(x) for x in re.findall(r"-?\d+(?:\.\d+)?", a.replace(",", ""))]
+    # 零行静默：答了个 0，而金标不是 0 —— 最危险的一类，执行不报错但没有结果
+    if gold_num is not None and abs(float(gold_num)) >= 1 and nums and all(abs(n) < 1e-9 for n in nums):
+        return "zero_row"
+    # 词表未覆盖：问句里直接出现原始表名/列名，而词典没有中英映射
+    ent = lex_entity or {}
+    attr = lex_attr or {}
+    raw = [t for t in re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", q.get("q", ""))]
+    if raw and ent is not None:
+        for tok in raw:
+            if tok not in ent and tok not in attr:
+                # 给了数字 = 答了**另一张表**的数（用户看不出错，比拒答更危险）；
+                # 没给数字 = 干脆没认出来。两者修法不同，必须分开。
+                return "wrong_table" if nums else "entity_miss"
+    return _tail_stage(q, a, nums)
+    return _tail_stage(q, a, nums)
+
+
+def _tail_stage(q, a, nums):
+    """非词表类的兜底归因：部分命中 / 聚合错 / 数值不符。"""
+    if q.get("check") == "contains_all":
+        vals = [str(v) for v in (q.get("golden_vals") or [])]
+        if any(v in a for v in vals):
+            return "partial"
+    if q.get("type") in ("extreme", "aggregate"):
+        return "agg_mismatch"
+    return "value_mismatch"
+
+
 def judge(q, answer):
     """判分：答案里是否出现 golden。确定性比对，不调模型。"""
     if q["check"] == "num":
@@ -220,7 +267,10 @@ def main():
         if ok:
             hit += 1
         else:
-            miss.append({"q": q["q"], "golden": q["golden"], "answer": ans[:150], "type": q["type"]})
+            miss.append({"q": q["q"], "type": q["type"],
+                         "expect": q.get("golden"),
+                         "got": ans[:150],
+                         "stage": classify_stage(q, ans)})
 
     rate = hit / len(qs) if qs else 0
     print()
@@ -236,12 +286,20 @@ def main():
         print()
         print(f"未命中 {len(miss)} 题（前 8 条）:")
         for m in miss[:8]:
-            print(f"  [{m['type']:9s}] {m['q']}")
-            print(f"        golden={str(m['golden'])[:60]}  实际={m['answer'][:90]}")
+            print(f"  [{m['type']:9s}|{m['stage']:14s}] {m['q']}")
+            print(f"        期望={str(m['expect'])[:60]}  实际={m['got'][:90]}")
+        from collections import Counter
+        stage_dist = dict(Counter(m["stage"] for m in miss))
+        print()
+        print("未命中归因:")
+        for k, v in sorted(stage_dist.items(), key=lambda x: -x[1]):
+            print(f"  {k:16s} {v}")
     out = a.out or os.path.join(ROOT, "scripts", f"eval_result_{a.kb}.json")
     with open(out, "w", encoding="utf-8") as f:
+        from collections import Counter
         json.dump({"kb": a.kb, "n": len(qs), "hit": hit, "rate": rate,
                    "by_type": by_type, "miss": miss,
+                   "stage_dist": dict(Counter(m["stage"] for m in miss)),
                    "ts": time.strftime("%Y-%m-%d %H:%M:%S")}, f, ensure_ascii=False, indent=2)
     print(f"\n结果落盘: {out}")
     return 0

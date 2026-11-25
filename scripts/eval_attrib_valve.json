@@ -1,0 +1,34 @@
+{
+  "kb": "valve",
+  "n": 42,
+  "hit": 42,
+  "rate": 1.0,
+  "by_type": {
+    "count": {
+      "hit": 7,
+      "n": 7
+    },
+    "enum": {
+      "hit": 12,
+      "n": 12
+    },
+    "extreme": {
+      "hit": 10,
+      "n": 10
+    },
+    "aggregate": {
+      "hit": 6,
+      "n": 6
+    },
+    "filter": {
+      "hit": 7,
+      "n": 7
+    }
+  },
+  "stage_dist": {},
+  "miss": [],
+  "p50_ms": 0.2,
+  "engine": "ontology_qa_v3.answer (in-process)",
+  "question_source": "eval_hit_rate.gen_questions（CSV 原始表名/列名口径）",
+  "ts": "2026-11-25 08:57:45"
+}

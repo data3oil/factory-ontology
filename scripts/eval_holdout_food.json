@@ -1,0 +1,114 @@
+{
+  "holdouts": [
+    {
+      "kb": "food",
+      "questions": 44,
+      "zero": {
+        "total": 44,
+        "answerable": 35,
+        "hit": 34,
+        "miss": 1,
+        "wrong": 0,
+        "noans": 9,
+        "refuse_ok": 9,
+        "fabricate": 0,
+        "empty_zero": 0,
+        "hit_rate": 0.9714,
+        "miss_rate": 0.0286,
+        "wrong_rate": 0.0
+      },
+      "public": {
+        "total": 44,
+        "answerable": 35,
+        "hit": 35,
+        "miss": 0,
+        "wrong": 0,
+        "noans": 9,
+        "refuse_ok": 9,
+        "fabricate": 0,
+        "empty_zero": 0,
+        "hit_rate": 1.0,
+        "miss_rate": 0.0,
+        "wrong_rate": 0.0
+      },
+      "pooled": {
+        "total": 44,
+        "answerable": 35,
+        "hit": 29,
+        "miss": 2,
+        "wrong": 4,
+        "noans": 9,
+        "refuse_ok": 9,
+        "fabricate": 0,
+        "empty_zero": 0,
+        "hit_rate": 0.8286,
+        "miss_rate": 0.0571,
+        "wrong_rate": 0.1143
+      },
+      "self": {
+        "total": 44,
+        "answerable": 35,
+        "hit": 35,
+        "miss": 0,
+        "wrong": 0,
+        "noans": 9,
+        "refuse_ok": 9,
+        "fabricate": 0,
+        "empty_zero": 0,
+        "hit_rate": 1.0,
+        "miss_rate": 0.0,
+        "wrong_rate": 0.0
+      },
+      "gain_pooled": -0.1428,
+      "gain_public": 0.0286,
+      "gain_pooled_vs_public": -0.1714,
+      "headroom": 0.0
+    }
+  ],
+  "donors": [
+    "ai4i",
+    "appliance",
+    "auto_parts",
+    "bellows",
+    "chem",
+    "demo_power",
+    "eco",
+    "electronics",
+    "energy_station",
+    "furniture",
+    "hardware",
+    "library",
+    "machining",
+    "manufacturing",
+    "medical_dev",
+    "plastics",
+    "seismic",
+    "ship",
+    "textile",
+    "valve"
+  ],
+  "min_donor": 1,
+  "skipped": [],
+  "modes": {
+    "zero": {
+      "hit": 34,
+      "answerable": 35,
+      "hit_rate": 0.9714
+    },
+    "public": {
+      "hit": 35,
+      "answerable": 35,
+      "hit_rate": 1.0
+    },
+    "pooled": {
+      "hit": 29,
+      "answerable": 35,
+      "hit_rate": 0.8286
+    },
+    "self": {
+      "hit": 35,
+      "answerable": 35,
+      "hit_rate": 1.0
+    }
+  }
+}

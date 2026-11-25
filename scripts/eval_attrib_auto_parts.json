@@ -1,0 +1,44 @@
+{
+  "kb": "auto_parts",
+  "n": 25,
+  "hit": 24,
+  "rate": 0.96,
+  "by_type": {
+    "count": {
+      "hit": 4,
+      "n": 4
+    },
+    "enum": {
+      "hit": 8,
+      "n": 8
+    },
+    "extreme": {
+      "hit": 6,
+      "n": 6
+    },
+    "aggregate": {
+      "hit": 3,
+      "n": 3
+    },
+    "filter": {
+      "hit": 3,
+      "n": 4
+    }
+  },
+  "stage_dist": {
+    "zero_row": 1
+  },
+  "miss": [
+    {
+      "q": "客户中编号为C001的有多少条",
+      "type": "filter",
+      "expect": "1",
+      "got": "符合条件共 0 条",
+      "stage": "zero_row"
+    }
+  ],
+  "p50_ms": 0.2,
+  "engine": "ontology_qa_v3.answer (in-process)",
+  "question_source": "eval_hit_rate.gen_questions（CSV 原始表名/列名口径）",
+  "ts": "2026-11-25 08:57:45"
+}
