@@ -299,15 +299,19 @@ _DATA_INDEX_CACHE_MAX = 8
 
 
 def _data_index(data):
-    """返回 data 的类名索引：{"cls": {类名小写: (首个实例键, 实例dict)}, "n": 实例总数}。
+    """返回 data 的索引：{"cls": {完整实例key小写: (键, 实例)}, "by_class": {类名小写: (键, 实例)}, "n": 实例总数}。
 
+    cls 按完整 key 索引（供精确查找）；by_class 按类名前缀索引（去掉末尾实例号，
+    与 _class_prefixes 同一口径），供 _class_cn_aliases 用类名取代表实例。
+    两者都要：2026-11-25 的性能优化只建了 cls，_class_cn_aliases 拿类名去查 cls
+    永远落空，energy/library 的「设备」「图书」别名丢失，4 道题从命中退化成拒答。
     同一份 data 只算一次；命中条件必须是 cached_data is data。
-    用 list 而非 dict 作容器：dict 不可哈希，且按 is 比对本来就不该走哈希。
     """
     for cached_data, idx in _DATA_INDEX_CACHE:
         if cached_data is data:
             return idx
     cls = {}
+    by_class = {}
     n = 0
     for key, rec in data.items():
         n += 1
@@ -316,7 +320,10 @@ def _data_index(data):
         low = str(key).lower()
         if low not in cls:
             cls[low] = (key, rec)
-    idx = {"cls": cls, "n": n}
+        prefix = low.rsplit("_", 1)[0]
+        if prefix and prefix not in by_class:
+            by_class[prefix] = (key, rec)
+    idx = {"cls": cls, "by_class": by_class, "n": n}
     if len(_DATA_INDEX_CACHE) >= _DATA_INDEX_CACHE_MAX:
         _DATA_INDEX_CACHE.pop(0)
     _DATA_INDEX_CACHE.append((data, idx))
@@ -978,7 +985,8 @@ def _class_cn_aliases(cls_name, data, D):
     if len(cn) >= 2:
         names.append(cn)
     # 该类第一个实例的 *Name 字段：bookName → 图书名称 → 去掉"名称"剩「图书」
-    _hit = _data_index(data)["cls"].get(str(cls_name).lower())
+    # 按类名前缀取，不能用完整实例 key（cls）—— cls_name 传的是类名，不是 key。
+    _hit = _data_index(data)["by_class"].get(str(cls_name).lower())
     for key, rec in ([_hit] if _hit else []):
         if not isinstance(rec, dict):
             continue
