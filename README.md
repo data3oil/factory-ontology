@@ -1,30 +1,10 @@
 # factory-ontology
 
-> ⭐ **觉得有用就给我们一个 Star** —— 开源维护靠社区支持，你的 Star 让这个项目被更多人看见。
-> [![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology?style=social)](https://github.com/data3oil/factory-ontology)
-
 **工厂本体驱动的数据问答框架。** 把结构化台账变成可自然语言提问的语义知识图谱，CSV 进，答案出，每个答案都带证据。
 
 [![Version](https://img.shields.io/badge/version-0.6.3-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![CI](https://github.com/data3oil/factory-ontology/actions/workflows/ci.yml/badge.svg)](https://github.com/data3oil/factory-ontology/actions)
-[![GitHub stars](https://img.shields.io/github/stars/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
-[![GitHub forks](https://img.shields.io/github/forks/data3oil/factory-ontology)](https://github.com/data3oil/factory-ontology)
-
-**它能帮你解决**：
-- 🏭 **数据看不懂** → 业务人员用自然语言问"报警的空压机有几台"，不用 SQL
-- 🔍 **信息难找** → 台账/MES/ERP 数据秒变可问答知识图谱
-- 📊 **答案可溯源** → 每个回答带证据，不靠模型瞎编
-- 🔒 **数据不出厂** → 本地建模本地问答，甲方数据不上云
-
-**30 秒上手**：`cd codes && python run.py setup-schema data_valve config/ontology_schema.json valve && python run.py ask "有多少台设备"`
-
-**在真实工厂里跑起来**：三油科技（data3oil.com）用这套原子在石油石化、精细化工、阀门制造等现场做落地实施——从 CSV 台账建模，到现场人员用自然语言问数据，到答案带证据回到决策桌上。想看这套东西在真实约束下怎么用（数据脏、没人标、验收没标准），以及人机分工怎么设计，读 [官网案例](https://www.data3oil.com) 或公众号「AI驱动数字化转型」。
-
-大模型很聪明，但它不认识你的数据表。把台账直接丢给 LLM，它编起数字来理直气壮。这个仓库的做法很朴素：先让数据自己说话，再让模型在数据划定的圈子里回答。本体就是这个圈子。
-
-> **原子化定位**：本仓库是**本体认知原子**底座（schema 驱动建模 + 公理集与小型推理机 + 规则问答 + 本体约束），并组合提供 **rag 原子**（本体引导 GraphRAG + 向量混合检索）与 **事件原子**（数据变更事件），共同构成一套可复用、可组合、可被闭源侧编排的**开源算法原子层**。换工厂只换「域」（数据/词典/schema），原子代码不动。
 
 ## 看看它跑起来的样子（真实输出）
 
@@ -71,6 +51,54 @@ $ python axiom_reason.py --nt output/valve.nt --schema config/ontology_schema_va
 台账变成能对话的图谱，每个答案都能对上原始记录。这就是"CSV 进，答案出，带证据"。推理机推出来的每条新事实都带「由哪条公理、从哪几条推的」，不是黑箱。
 
 > 上面四段输出都是在本仓库的干净检出上实跑的结果，可以逐字复现；问答的顺序可能因哈希遍历不同略有差异，条数与内容不会变。
+
+## 目录
+
+- [看看它跑起来的样子（真实输出）](#看看它跑起来的样子真实输出)
+- [工厂本体是什么](#工厂本体是什么)
+- [它解决什么问题](#它解决什么问题)
+- [面对中小企业：为什么这么设计](#面对中小企业为什么这么设计)
+- [思路：本体是受限的 schema](#思路本体是受限的-schema)
+- [与主流路线的区别](#与主流路线的区别)
+- [检索：确定性优先的降级链](#检索确定性优先的降级链)
+- [公理集与小型推理机：把「跨表关系」写成人能读的规则](#公理集与小型推理机把跨表关系写成人能读的规则)
+- [本体自定义与自演进：把本体的运维交回企业自己](#本体自定义与自演进把本体的运维交回企业自己)
+- [落地路线：七步从零到被使用](#落地路线七步从零到被使用)
+- [快速开始](#快速开始)
+- [公共工业本体词典](#公共工业本体词典)
+- [核心概念](#核心概念)
+- [架构](#架构)
+- [数据](#数据)
+- [REST API](#rest-api)
+- [Web 前端](#web-前端)
+- [实测数据](#实测数据)
+- [评测基线与自检门](#评测基线与自检门)
+- [模型配置](#模型配置)
+- [设计原则](#设计原则)
+- [文档](#文档)
+- [一键启动](#一键启动)
+- [贡献指南](#贡献指南)
+- [版本](#版本)
+- [开源与闭源：开源算法原子层 + 闭源编排层](#开源与闭源开源算法原子层--闭源编排层)
+- [诚实边界](#诚实边界)
+- [License](#license)
+- [⭐ 支持这个项目](#-支持这个项目)
+- [谁在用](#谁在用)
+- [谁在维护](#谁在维护)
+
+**它能帮你解决**：
+- 🏭 **数据看不懂** → 业务人员用自然语言问"报警的空压机有几台"，不用 SQL
+- 🔍 **信息难找** → 台账/MES/ERP 数据秒变可问答知识图谱
+- 📊 **答案可溯源** → 每个回答带证据，不靠模型瞎编
+- 🔒 **数据不出厂** → 本地建模本地问答，甲方数据不上云
+
+**30 秒上手**：`cd codes && python run.py setup-schema data_valve config/ontology_schema.json valve && python run.py ask "有多少台设备"`
+
+**在真实工厂里跑起来**：三油科技（data3oil.com）用这套原子在石油石化、精细化工、阀门制造等现场做落地实施——从 CSV 台账建模，到现场人员用自然语言问数据，到答案带证据回到决策桌上。想看这套东西在真实约束下怎么用（数据脏、没人标、验收没标准），以及人机分工怎么设计，读 [官网案例](https://www.data3oil.com) 或公众号「AI驱动数字化转型」。
+
+大模型很聪明，但它不认识你的数据表。把台账直接丢给 LLM，它编起数字来理直气壮。这个仓库的做法很朴素：先让数据自己说话，再让模型在数据划定的圈子里回答。本体就是这个圈子。
+
+> **原子化定位**：本仓库是**本体认知原子**底座（schema 驱动建模 + 公理集与小型推理机 + 规则问答 + 本体约束），并组合提供 **rag 原子**（本体引导 GraphRAG + 向量混合检索）与 **事件原子**（数据变更事件），共同构成一套可复用、可组合、可被闭源侧编排的**开源算法原子层**。换工厂只换「域」（数据/词典/schema），原子代码不动。
 
 ## 工厂本体是什么
 
@@ -466,7 +494,7 @@ data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自
 | `axiom_reason.py` | **小型推理机**：RDFS 继承 / domain-range / 属性链 / 单值 / 不相交 / 业务规则，半朴素前向链跑到不动点，零依赖，每条新事实带 justification |
 | `axiom_service.py` | 公理集四件事：按跨行业种子 `generate` / 结构校验后 `save` / `run` 推理落盘 / `answer` 接问答 |
 | `config/axioms/` | `_seed.json`（角色种子）+ 各库 `<kb>.json`（人可改的公理集，前端改的就是它） |
-| `routes/` | 按域拆分的路由族（`axiom_routes.py` 等 **11 族**），`api_server.py` 只做装配 |
+| `routes/` | 按域拆分的路由族（`axiom_routes.py` 等 **12 族**），`api_server.py` 只做装配 |
 | `logical_qa.py` | 逻辑推理桥：LLM 转逻辑查询后确定性执行 |
 | `knowledge/`（ingest/embed/store/rag）| **rag 原子**：文档切块、embedding、入库、检索 |
 | `graph_rag.py` | 本体引导 GraphRAG：建图、同义词扩展、种子定位、子图检索、LLM 生成 |
@@ -477,7 +505,7 @@ data_loader → schema_ontology（schema 驱动统一建模 + suggest_schema 自
 
 周边能力（2.x 时代沉淀，保留可用）：`csv_to_owl.py`/`multi_table.py`（无 schema 的单表/多表建本体兼容路径）、`evidence.py`（证据提取）、`mcp_server.py`（MCP server，AI agent 可调用）、`voice_assistant.py`（语音助手）、`data_import.py`/`data_quality.py`/`monitor.py`（数据接入/质量校验/看门狗）、`new_kb.py`（新知识库骨架）、`agents/lexicon_agent.py`（自动词典生成）、`config/`（模型配置 + 词典 + schema + 多租户/SSO 配置）。
 
-> `graph_store.py`（SQLite 图持久化）已在「代码极简化」重构中移除，**当前代码树不含该实现**。`docs/规模化.md` 里的升级路径与 20 万实体实测是历史设计记录，不要照着跑命令。
+> `graph_store.py`（SQLite 图持久化）曾在「代码极简化」重构中移除，2026-11-20 已恢复并优化。`docs/规模化.md` 记着 5 万实体（25 万三元组）实测：解析 `.nt` 1.10s、落库 2.78s、加载 3.89s；加载仍慢于直接解析，小库继续走内存图。复跑 `python scripts/bench_graph_store.py --n 50000`。20 万实体本机未跑完，脚本支持 `--n 200000`。
 
 商业化鉴权与自助建模（v0.4.0）：`tenant.py`（多租户解析 + 请求级租户上下文）、`db_dialect.py`/`db_loader.py`（行级隔离单点，缺租户 fail-closed）、`token_guard.py`（令牌吊销 / 刷新轮替 / 限速状态层）、`sso.py`（SSO/OIDC-JWT 适配器，LDAP 为接口占位）、`audit_chain.py`（哈希链审计账本，带 tenant）、`schema_ontology.py` 的类层次 / 定义 / 具名子类派生内核、`config/tenants.json` + `config/sso.example.json`（配置样例，真实配置 gitignore）。
 
@@ -568,7 +596,7 @@ python api_server.py          # http://localhost:8000
 
 工程化能力：角色化鉴权（`FOOD_ADMIN_KEY`/`FOOD_READ_KEY`，默认 fail-closed：未配置或 key 不匹配一律 401；key 可走环境变量或 `config/api_keys.json`）、多租户与行级隔离（`config/tenants.json` 租户注册表 + 数据访问层强制租户条件，缺上下文 fail-closed）、严格鉴权灰度开关（`FOOD_STRICT_AUTH`，默认关）、上传体积上限（`FOOD_MAX_UPLOAD_MB`，默认 50MB，超限 413 且不落盘）、令牌吊销 / 刷新轮替 / 限速防爆破（`POST /api/auth/revoke|refresh|ban|unban`）、SSO/OIDC(JWT) 可选适配器（`codes/sso.py`，本地凭据优先）、增量重建（数据 hash 检测，变了才重建）、Docker 一条命令部署（`docker compose up -d`）、结构化日志 + 哈希链审计账本。
 
-全库 `/api` 路由 **67 条**（`scripts/check_route_reachability.py` 的统计口径：前端可达 14、测试/文档可达 59、allowlist 5；前两项是同一批路由上的**重叠子集**（一条路由可同时被前端与测试引用），第三项是 allowlist 文件条目数，三者口径不同，**不能相加**，无新增断链）。路由族按域拆在 `codes/routes/`，`api_server.py` 只做装配。
+全库 `/api` 路由 **71 条**（`scripts/check_route_reachability.py` 的统计口径：前端可达 16、测试/文档可达 63、allowlist 6；前两项是同一批路由上的**重叠子集**（一条路由可同时被前端与测试引用），第三项是 allowlist 文件条目数，三者口径不同，**不能相加**，无新增断链）。路由族按域拆在 `codes/routes/`，`api_server.py` 只做装配。
 
 ## Web 前端
 
@@ -597,7 +625,7 @@ npm start            # http://localhost:3001
 
 > 这张表用的是 `benchmark.py` 的题集（ai4i 61 题等），与下一节 `scripts/eval_qa.py` 的 331 题是**两套不同的评测集**，题目数与判分口径都不同，不要混用。
 
-其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；**pytest 261 项全过 + 2 项 skip（CI 与本地自检门都跑这条）**。公理推理：valve 17 条公理推出 194 条、food 23 条公理推出 22 条，两轮内到不动点，纯标准库。（20 万实体 SQLite 图持久化是 2.x 时代的历史实测，实现已移除，不计入当前能力。）
+其他验证：GraphRAG 开放式问题 8/8；同义词容错 8/8；**pytest 261 项全过 + 2 项 skip（CI 与本地自检门都跑这条）**。公理推理：valve 17 条公理推出 194 条、food 23 条公理推出 22 条，两轮内到不动点，纯标准库。（图持久化 `graph_store.py` 已恢复，5 万实体实测见[规模化](docs/规模化.md)，加载仍慢于内存图。）
 
 复现：
 
@@ -733,10 +761,10 @@ start.bat      # Windows
 
 - **能力边界**：规则引擎覆盖结构化查询（数量/极值/平均/过滤/范围/计数）；开放式/关系/模糊问题走 GraphRAG 或 LLM 兜底，命中率不保证
 - **本体定位**：轻量 JSON schema + 一层人可读的公理集，**不是 W3C OWL/RDFS 完整推理体系**。推理机只做前向链（RDFS 继承 / domain-range / 属性链 / 单值 / 不相交 / 业务规则），没有反向链、没有 sameAs、不做基数求解；撞到矛盾只报告不修；产物写 `output/reason/` 与 `closure.nt`，**不写回** `output/<kb>.nt`
-- **公理集覆盖面**：种子靠表名里的词认角色，认不出的行业生成的是空公理集 + 一条跳过原因，不硬编。目前只有 valve / food 两个库实际生成并验证过推理效果（+194 / +22 条），其余 19 个注册库还没跑过 `generate`
+- **公理集覆盖面**：种子靠表名里的词认角色，认不出的行业生成的是空公理集 + 一条跳过原因，不硬编。21 个注册库里 5 个已有分库公理集文件（valve / food / chem / bellows / seismic），但只有 valve / food 实际跑出并验证过推理效果（+194 / +22 条），其余 16 个还没有分库公理集文件
 - **命名空间处理**：数据里「类」和「对象属性」不在同一个 `#` 前缀时（食品库就是这样），按局部名做**唯一**匹配回退到数据里真实的 IRI，回退明细写进报告的 `prefix_fallbacks`；有歧义就不推
 - **数据形态**：最适配结构化台账（单表/多表 CSV）；不处理非结构化文本，无大规模语义检索（种子定位是子串匹配 + 同义词扩展）
-- **规模**：内存图为主，台账级；SQLite 图持久化（`graph_store.py`）已在重构中移除，当前代码树**没有** 10 万–100 万实体的过渡方案，`docs/规模化.md` 保留的是历史设计记录，不适合百万级实体图
+- **规模**：内存图为主，台账级（≤10 万实体）；SQLite 图持久化（`graph_store.py`）已恢复但加载仍慢于直接解析，小库继续走内存图；20 万实体本机未跑完，**没有**百万级实体方案，详见 `docs/规模化.md`
 - **词典校对**：自动词典偶有误判，关键字段需人工确认；本体自演进的候选质量取决于提取器——LLM 不可用时降级为 n-gram 滑窗，会切出「已入库」「华北」这类碎片，必须人工筛；本仓库内该能力目前只经自检门验证，尚未沉淀真实并入成果（现有别名仍来自正常建库与人工维护）
 - **LLM 稳定性**：本地小模型偶发空响应，生产建议用更强模型
 - **鉴权**：严格鉴权开关（`FOOD_STRICT_AUTH`）**默认关闭**——默认部署下本体结构与图端点仍可匿名读；多进程/多实例部署下，令牌吊销名单与限速计数为本地状态文件，**多实例不共享**；MySQL/PostgreSQL 行级隔离**只有代码、未在真库验证**；LDAP 适配器仅为接口占位（未实现）；SSO 只落地 JWT 直验（HS256 / RS256），未做完整 OAuth2 授权码流程
