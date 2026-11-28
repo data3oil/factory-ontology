@@ -388,6 +388,18 @@ def envelope_from_result(result, kb_name="知识库"):
     except Exception as _adv_err:
         # 接线失败不静默：如实写进返回值，免得界面看着像没事。
         out["advisory_error"] = "%s: %s" % (type(_adv_err).__name__, _adv_err)
+    # ── P0 证据链判定层（2026-11-28）：默认关闭，只增 advisory.evidence_chain ──
+    # 未设 FACTORY_EVIDENCE_CHAIN=1 时 judge() 返回 None，下面整段是 no-op，
+    # 输出与接线前逐字段一致（与 advisory 层同一纪律）。启用时只挂诊断字段，
+    # 绝不碰 hit/answer/evidence（attach_evidence_chain 内有运行期红线闸）。
+    try:
+        import evidence_chain as _ec
+        _chain = _ec.judge(out)
+        if _chain is not None:
+            from model_advisory import attach_evidence_chain as _attach_chain
+            out = _attach_chain(out, _chain)
+    except Exception as _ec_err:
+        out["evidence_chain_error"] = "%s: %s" % (type(_ec_err).__name__, _ec_err)
     # 证据层融合（2026-11-11）：只新增 evidence_cites / evidence_verdict 两个键；
     # 未建库时本调用是 no-op，输出与接线前逐字段一致。
     out = attach_evidence_cites(out)

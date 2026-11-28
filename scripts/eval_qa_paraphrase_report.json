@@ -1,0 +1,1110 @@
+{
+  "kind": "paraphrase_independent",
+  "count": 116,
+  "skipped": 215,
+  "totals": {
+    "hit": 80,
+    "miss": 0,
+    "wrong": 0,
+    "refuse_ok": 36,
+    "fabricate": 0,
+    "empty_zero": 0
+  },
+  "per_kb": {
+    "ai4i": {
+      "n": 13,
+      "hit": 8,
+      "wrong": 0,
+      "miss": 0
+    },
+    "auto_parts": {
+      "n": 17,
+      "hit": 13,
+      "wrong": 0,
+      "miss": 0
+    },
+    "chem": {
+      "n": 13,
+      "hit": 8,
+      "wrong": 0,
+      "miss": 0
+    },
+    "energy_station": {
+      "n": 15,
+      "hit": 11,
+      "wrong": 0,
+      "miss": 0
+    },
+    "food": {
+      "n": 16,
+      "hit": 12,
+      "wrong": 0,
+      "miss": 0
+    },
+    "library": {
+      "n": 9,
+      "hit": 4,
+      "wrong": 0,
+      "miss": 0
+    },
+    "manufacturing": {
+      "n": 16,
+      "hit": 12,
+      "wrong": 0,
+      "miss": 0
+    },
+    "valve": {
+      "n": 17,
+      "hit": 12,
+      "wrong": 0,
+      "miss": 0
+    }
+  },
+  "note": "独立口径，禁止与 eval_qa 250 题混算",
+  "details": [
+    {
+      "id": "ai4i-001",
+      "kb": "ai4i",
+      "question": "共有多少台机器",
+      "source_question": "有多少台机器",
+      "expect": "10000",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-025",
+      "kb": "ai4i",
+      "question": "机器的类型都包括哪些",
+      "source_question": "机器的类型有哪些",
+      "expect": "H、L、M",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-026",
+      "kb": "ai4i",
+      "question": "机器的类型一共有多少种",
+      "source_question": "机器的类型有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-027",
+      "kb": "ai4i",
+      "question": "机器的机器故障都包括哪些",
+      "source_question": "机器的机器故障有哪些",
+      "expect": "0、1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-028",
+      "kb": "ai4i",
+      "question": "机器的机器故障一共有多少种",
+      "source_question": "机器的机器故障有多少种",
+      "expect": "2",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-029",
+      "kb": "ai4i",
+      "question": "H类机器共有多少台",
+      "source_question": "H类机器有多少台",
+      "expect": "1003",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-030",
+      "kb": "ai4i",
+      "question": "L类机器共有多少台",
+      "source_question": "L类机器有多少台",
+      "expect": "6000",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-031",
+      "kb": "ai4i",
+      "question": "M类机器共有多少台",
+      "source_question": "M类机器有多少台",
+      "expect": "2997",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "ai4i-032",
+      "kb": "ai4i",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "ai4i-034",
+      "kb": "ai4i",
+      "question": "总共有多少个订单",
+      "source_question": "有多少个订单",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "ai4i-036",
+      "kb": "ai4i",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "ai4i-038",
+      "kb": "ai4i",
+      "question": "总共有多少个供应商",
+      "source_question": "有多少个供应商",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "ai4i-040",
+      "kb": "ai4i",
+      "question": "总共有多少个批次",
+      "source_question": "有多少个批次",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-001",
+      "kb": "auto_parts",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "12",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-013",
+      "kb": "auto_parts",
+      "question": "产品的产品类型都包括哪些",
+      "source_question": "产品的产品类型有哪些",
+      "expect": "冷却件、制动件、发动机件、底盘件",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-014",
+      "kb": "auto_parts",
+      "question": "产品的产品类型一共有多少种",
+      "source_question": "产品的产品类型有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-015",
+      "kb": "auto_parts",
+      "question": "产品的材质都包括哪些",
+      "source_question": "产品的材质有哪些",
+      "expect": "ABS、不锈钢、冷轧板、实木、硅胶、铝合金",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-016",
+      "kb": "auto_parts",
+      "question": "产品的材质一共有多少种",
+      "source_question": "产品的材质有多少种",
+      "expect": "6",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-017",
+      "kb": "auto_parts",
+      "question": "产品的状态都包括哪些",
+      "source_question": "产品的状态有哪些",
+      "expect": "停产、在产、试产",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-018",
+      "kb": "auto_parts",
+      "question": "产品的状态一共有多少种",
+      "source_question": "产品的状态有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-019",
+      "kb": "auto_parts",
+      "question": "停产的产品都包括哪些",
+      "source_question": "停产的产品有哪些",
+      "expect": "曲轴、活塞",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-020",
+      "kb": "auto_parts",
+      "question": "在产的产品都包括哪些",
+      "source_question": "在产的产品有哪些",
+      "expect": "水泵总成、刹车片、曲轴、未知、减震器",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-021",
+      "kb": "auto_parts",
+      "question": "试产的产品都包括哪些",
+      "source_question": "试产的产品有哪些",
+      "expect": "减震器",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-022",
+      "kb": "auto_parts",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "10",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-031",
+      "kb": "auto_parts",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "焊接设备、装配设备、铸造设备",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-032",
+      "kb": "auto_parts",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-036",
+      "kb": "auto_parts",
+      "question": "总共有多少个供应商",
+      "source_question": "有多少个供应商",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-038",
+      "kb": "auto_parts",
+      "question": "总共有多少个质检",
+      "source_question": "有多少个质检",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-040",
+      "kb": "auto_parts",
+      "question": "总共有多少个锅炉",
+      "source_question": "有多少个锅炉",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "auto_parts-042",
+      "kb": "auto_parts",
+      "question": "总共有多少个员工",
+      "source_question": "有多少个员工",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "chem-001",
+      "kb": "chem",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "7",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-013",
+      "kb": "chem",
+      "question": "产品的品类都包括哪些",
+      "source_question": "产品的品类有哪些",
+      "expect": "化学农药、生物农药、除草剂",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-014",
+      "kb": "chem",
+      "question": "产品的品类一共有多少种",
+      "source_question": "产品的品类有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-015",
+      "kb": "chem",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "7",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-029",
+      "kb": "chem",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "分离设备、反应设备、干燥设备、换热设备、生物反应设备",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-030",
+      "kb": "chem",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "5",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-031",
+      "kb": "chem",
+      "question": "原料的类型都包括哪些",
+      "source_question": "原料的类型有哪些",
+      "expect": "助剂、原药、溶剂、菌种",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-032",
+      "kb": "chem",
+      "question": "原料的类型一共有多少种",
+      "source_question": "原料的类型有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "chem-036",
+      "kb": "chem",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "chem-038",
+      "kb": "chem",
+      "question": "总共有多少个订单",
+      "source_question": "有多少个订单",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "chem-040",
+      "kb": "chem",
+      "question": "总共有多少个催化剂",
+      "source_question": "有多少个催化剂",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "chem-042",
+      "kb": "chem",
+      "question": "总共有多少个阀门",
+      "source_question": "有多少个阀门",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "chem-044",
+      "kb": "chem",
+      "question": "总共有多少个电池",
+      "source_question": "有多少个电池",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "energy_station-001",
+      "kb": "energy_station",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "10",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-018",
+      "kb": "energy_station",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "储能电池、冷却机组、变压器、柴油发电、燃气轮机、逆变器、锅炉、风力发电",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-019",
+      "kb": "energy_station",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "8",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-020",
+      "kb": "energy_station",
+      "question": "设备的状态都包括哪些",
+      "source_question": "设备的状态有哪些",
+      "expect": "alarm、idle、running、stopped",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-021",
+      "kb": "energy_station",
+      "question": "设备的状态一共有多少种",
+      "source_question": "设备的状态有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-022",
+      "kb": "energy_station",
+      "question": "alarm的设备都包括哪些",
+      "source_question": "alarm的设备有哪些",
+      "expect": "燃气轮机-03",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-023",
+      "kb": "energy_station",
+      "question": "idle的设备都包括哪些",
+      "source_question": "idle的设备有哪些",
+      "expect": "柴油发电机-备用",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-024",
+      "kb": "energy_station",
+      "question": "running的设备都包括哪些",
+      "source_question": "running的设备有哪些",
+      "expect": "燃气轮机-01、蒸汽锅炉-1、风力发电机-01、变压器-主、燃气轮机-02、光伏逆变器-1、储能电池-01",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-025",
+      "kb": "energy_station",
+      "question": "储能电池类设备共有多少台",
+      "source_question": "储能电池类设备有多少台",
+      "expect": "1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-026",
+      "kb": "energy_station",
+      "question": "冷却机组类设备共有多少台",
+      "source_question": "冷却机组类设备有多少台",
+      "expect": "1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-027",
+      "kb": "energy_station",
+      "question": "变压器类设备共有多少台",
+      "source_question": "变压器类设备有多少台",
+      "expect": "1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "energy_station-028",
+      "kb": "energy_station",
+      "question": "总共有多少个洗衣机",
+      "source_question": "有多少个洗衣机",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "energy_station-030",
+      "kb": "energy_station",
+      "question": "总共有多少个空调",
+      "source_question": "有多少个空调",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "energy_station-032",
+      "kb": "energy_station",
+      "question": "总共有多少个员工",
+      "source_question": "有多少个员工",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "energy_station-034",
+      "kb": "energy_station",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "food-001",
+      "kb": "food",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "8",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-013",
+      "kb": "food",
+      "question": "产品的品类都包括哪些",
+      "source_question": "产品的品类有哪些",
+      "expect": "乳制品、果汁饮品、烘焙食品、速冻食品",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-014",
+      "kb": "food",
+      "question": "产品的品类一共有多少种",
+      "source_question": "产品的品类有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-015",
+      "kb": "food",
+      "question": "产品的储存方式都包括哪些",
+      "source_question": "产品的储存方式有哪些",
+      "expect": "-18℃冷冻、2-6℃冷藏、常温避光、常温阴凉",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-016",
+      "kb": "food",
+      "question": "产品的储存方式一共有多少种",
+      "source_question": "产品的储存方式有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-017",
+      "kb": "food",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "7",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-024",
+      "kb": "food",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "制冷设备、包装设备、搅拌设备、杀菌设备、灌装设备、烘烤设备、速冻设备",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-025",
+      "kb": "food",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "7",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-026",
+      "kb": "food",
+      "question": "设备的车间都包括哪些",
+      "source_question": "设备的车间有哪些",
+      "expect": "乳品车间、冷冻车间、冷藏库、包装车间、烘焙车间",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-027",
+      "kb": "food",
+      "question": "设备的车间一共有多少种",
+      "source_question": "设备的车间有多少种",
+      "expect": "5",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-028",
+      "kb": "food",
+      "question": "running的设备都包括哪些",
+      "source_question": "running的设备有哪些",
+      "expect": "灌装机-01、烘焙炉-1、冷库机组-01、搅拌罐-1、杀菌机-01、速冻隧道-1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-029",
+      "kb": "food",
+      "question": "stopped的设备都包括哪些",
+      "source_question": "stopped的设备有哪些",
+      "expect": "封口机-01",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "food-036",
+      "kb": "food",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "food-038",
+      "kb": "food",
+      "question": "总共有多少个订单",
+      "source_question": "有多少个订单",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "food-040",
+      "kb": "food",
+      "question": "总共有多少个供应商",
+      "source_question": "有多少个供应商",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "food-042",
+      "kb": "food",
+      "question": "总共有多少个阀门",
+      "source_question": "有多少个阀门",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "library-018",
+      "kb": "library",
+      "question": "图书的类型都包括哪些",
+      "source_question": "图书的类型有哪些",
+      "expect": "历史、文学、物理、科幻、科技、计算机",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "library-019",
+      "kb": "library",
+      "question": "图书的类型一共有多少种",
+      "source_question": "图书的类型有多少种",
+      "expect": "6",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "library-020",
+      "kb": "library",
+      "question": "图书的出版社都包括哪些",
+      "source_question": "图书的出版社有哪些",
+      "expect": "中信出版社、人民文学出版社、人民邮电出版社、作家出版社、机械工业出版社、清华大学出版社、湖南科学技术出版社、重庆出版社、高等教育出版社",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "library-021",
+      "kb": "library",
+      "question": "图书的出版社一共有多少种",
+      "source_question": "图书的出版社有多少种",
+      "expect": "9",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "library-025",
+      "kb": "library",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "library-027",
+      "kb": "library",
+      "question": "总共有多少个订单",
+      "source_question": "有多少个订单",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "library-029",
+      "kb": "library",
+      "question": "总共有多少个设备",
+      "source_question": "有多少个设备",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "library-031",
+      "kb": "library",
+      "question": "总共有多少个员工",
+      "source_question": "有多少个员工",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "library-033",
+      "kb": "library",
+      "question": "总共有多少个作者",
+      "source_question": "有多少个作者",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-001",
+      "kb": "manufacturing",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "5",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-008",
+      "kb": "manufacturing",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "加工中心、机器人、检测设备、焊接设备",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-009",
+      "kb": "manufacturing",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-010",
+      "kb": "manufacturing",
+      "question": "设备的状态都包括哪些",
+      "source_question": "设备的状态有哪些",
+      "expect": "idle、running、stopped",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-011",
+      "kb": "manufacturing",
+      "question": "设备的状态一共有多少种",
+      "source_question": "设备的状态有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-012",
+      "kb": "manufacturing",
+      "question": "idle的设备都包括哪些",
+      "source_question": "idle的设备有哪些",
+      "expect": "质检仪-01",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-013",
+      "kb": "manufacturing",
+      "question": "running的设备都包括哪些",
+      "source_question": "running的设备有哪些",
+      "expect": "CNC铣床-1、CNC铣床-2、装配机器人-1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-014",
+      "kb": "manufacturing",
+      "question": "stopped的设备都包括哪些",
+      "source_question": "stopped的设备有哪些",
+      "expect": "焊机-1",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-017",
+      "kb": "manufacturing",
+      "question": "产线的区域都包括哪些",
+      "source_question": "产线的区域有哪些",
+      "expect": "机加车间、装配车间、质检车间",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-018",
+      "kb": "manufacturing",
+      "question": "产线的区域一共有多少种",
+      "source_question": "产线的区域有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-021",
+      "kb": "manufacturing",
+      "question": "供应商的所在地都包括哪些",
+      "source_question": "供应商的所在地有哪些",
+      "expect": "上海、德国、日本",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-022",
+      "kb": "manufacturing",
+      "question": "供应商的所在地一共有多少种",
+      "source_question": "供应商的所在地有多少种",
+      "expect": "3",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-025",
+      "kb": "manufacturing",
+      "question": "总共有多少个客户",
+      "source_question": "有多少个客户",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-027",
+      "kb": "manufacturing",
+      "question": "总共有多少个订单",
+      "source_question": "有多少个订单",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-029",
+      "kb": "manufacturing",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "manufacturing-031",
+      "kb": "manufacturing",
+      "question": "总共有多少个锅炉",
+      "source_question": "有多少个锅炉",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "valve-001",
+      "kb": "valve",
+      "question": "总共有多少个产品",
+      "source_question": "有多少个产品",
+      "expect": "8",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-013",
+      "kb": "valve",
+      "question": "产品的类型都包括哪些",
+      "source_question": "产品的类型有哪些",
+      "expect": "安全阀、截止阀、止回阀、球阀、蝶阀、闸阀",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-014",
+      "kb": "valve",
+      "question": "产品的类型一共有多少种",
+      "source_question": "产品的类型有多少种",
+      "expect": "6",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-015",
+      "kb": "valve",
+      "question": "产品的压力等级都包括哪些",
+      "source_question": "产品的压力等级有哪些",
+      "expect": "PN10、PN16、PN25、PN40",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-016",
+      "kb": "valve",
+      "question": "产品的压力等级一共有多少种",
+      "source_question": "产品的压力等级有多少种",
+      "expect": "4",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-017",
+      "kb": "valve",
+      "question": "产品的阀体材质都包括哪些",
+      "source_question": "产品的阀体材质有哪些",
+      "expect": "CF8(304)、CF8M(316)、WCB、灰铸铁、球墨铸铁",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-018",
+      "kb": "valve",
+      "question": "产品的阀体材质一共有多少种",
+      "source_question": "产品的阀体材质有多少种",
+      "expect": "5",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-019",
+      "kb": "valve",
+      "question": "产品的连接方式都包括哪些",
+      "source_question": "产品的连接方式有哪些",
+      "expect": "对夹、法兰",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-020",
+      "kb": "valve",
+      "question": "产品的连接方式一共有多少种",
+      "source_question": "产品的连接方式有多少种",
+      "expect": "2",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-021",
+      "kb": "valve",
+      "question": "共有多少台设备",
+      "source_question": "有多少台设备",
+      "expect": "10",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-031",
+      "kb": "valve",
+      "question": "设备的设备类型都包括哪些",
+      "source_question": "设备的设备类型有哪些",
+      "expect": "机加设备、焊接设备、表面处理设备、装配设备、试压设备、铸造设备",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-032",
+      "kb": "valve",
+      "question": "设备的设备类型一共有多少种",
+      "source_question": "设备的设备类型有多少种",
+      "expect": "6",
+      "bucket": "hit",
+      "ok": true
+    },
+    {
+      "id": "valve-040",
+      "kb": "valve",
+      "question": "总共有多少个洗衣机",
+      "source_question": "有多少个洗衣机",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "valve-042",
+      "kb": "valve",
+      "question": "总共有多少个机器人",
+      "source_question": "有多少个机器人",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "valve-044",
+      "kb": "valve",
+      "question": "总共有多少个员工",
+      "source_question": "有多少个员工",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "valve-046",
+      "kb": "valve",
+      "question": "总共有多少个催化剂",
+      "source_question": "有多少个催化剂",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    },
+    {
+      "id": "valve-048",
+      "kb": "valve",
+      "question": "总共有多少个卡车",
+      "source_question": "有多少个卡车",
+      "expect": "拒答(库中无此实体)",
+      "bucket": "refuse_ok",
+      "ok": true
+    }
+  ]
+}

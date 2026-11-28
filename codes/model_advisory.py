@@ -368,6 +368,39 @@ def attach_if_enabled(result, question=None, kb_name=""):
     return out
 
 
+def attach_evidence_chain(result, chain=None):
+    """证据链判定层（可选、只增字段、绝不改结论）。
+
+    P0 判定层（2026-11-28）：把"哪些候选构成当前答案的证据链"作为诊断字段
+    挂到 advisory.evidence_chain 上。复用本模块既有的默认关闭 / 红线纪律：
+
+    1. chain 为 None（默认态）→ 原样返回入参对象，逐字段零变化；
+    2. result 不是 dict → 原样返回；
+    3. chain 非 dict / 空 → 原样返回（宁可没有诊断，也不编造）；
+    4. 挂载时：浅拷贝 result 与 advisory，只写 advisory["evidence_chain"]，
+       不碰 answer / hit / evidence / coverage 等任何既有字段；
+    5. 运行期红线闸：若 answer 或 hit 与入参不一致 → 丢弃该字段并写
+       advisory_error（说明判定层越权，不能让它成为新真相源）。
+
+    本函数不自行调用模型、不读环境变量；是否计算 chain 由调用方决定，
+    这样默认路径完全不受影响。
+    """
+    if not isinstance(result, dict) or not isinstance(chain, dict) or not chain:
+        return result
+    before_answer = result.get("answer")
+    before_hit = result.get("hit")
+    out = dict(result)
+    adv = out.get("advisory")
+    adv = dict(adv) if isinstance(adv, dict) else {}
+    adv["evidence_chain"] = chain
+    out["advisory"] = adv
+    if out.get("answer") != before_answer or out.get("hit") != before_hit:
+        adv.pop("evidence_chain", None)
+        out["advisory_error"] = "证据链判定层篡改了 answer/hit，已丢弃 evidence_chain"
+        _set_error(out["advisory_error"])
+    return out
+
+
 def model_advisory_status():
     """自检/运维用状态快照（只读，不改任何东西）。"""
     cfg = _load_config()

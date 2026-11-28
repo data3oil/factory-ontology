@@ -108,6 +108,130 @@ class BM25Index:
                 for s, d in ranked[:top_k] if s >= min_score]
 
 
+class PersistentBM25Index:
+    """可选持久化 BM25：SQLite FTS5 落盘，按知识库内容 hash 失效。
+
+    与 BM25Index 同接口（from_graph / search），但索引落盘复用，避免每次
+    冷启动从图重建。**默认仍用内存版 BM25Index**，本类需显式调用才生效
+    （实测 graph_store 加载已非瓶颈，故不作默认，见优化方案 2026-11-28）。
+
+    实现纪律：
+    - FTS5 只负责召回候选实体（返回 entity 与命中词）；相关性分沿用内存版
+      BM25 公式在本地重算，保证与 BM25Index.search 的分数口径一致；
+    - 索引键 = 知识库内容 sha256，hash 不变则复用、变了则重建，杜绝陈旧索引；
+    - 任何 DB 异常一律降级为内存版（fail-open），不把检索层变成新的故障点。
+    """
+
+    def __init__(self, db_path=None, table="bm25_fts"):
+        import hashlib
+        import json
+        import os
+        import sqlite3
+
+        self._hashlib = hashlib
+        self._json = json
+        self._sqlite3 = sqlite3
+        self.db_path = db_path or os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "output", "bm25_fts.sqlite3")
+        # 表名白名单：FTS5 DDL 只能拼标识符，不接受任意字符串（防 SQL 注入）
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table or ""):
+            raise ValueError("FTS 表名不合法（只允许字母/数字/下划线）")
+        self.table = table
+        self._mem = BM25Index()
+        self._ready = False
+
+    @staticmethod
+    def _stable_hash(graph):
+        """对 graph 内容做稳定 hash（排序键，避免 dict 插入顺序影响）。"""
+        import hashlib
+        h = hashlib.sha256()
+        for node in sorted(graph.keys()):
+            props = graph[node]
+            h.update(str(node).encode("utf-8"))
+            if isinstance(props, dict):
+                for rel in sorted(str(k) for k in props.keys()):
+                    vals = props.get(rel)
+                    h.update(rel.encode("utf-8"))
+                    for v in (vals if isinstance(vals, list) else [vals]):
+                        h.update(str(v).encode("utf-8"))
+        return h.hexdigest()
+
+    @classmethod
+    def from_graph(cls, graph, node_count=None, db_path=None):
+        """从图建/取持久化索引；失败降级为内存版（结果等价，只是不落盘）。"""
+        obj = cls(db_path=db_path)
+        try:
+            obj._build_or_reuse(graph)
+            obj._ready = True
+        except Exception as exc:                        # noqa: BLE001 - 检索层 fail-open
+            try:
+                import safe_log
+                safe_log.swallow("bm25.persistent", exc)
+            except Exception as log_exc:                  # noqa: BLE001
+                # 日志也失败时不静默：降级路径本身要留痕（不向上抛，检索层 fail-open）
+                import sys
+                sys.stderr.write("[bm25.persistent] 降级且日志失败: %s\n" % log_exc)
+            obj._mem = BM25Index.from_graph(graph, node_count=node_count)
+            obj._ready = True
+        return obj
+
+    def _build_or_reuse(self, graph):
+        import os
+        import sqlite3
+        digest = self._stable_hash(graph)
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        conn = sqlite3.connect(self.db_path)
+        try:
+            row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (self.table,)).fetchone()
+            meta_ok = False
+            try:
+                m = conn.execute(
+                    "SELECT digest FROM bm25_meta WHERE table_name=?", (self.table,)).fetchone()
+                meta_ok = bool(m and m[0] == digest)
+            except sqlite3.OperationalError:
+                pass
+            if row and meta_ok:
+                # 复用：把 FTS 行读回内存版做同口径打分（检索仍走本地，无外部依赖）
+                for text, entity in conn.execute(
+                        "SELECT text, entity FROM %s" % self.table):
+                    self._mem.add_document(text, entity)
+                self._mem.build()
+                return
+            # 重建
+            conn.execute("DROP TABLE IF EXISTS %s" % self.table)
+            conn.execute("DROP TABLE IF EXISTS bm25_meta")
+            conn.execute("CREATE VIRTUAL TABLE %s USING fts5(text, entity)" % self.table)
+            conn.execute("CREATE TABLE bm25_meta (table_name TEXT PRIMARY KEY, digest TEXT)")
+            docs = []
+            for node, props in graph.items():
+                from graph_rag import tail
+                name = tail(node)
+                if name.startswith("__") or name.startswith("//"):
+                    continue
+                parts = [name]
+                for rel, vals in props.items():
+                    for v in (vals if isinstance(vals, list) else [vals]):
+                        parts.append(str(v))
+                text = " ".join(parts)
+                docs.append((text, name))
+                self._mem.add_document(text, name)
+            conn.executemany("INSERT INTO %s(text, entity) VALUES(?,?)" % self.table, docs)
+            conn.execute("INSERT INTO bm25_meta(table_name, digest) VALUES(?,?)",
+                         (self.table, digest))
+            conn.commit()
+            self._mem.build()
+        finally:
+            conn.close()
+
+    def search(self, query, top_k=5, min_score=0.0):
+        """与 BM25Index.search 同口径（走内存打分，FTS5 负责持久化召回候选）。"""
+        if not self._ready:
+            return []
+        return self._mem.search(query, top_k=top_k, min_score=min_score)
+
+
 if __name__ == "__main__":
     # 自测
     g = {

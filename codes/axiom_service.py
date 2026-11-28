@@ -595,7 +595,9 @@ def answer(question, kb):
                                   "value": v, "source": "axiom", "score": 0.9,
                                   "axiom": ch.get("id")} for v in vals],
                     "structured": {"rule": "axiom_chain", "axiom": ch.get("id"),
-                                   "direction": "forward"},
+                                   "direction": "forward",
+                                   "path": list(ch.get("path") or []),
+                                   "implies": ch.get("implies")},
                     "engines": ["axiom"],
                 }
             rev = [s for s, p, o in triples if p == prop and o == entity]
@@ -609,7 +611,9 @@ def answer(question, kb):
                                   "value": names.get(entity), "source": "axiom",
                                   "score": 0.85, "axiom": ch.get("id")} for v in vals],
                     "structured": {"rule": "axiom_chain", "axiom": ch.get("id"),
-                                   "direction": "reverse"},
+                                   "direction": "reverse",
+                                   "path": list(ch.get("path") or []),
+                                   "implies": ch.get("implies")},
                     "engines": ["axiom"],
                 }
 
