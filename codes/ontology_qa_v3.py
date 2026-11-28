@@ -1999,8 +1999,8 @@ def _entity_count(q, data, D):
     return "%s共有 %d 条记录" % (ent, len(rows))
 
 
-def answer(q, data, D):
-    """词典 D 驱动的通用问答。"""
+def _normalized_question(q, data):
+    """answer() 的入口校验与问句空白归一（行为保持抽取）。"""
     # 入参校验与空白归一——两处都是实测会崩/会误拒的地方：
     #   · q 传 None → 下游正则抛 TypeError: expected string or bytes-like object；
     #   · data 传错形状 → AttributeError: 'list' object has no attribute 'values'；
@@ -2017,11 +2017,11 @@ def answer(q, data, D):
         q = re.sub(r"\s+", "", q)
     else:
         q = re.sub(r"\s+", " ", q)
-    if not q:
-        return MISS_ANSWER
-    aliases = D.get("field_aliases", {})
-    cn2cn = D.get("attr_en2cn", {})
+    return q
 
+
+def _early_lookup_answer(q, data, D, aliases):
+    """规划器 + 关系/直查的早返回层；命中即返回，否则 None（行为保持抽取）。"""
     # P1 查询规划：条件计数 / 属性枚举 / 实体记录数，必须在关系查询之前。
     # 可用 FACTORY_QA_PLANNER=0 关闭，用于回归对比（关掉即回到改动前行为）。
     for _fn in ((_cond_count, _enum_attr_values, _entity_count)
@@ -2032,22 +2032,27 @@ def answer(q, data, D):
 
     # M15-9 关系类：与直查同层，理由同上——必须在任何兜底之前。
     # 先按本体 schema 走（domain/range 对得上就用那条边），再走旧的编号式关系问句。
-    _srel = _schema_rel_lookup(q, data, D)
-    if _srel:
-        return _srel
-    _lrel = _rel_list_lookup(q, data, D)
-    if _lrel:
-        return _lrel
-    _rel = _relation_lookup(q, data, D)
-    if _rel:
-        return _rel
-
-    # M15-8 直查：必须放在函数最前面。它原来被放在「类型枚举」分支内部
+    # M15-8 直查：必须放在关系类之后、兜底之前。它原来被放在「类型枚举」分支内部
     # （宿主 `if "类型" in q and ...`），所以直查问句根本走不到——改了四版都不生效，
     # 根因是位置不是逻辑。**改引擎先确认缩进层级。**
-    _direct = _device_attr_lookup(q, data, D, aliases)
-    if _direct:
-        return _direct
+    for _fn in (_schema_rel_lookup, _rel_list_lookup, _relation_lookup):
+        _r = _fn(q, data, D)
+        if _r:
+            return _r
+    return _device_attr_lookup(q, data, D, aliases) or None
+
+
+def answer(q, data, D):
+    """词典 D 驱动的通用问答。"""
+    q = _normalized_question(q, data)
+    if not q:
+        return MISS_ANSWER
+    aliases = D.get("field_aliases", {})
+    cn2cn = D.get("attr_en2cn", {})
+
+    _early = _early_lookup_answer(q, data, D, aliases)
+    if _early:
+        return _early
 
     # 计数量词：按问题中的实体词选合适量词（设备→台 / 测线→条 / 船→艘 / 项目→个 / 客户→家），缺省"个"。
     # 提到函数头: 组合模板(状态+类型)/状态计数/类型计数/实体总数 多处分摊使用。
